@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-31-stage3-action-gate-v38",
+  "version": "2026-08-03-map-space-clean-v56",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -109,6 +109,7 @@ window.GameScriptManifest = {
       "world-lore.js",
       "world-attributes.js",
       "character-profile-source.js",
+      "current-location-field.js",
       "character-reason-fallback.js",
       "character-profile-template-class.js",
       "appearance-profile-tags-config.js",

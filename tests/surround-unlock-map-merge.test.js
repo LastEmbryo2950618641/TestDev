@@ -34,6 +34,7 @@ async function main() {
   loadScript(context, 'publish/character-state-store.js');
   loadScript(context, 'publish/real-world-location-graph.js');
   loadScript(context, 'publish/real-world-map-fog.js');
+  loadScript(context, 'publish/storage.js');
 
   const mapApi = context.window.GameModules.realWorldMap;
   const fog = context.window.GameModules.realWorldMapFog;
@@ -67,6 +68,13 @@ async function main() {
     ],
     势力: ['中华人民共和国·四川省成都市·武侯区'],
     地点信息: ['1. 当前节点位于锦苑小区内部，为住宅楼栋。'],
+    当前完整位置: '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601室·刘思琪房间内',
+    位置信息: {
+      位置链: ['2单元', '601室', '刘思琪房间内'],
+      当前空间: '刘思琪房间内',
+      空间介绍: '少女卧室与休息空间',
+      物品: [{ 名称: '书桌', 位置: '靠窗。' }],
+    },
     出场人物位置: [],
   };
   const payload = fog.validateUnlockPayload(raw, anchor, map, 'full');
@@ -79,6 +87,17 @@ async function main() {
   assert.ok(std.edges.length >= 3, `expected route edges, got ${std.edges.length}`);
   assert.ok((state.realWorldMap.nodes || []).length >= 4, 'legacy big map must receive projected neighbors');
   assert.ok((state.realWorldMap.edges || []).length >= 3, 'legacy big map must receive projected edges');
+  assert.ok(state.realWorldMap.nodes.every((node) => node.graphNodeId), 'projected nodes must retain their graph identity');
+  const projectedAnchor = state.realWorldMap.nodes.find((node) => node.name === '锦苑小区3栋');
+  const persistedPositionInfo = Object.values(state.realWorldMap.positionInfoByPlace)[0];
+  assert.deepStrictEqual(Array.from(persistedPositionInfo.positionChain), ['2单元', '601室', '刘思琪房间内']);
+  assert.strictEqual(persistedPositionInfo.items[0].name, '书桌');
+  assert.ok(!projectedAnchor.positionInfo, 'position info must have one canonical persistence source');
+
+  const savedMap = context.window.GameModules.storage.snapshotPlainValue(state.realWorldMap);
+  const savedPositionInfo = Object.values(savedMap.positionInfoByPlace)[0];
+  assert.deepStrictEqual(Array.from(savedPositionInfo.positionChain), ['2单元', '601室', '刘思琪房间内']);
+  assert.strictEqual(savedPositionInfo.items[0].name, '书桌');
 
   // Persist contract: locationGraph must be snapshotable.
   const storageSource = read('publish/storage.js');
@@ -86,7 +105,7 @@ async function main() {
   const restoreSource = read('publish/domain/storage/restore-state-helpers.js');
   assert.ok(restoreSource.includes('store.locationGraph = this.rawLargeValue(save.locationGraph'));
 
-  console.log('PASS surround unlock projects into big map and persists locationGraph');
+  console.log('PASS surround unlock projects into big map and persists canonical position info');
 }
 
 main().catch((err) => {

@@ -54,7 +54,7 @@ function loadPlayerSetupDefaultsModule() {
         },
         jsonUtils: {
           generateJsonWithRetry: async () => ({
-            currentLocation: '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号',
+            currentLocation: '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号',
             refinedCity: '四川省-成都市-武侯区-锦苑小区-3栋-2单元601号',
           }),
         },
@@ -354,7 +354,7 @@ test('missing predefined player current location is inferred and written to card
 
   const location = await store.fillMissingPlayerCurrentLocationFromCard();
 
-  assert.strictEqual(location, '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号');
+  assert.strictEqual(location, '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号');
   assert.strictEqual(store.playerProfile.currentLocation, location);
   assert.strictEqual(card.currentLocation, location);
   assert.strictEqual(store.currentLocationFillState.status, 'done');
@@ -364,7 +364,7 @@ test('missing predefined player current location is inferred and written to card
 
 test('existing predefined player current location still shows progress dialog', async () => {
   const modules = loadPlayerSetupDefaultsModule();
-  const location = '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号';
+  const location = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号';
   const card = { id: 'player', name: '刘悠', birthday: '2000-01-01', currentLocation: location };
   const store = {
     playerProfile: { name: '刘悠', birthday: '2000-01-01', currentLocation: location },
@@ -381,9 +381,50 @@ test('existing predefined player current location still shows progress dialog', 
   assert.strictEqual(store.currentLocationFillState.percent, 100);
 });
 
+test('existing account confirmation finishes activation instead of returning to setup page', async () => {
+  const modules = loadPlayerSetupDefaultsModule();
+  modules.predefinedRoleCards = { saveSelectedRoleCardStates: async () => [] };
+  modules.characterStateStore = { save: async () => {} };
+  const location = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号';
+  let finished = false;
+  const store = {
+    playerProfile: { name: '刘悠', birthday: '1998-11-19', currentLocation: location },
+    playerName: '刘悠',
+    phoneActivationChoice: 'existing',
+    phoneSetupDone: false,
+    profileSetupBusy: false,
+    roleCardSetup: { usePredefinedPlayerCard: true },
+    rpgStates: {
+      'player-self': {
+        id: 'player-self',
+        name: '刘悠',
+        profile: { id: 'player-self', name: '刘悠', currentLocation: '' },
+        values: {},
+      },
+    },
+    selectedPlayerRoleCard: () => ({ id: 'player-self', name: '刘悠', currentLocation: location }),
+    playerAgeFromBirthday: modules.playerSetupActions.playerAgeFromBirthday || (() => 27),
+    syncRelationshipTextFromEntries() {},
+    refreshPhoneClockLabels() {},
+    syncPlayerProfileLexicon: async () => {},
+    syncKnownProfessionsFromProfile: async () => {},
+    save: async () => {},
+    finishActivationFlow: async () => { finished = true; },
+  };
+  Object.assign(store, modules.playerSetupActions);
+
+  await store.confirmPhoneActivationSetup();
+
+  assert.strictEqual(store.phoneSetupDone, true);
+  assert.strictEqual(store.phoneActivationChoice, '');
+  assert.strictEqual(store.homeScreenView, 'playing');
+  assert.strictEqual(store.setupError, '');
+  assert.strictEqual(finished, true);
+});
+
 test('predefined player current location is synced into identity state', async () => {
   const modules = loadPlayerSetupDefaultsModule();
-  const location = '中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号';
+  const location = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号';
   let savedState = null;
   modules.characterStateStore = {
     save: async (state) => {

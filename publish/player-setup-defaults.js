@@ -136,13 +136,21 @@ Object.assign(window.GameModules.playerSetupActions, {
 
   isCompletePlayerCurrentLocation(value = '', profile = {}) {
     const tool = window.GameModules.currentLocationField;
-    const parts = tool?.parts ? tool.parts(value) : String(value || '').split('·').map((part) => part.trim()).filter(Boolean);
-    if (parts.length < 6) return false;
-    const mapNode = String(parts.at(-2) || '').trim();
+    const normalized = this.normalizeCompletePlayerCurrentLocation?.(value) || '';
+    if (!normalized) return false;
+    const mapNode = tool?.mapNodeName ? tool.mapNodeName(normalized) : '';
     if (!mapNode || /未知|某处|某地|附近|一处|普通/u.test(mapNode)) return false;
     const name = String(profile?.name || '').trim();
     if (name && mapNode.includes(name)) return false;
     return !/房间|卧室|客厅|厨房|卫生间|书房|床位/u.test(mapNode);
+  },
+
+  normalizeCompletePlayerCurrentLocation(value = '') {
+    const tool = window.GameModules.currentLocationField;
+    const text = tool?.coerceToProfileFormat ? tool.coerceToProfileFormat(value) : String(value || '').trim();
+    const normalized = tool?.normalize ? tool.normalize(text) : String(text || '').trim();
+    if (tool?.isValidProfileFormat) return tool.isValidProfileFormat(normalized) ? normalized : '';
+    return normalized;
   },
 
   roleCardCurrentLocationContext(card = {}, profile = {}) {
@@ -211,16 +219,22 @@ Object.assign(window.GameModules.playerSetupActions, {
       error: '',
       cardName: card?.name || p.name || '',
     });
-    if (this.isCompletePlayerCurrentLocation(p.currentLocation, p)) {
+    const existingLocation = this.normalizeCompletePlayerCurrentLocation(p.currentLocation);
+    if (existingLocation && this.isCompletePlayerCurrentLocation(existingLocation, p)) {
+      this.playerProfile = { ...this.playerProfile, currentLocation: existingLocation };
+      if (card) {
+        card.currentLocation = existingLocation;
+        if (card.profile && typeof card.profile === 'object') card.profile.currentLocation = existingLocation;
+      }
       this.setCurrentLocationFillProgress({
         status: 'done',
         percent: 100,
         step: '当前位置已存在',
         detail: '玩家角色卡已有合格 currentLocation，已直接作为电子地图根节点来源。',
-        currentLocation: p.currentLocation,
+        currentLocation: existingLocation,
         finishedAt: Date.now(),
       });
-      return p.currentLocation;
+      return existingLocation;
     }
     const providerId = window.GameModules.aiProvider?.currentProviderId?.() || 'deepseek';
     const provider = window.GameModules.aiProvider?.currentProvider?.();
@@ -361,6 +375,7 @@ Object.assign(window.GameModules.playerSetupActions, {
       await this.syncPlayerCurrentLocationToIdentityState?.(this.playerProfile.currentLocation);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
       await this.save?.();
+      await this.finishActivationFlow?.();
       if (this.currentLocationFillState?.status === 'done') this.closeCurrentLocationFillProgress(450);
     } catch (err) {
       console.error('[玩家身份] 激活失败:', err.code, err.message, err.stack);

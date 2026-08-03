@@ -2066,6 +2066,7 @@ window.GameModules.orgTerritory = {
   },
 
   orgStatusLabel(faction = {}) {
+    faction = faction && typeof faction === 'object' ? faction : {};
     const status = this.normalizeOrgStatus(faction.status);
     const base = this.ORG_STATUS_LABELS[status] || status;
     const leg = faction.legitimacy === 'contested' ? '（合法性争议）' : (faction.legitimacy === 'unrecognized' ? '（未获承认）' : '');

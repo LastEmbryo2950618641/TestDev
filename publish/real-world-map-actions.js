@@ -552,10 +552,78 @@ window.GameModules.realWorldMapActions = {
       });
     }
     if (this.realWorldMap) this.setRealWorldMapState({ ...this.realWorldMap });
+    this.refreshRealWorldMapInfoSpace();
+  },
+  refreshRealWorldMapInfoSpace(nodeId = this.realWorldMap?.infoNodeId || '') {
+    const map = this.realWorldMap && typeof this.realWorldMap === 'object' ? this.realWorldMap : { nodes: [] };
+    const node = (map.nodes || []).find((item) => item.id === nodeId || item.graphNodeId === nodeId)
+      || window.GameModules.realWorldLocationGraph?.getNode?.(this, nodeId)
+      || null;
+    const source = map.positionInfoByPlace?.[node?.name] || null;
+    const chain = Array.isArray(source?.positionChain) ? source.positionChain.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    const baseId = String(node?.graphNodeId || node?.id || nodeId || 'space');
+    const items = (Array.isArray(source?.items) ? source.items : []).map((item) => ({
+      name: String(item?.name || '').trim(), place: String(item?.place || '').trim() || '位于当前空间内。',
+    })).filter((item) => item.name);
+    const tree = chain.map((name, index) => ({
+      id: `${baseId}:space:${index}`,
+      parentId: index > 0 ? `${baseId}:space:${index - 1}` : '',
+      name,
+      typeLabel: /室|房|卧室|客厅|厨房|卫生间|书房|阳台/u.test(name) || index === chain.length - 1 ? '房间' : '位置',
+      depth: index,
+      intro: index === chain.length - 1 ? String(source?.intro || '').trim().slice(0, 20) || `${name}。` : `${name}。`,
+      items: index === chain.length - 1 ? items : [],
+      children: index < chain.length - 1 ? [{ id: `${baseId}:space:${index + 1}` }] : [],
+    }));
+    const space = {
+      title: node?.displayName || node?.name || '未选择地点',
+      tree,
+      selectedId: tree[tree.length - 1]?.id || '',
+      emptyText: node ? '该地点尚未生成内部空间信息。' : '未找到当前地图节点。',
+    };
+    this.realWorldMapInfoSpace = space;
+    const existingId = String(this.realWorldMapInfoSpaceActiveNodeId || '');
+    this.realWorldMapInfoSpaceActiveNodeId = (space.tree || []).some((node) => node.id === existingId) ? existingId : (space.selectedId || '');
+    const rootId = space.tree?.[0]?.id || '';
+    const previousExpanded = Array.isArray(this.realWorldMapInfoSpaceExpandedIds) ? this.realWorldMapInfoSpaceExpandedIds : [];
+    this.realWorldMapInfoSpaceExpandedIds = previousExpanded.filter((id) => space.tree.some((node) => node.id === id));
+    if (!this.realWorldMapInfoSpaceExpandedIds.length && rootId) this.realWorldMapInfoSpaceExpandedIds = [rootId];
+    return space;
+  },
+  realWorldMapInfoVisibleSpaceNodes() {
+    const tree = Array.isArray(this.realWorldMapInfoSpace?.tree) ? this.realWorldMapInfoSpace.tree : [];
+    const expanded = new Set(Array.isArray(this.realWorldMapInfoSpaceExpandedIds) ? this.realWorldMapInfoSpaceExpandedIds : []);
+    return tree.filter((node) => !node.parentId || expanded.has(node.parentId));
+  },
+  toggleRealWorldMapInfoSpaceNode(nodeId = '') {
+    const tree = Array.isArray(this.realWorldMapInfoSpace?.tree) ? this.realWorldMapInfoSpace.tree : [];
+    const node = tree.find((item) => item.id === nodeId);
+    if (!node) return;
+    this.realWorldMapInfoSpaceActiveNodeId = node.id;
+    if (!(node.children || []).length) return;
+    const expanded = new Set(Array.isArray(this.realWorldMapInfoSpaceExpandedIds) ? this.realWorldMapInfoSpaceExpandedIds : []);
+    if (expanded.has(node.id)) {
+      const descendants = tree.filter((item) => {
+        let parentId = item.parentId;
+        while (parentId) {
+          if (parentId === node.id) return true;
+          parentId = tree.find((candidate) => candidate.id === parentId)?.parentId || '';
+        }
+        return false;
+      }).map((item) => item.id);
+      expanded.delete(node.id);
+      descendants.forEach((id) => expanded.delete(id));
+    } else {
+      expanded.add(node.id);
+    }
+    this.realWorldMapInfoSpaceExpandedIds = [...expanded];
   },
   closeRealWorldMapInfo() {
     window.GameModules.realWorldMap.closeInfo(this);
     this.realWorldMapInfoCache = null;
+    this.realWorldMapInfoSpace = { title: '未选择地点', tree: [], selectedId: '', emptyText: '点击地图节点查看空间。' };
+    this.realWorldMapInfoSpaceActiveNodeId = '';
+    this.realWorldMapInfoSpaceExpandedIds = [];
     if (this.realWorldMap) this.setRealWorldMapState({ ...this.realWorldMap });
   },
 
@@ -848,6 +916,10 @@ window.GameModules.realWorldMapActions = {
   realWorldMapInfoEmptyStateText() { return window.GameModules.ui.realWorld.mapViewHelpers.infoEmptyStateText.call(this); },
 
   realWorldMapInfoPanelView() { return window.GameModules.ui.realWorld.mapViewHelpers.infoPanelView.call(this); },
+
+  realWorldMapInfoSpacePresentation() { return window.GameModules.ui.realWorld.mapViewHelpers.infoSpacePresentation.call(this); },
+
+  realWorldMapInfoSpaceSelected(space = {}, activeNodeId = '') { return window.GameModules.ui.realWorld.mapViewHelpers.infoSpaceSelected.call(this, space, activeNodeId); },
 
   realWorldMapFactKey(fact, index) { return window.GameModules.ui.realWorld.mapViewHelpers.factKey.call(this, fact, index); },
 

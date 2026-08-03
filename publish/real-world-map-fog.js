@@ -132,6 +132,7 @@ window.GameModules.realWorldMapFog = {
       patchKeys: patch && typeof patch === 'object' ? Object.keys(patch).slice(0, 30) : [],
       currentNode: String(raw?.currentNode || raw?.current || raw?.['当前节点'] || '').slice(0, 120),
       locationInfoCount: this.normalizeLocationInfo(raw?.locationInfo || raw?.facts || raw?.['地点信息']).length,
+      positionInfoCount: this.normalizePositionInfo(raw).positionChain.length,
       factionInfoCount: this.normalizeFactionInfo(raw?.factions || raw?.faction || raw?.['势力']).length,
       characterLocationCount: (() => {
         try { return this.normalizeCharacterLocations(raw, { strict: false }).length; }
@@ -344,6 +345,12 @@ window.GameModules.realWorldMapFog = {
     return /(放|放置|放进|放在|放到|摆上|拿|取走|取出|移动|挪|整理|收拾|打开|关闭|挂|贴|藏|塞|桌|床|柜|架|墙|地板|窗|门|包|箱|抽屉|物品|摆件|容器|户型|布局|新房间|陌生房间|进入.{0,24}(房间|卧室|客厅|厨房|卫生间|楼层)|查看.{0,24}(柜|桌|床|墙|地板|窗|门|房间|卧室|摆件|物品)|观察.{0,24}(房间|卧室|客厅|厨房|卫生间|摆件|物品))/u.test(text);
   },
 
+  shouldBackfillPositionInfo(state = {}, anchor = {}) {
+    const map = state?.realWorldMap && typeof state.realWorldMap === 'object' ? state.realWorldMap : {};
+    const stored = map.positionInfoByPlace?.[anchor?.name];
+    return !(Array.isArray(stored?.positionChain) && stored.positionChain.length);
+  },
+
   hasKnownInteriorFloors(anchor = {}) {
     return Array.isArray(anchor?.interiorLayout?.floors) && anchor.interiorLayout.floors.length > 0;
   },
@@ -412,6 +419,7 @@ window.GameModules.realWorldMapFog = {
     const { firstVisit, anchor } = this.markVisited(map, node.id);
     if (firstVisit && anchor) window.GameModules.orgTerritory?.bumpOrgExposureOnMapVisit?.(state, map, anchor);
     const needInteriorBootstrap = this.shouldBootstrapMissingInterior(state, result, node, anchor);
+    const needPositionInfoBackfill = this.shouldBackfillPositionInfo(state, anchor);
     const appearingCharacters = this.appearingCharacterNames(state, result);
     const locationSnapshots = this.appearingCharacterLocationSnapshots(state, appearingCharacters, result);
     const needCharacterLocationSync = locationSnapshots.some((item) => item?.needUpdate)
@@ -419,6 +427,7 @@ window.GameModules.realWorldMapFog = {
     const needUnlock = firstVisit || this.shouldUnlockSurroundings(map, anchor, state) || needInteriorBootstrap;
     const needPatchReview = !needUnlock && (
       (anchor?.exteriorRingUnlocked && this.shouldReviewKnownLocationPatch(result))
+      || needPositionInfoBackfill
       || needCharacterLocationSync
     );
     this.surroundUnlockDebug(state, 'after-location-update-decision', {
@@ -431,6 +440,7 @@ window.GameModules.realWorldMapFog = {
       exteriorRingUnlocked: Boolean(anchor?.exteriorRingUnlocked),
       hasKnownInteriorFloors: this.hasKnownInteriorFloors(anchor),
       needInteriorBootstrap,
+      needPositionInfoBackfill,
       needCharacterLocationSync,
       needingLocationIds: this.charactersNeedingProfileLocation(state).map((item) => item.id).slice(0, 12),
       needUnlock,
@@ -470,6 +480,7 @@ window.GameModules.realWorldMapFog = {
       map.lastText = mapMod.render(map);
       state.realWorldMap = this.rawMapState({ ...map, _boundStore: state });
       state.locationGraph = window.GameModules.realWorldLocationGraph?.ensureGraphState?.(state) || state.locationGraph;
+      if (state.realWorldMap?.infoNodeId) state.refreshRealWorldMapInfoSpace?.();
       state.refreshRealWorldMapJsonDump?.();
       if (typeof state.save === 'function') {
         try { await Promise.resolve(state.save()); }
@@ -882,16 +893,19 @@ window.GameModules.realWorldMapFog = {
       .filter(Boolean);
 
     const locationInfo = this.normalizeLocationInfo(rawObj.locationInfo || rawObj.facts || rawObj['地点信息']);
+    const positionInfo = this.normalizePositionInfo(rawObj);
     const factionInfo = this.normalizeFactionInfo(rawObj.factions || rawObj.faction || rawObj['势力']);
     const characterLocations = this.normalizeCharacterLocations(rawObj);
     const noChange = rawObj.noChange === true
-      || (!surroundLocations.length && !locationInfo.length && !factionInfo.length && !characterLocations.length);
+      || (!surroundLocations.length && !locationInfo.length && !positionInfo.positionChain.length && !factionInfo.length && !characterLocations.length);
 
     return {
       responseMode,
       noChange,
       currentNode: String(rawObj.currentNode || rawObj.current || rawObj['当前节点'] || anchor?.name || '').trim().slice(0, 120),
+      currentFullLocation: String(rawObj.currentFullLocation || rawObj.fullLocation || rawObj['当前完整位置'] || '').trim().slice(0, 280),
       locationInfo,
+      positionInfo,
       factionInfo,
       characterLocations,
       surroundLocations,
@@ -1559,6 +1573,44 @@ window.GameModules.realWorldMapFog = {
       .map((item, index) => /^\d+[.、]/u.test(item) ? item.slice(0, 160) : `${index + 1}. ${item.slice(0, 150)}`);
   },
 
+  normalizePositionInfo(rawObj = {}) {
+    const locField = window.GameModules.currentLocationField;
+    const source = rawObj.positionInfo || rawObj.locationPositionInfo || rawObj['位置信息'] || {};
+    const fullLocation = locField?.normalize?.(
+      rawObj.currentFullLocation || rawObj.fullLocation || rawObj['当前完整位置'] || source?.fullLocation || source?.['完整位置'] || '',
+    ) || String(rawObj.currentFullLocation || rawObj.fullLocation || rawObj['当前完整位置'] || source?.fullLocation || source?.['完整位置'] || '').trim().slice(0, 280);
+    const parsed = fullLocation && locField?.parseProfileLocation ? locField.parseProfileLocation(fullLocation) : null;
+    const rawChain = source?.positionChain || source?.chain || source?.['位置链'] || source?.positions || source?.['空间链'] || [];
+    const positionChain = (Array.isArray(rawChain) ? rawChain : (typeof rawChain === 'string' ? rawChain.split(/[·>\/,，;；|]+/u) : []))
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+    const chain = positionChain.length ? positionChain : (parsed?.positionParts || []);
+    const currentSpace = String(source?.currentSpace || source?.selectedSpace || source?.['当前空间'] || chain[chain.length - 1] || '').trim().slice(0, 40);
+    const intro = String(source?.intro || source?.description || source?.['空间介绍'] || source?.['这里是干什么的'] || '').trim().slice(0, 20);
+    const rawItems = source?.items || source?.objects || source?.['物品'] || source?.['这里有什么'] || [];
+    const items = (Array.isArray(rawItems) ? rawItems : (rawItems && typeof rawItems === 'object' ? Object.entries(rawItems).map(([name, place]) => ({ name, place })) : []))
+      .map((item) => {
+        if (typeof item === 'string') {
+          const [name = '', place = '位于当前空间内。'] = item.split(/[:：]/u);
+          return { name: name.trim(), place: place.trim() };
+        }
+        return {
+          name: String(item?.name || item?.label || item?.['名称'] || item?.['物品'] || '').trim().slice(0, 32),
+          place: String(item?.place || item?.position || item?.placement || item?.['位置'] || item?.['摆放'] || '').trim().slice(0, 80),
+        };
+      })
+      .filter((item) => item.name)
+      .slice(0, 12);
+    return {
+      fullLocation,
+      mapNodeName: parsed?.placeParts?.length ? locField.mapNodeName(fullLocation) : '',
+      positionChain: chain.slice(0, 8),
+      currentSpace,
+      intro,
+      items,
+    };
+  },
+
   normalizeFactionInfo(value = []) {
     const rows = Array.isArray(value) ? value : (typeof value === 'string' ? value.split(/[\n,，;；]+/u) : []);
     return rows
@@ -2169,6 +2221,7 @@ window.GameModules.realWorldMapFog = {
       rawShape: payload?.debugShape || null,
       beforeInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
       locationInfoCount: Array.isArray(payload?.locationInfo) ? payload.locationInfo.length : 0,
+      positionInfoCount: Array.isArray(payload?.positionInfo?.positionChain) ? payload.positionInfo.positionChain.length : 0,
       factionInfoCount: Array.isArray(payload?.factionInfo) ? payload.factionInfo.length : 0,
       characterLocationCount: Array.isArray(payload?.characterLocations) ? payload.characterLocations.length : 0,
       surroundLocationCount: Array.isArray(payload?.surroundLocations) ? payload.surroundLocations.length : 0,
@@ -2240,6 +2293,21 @@ window.GameModules.realWorldMapFog = {
     }
 
     const finalAnchor = (map.nodes || []).find((node) => node.id === anchor?.id) || anchor;
+    const positionInfo = payload.positionInfo && typeof payload.positionInfo === 'object' ? payload.positionInfo : null;
+    if (positionInfo?.positionChain?.length) {
+      const storedPositionInfo = {
+        positionChain: positionInfo.positionChain.map((item) => String(item || '').trim()).filter(Boolean),
+        currentSpace: String(positionInfo.currentSpace || '').trim(),
+        intro: String(positionInfo.intro || '').trim(),
+        items: (Array.isArray(positionInfo.items) ? positionInfo.items : []).map((item) => ({
+          name: String(item?.name || '').trim(),
+          place: String(item?.place || '').trim(),
+        })).filter((item) => item.name),
+      };
+      map.positionInfoByPlace = map.positionInfoByPlace && typeof map.positionInfoByPlace === 'object' ? map.positionInfoByPlace : {};
+      const placeName = String(finalAnchor?.name || anchor?.name || '').trim();
+      if (placeName) map.positionInfoByPlace[placeName] = storedPositionInfo;
+    }
     const locationInfo = Array.isArray(payload.locationInfo) ? payload.locationInfo : [];
     const factionInfo = Array.isArray(payload.factionInfo) ? payload.factionInfo : [];
     if ((locationInfo.length || factionInfo.length) && finalAnchor) {
@@ -2309,6 +2377,7 @@ window.GameModules.realWorldMapFog = {
       anchorName: anchor?.name || '',
       unlocked,
       touchedNodeIds,
+      storedPositionPlaceNames: Object.keys(map.positionInfoByPlace || {}).filter((name) => map.positionInfoByPlace[name]?.positionChain?.length).slice(0, 16),
       characterLocationApplied,
       afterInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
       mapNodeCount: Array.isArray(map?.nodes) ? map.nodes.length : 0,

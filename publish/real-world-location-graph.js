@@ -543,6 +543,7 @@ window.GameModules.realWorldLocationGraph = {
         const node = graph.nodesById[id] || {};
         return {
           id,
+          graphNodeId: id,
           name: node.displayName || node.name || id,
           current: id === currentId,
           visited: Boolean(node.visited || id === currentId),

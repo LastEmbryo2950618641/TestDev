@@ -170,11 +170,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-07-31-stage3-action-gate-v38"></script>
+  <script src="boot/script-loader.js?v=2026-08-03-current-location-field-v39"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-07-31-stage3-action-gate-v38"></script>
-  <script src="boot/boot-actions.js?v=2026-07-31-stage3-action-gate-v38"></script>
-  <script src="boot/boot.js?v=2026-07-31-stage3-action-gate-v38"></script>
+  <script src="boot/script-manifest.js?v=2026-08-03-map-space-clean-v56"></script>
+  <script src="boot/boot-actions.js?v=2026-08-03-current-location-field-v39"></script>
+  <script src="boot/boot.js?v=2026-08-03-current-location-field-v39"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -1067,13 +1067,32 @@
               </aside>
             </section>
             <div class="real-world-map-info-pop" x-show="$store.game.realWorldMapInfoNode()" @click.self="$store.game.closeRealWorldMapInfo()" x-cloak>
-              <article>
+              <article class="real-world-map-space-pop">
                 <header><strong x-text="$store.game.realWorldMapInfoNode()?.name"></strong><button class="small-btn" type="button" @click="$store.game.closeRealWorldMapInfo()">&#x5173;&#x95ED;</button></header>
-                <p class="real-world-map-control-line" x-text="$store.game.realWorldMapInfoControlLine()"></p>
-                <div class="real-world-map-facts">
-                  <template x-for="(fact, index) in $store.game.realWorldMapInfoFacts()" :key="fact.id || index">
-                    <p x-text="$store.game.realWorldMapFactText(fact, index)"></p>
-                  </template>
+                <div class="real-world-map-space-body">
+                  <section class="real-world-map-space-info">
+                    <small>空间信息</small>
+                    <h3 x-text="$store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.name || $store.game.realWorldMapInfoSpace?.title || '地点内部'"></h3>
+                    <p x-text="$store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.intro || '该空间等待推演补全。'"></p>
+                    <div class="real-world-map-space-items">
+                      <strong>这里有什么</strong>
+                      <template x-for="item in ($store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.items || [])" :key="`${item.name}-${item.place}`"><p><b x-text="`${item.name}：`"></b><span x-text="item.place"></span></p></template>
+                      <p x-show="!($store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.items || []).length">暂无已记录物品。</p>
+                    </div>
+                    <p class="real-world-map-control-line" x-show="$store.game.realWorldMapInfoControlLine()" x-text="$store.game.realWorldMapInfoControlLine()"></p>
+                    <div class="real-world-map-facts" x-show="$store.game.realWorldMapInfoFacts().length">
+                      <template x-for="(fact, index) in $store.game.realWorldMapInfoFacts()" :key="fact.id || index">
+                        <p x-text="$store.game.realWorldMapFactText(fact, index)"></p>
+                      </template>
+                    </div>
+                  </section>
+                  <aside class="real-world-map-space-drawer">
+                    <small>上下级空间</small>
+                    <template x-for="node in $store.game.realWorldMapInfoVisibleSpaceNodes()" :key="node.id">
+                      <button type="button" :class="{ active: $store.game.realWorldMapInfoSpaceActiveNodeId === node.id }" :style="`padding-left:${8 + (node.depth || 0) * 12}px`" @click="$store.game.toggleRealWorldMapInfoSpaceNode(node.id)"><span x-text="node.typeLabel"></span><strong x-text="node.name"></strong><em x-show="node.children.length" x-text="($store.game.realWorldMapInfoSpaceExpandedIds || []).includes(node.id) ? '收起' : `${node.children.length}个下级`"></em></button>
+                    </template>
+                    <p class="real-world-empty" x-show="!($store.game.realWorldMapInfoSpace?.tree || []).length" x-text="$store.game.realWorldMapInfoSpace?.emptyText || '该地点内部仍处于迷雾。'"></p>
+                  </aside>
                 </div>
               </article>
             </div>
@@ -1662,40 +1681,10 @@
                   <header class="identity-info-group-head"><strong><span class="identity-info-group-symbol">✦</span>叙事档案</strong><small>背景与人格</small></header>
                   <div class="identity-info-lore-grid">
                     <template x-for="card in dossier?.lore || []" :key="`identity-lore-${card.label}`">
-                      <div>
-                        <template x-if="!$store.game.isLocationInfoCard(card)">
-                          <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
-                            <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
-                            <p x-text="card.preview"></p>
-                          </button>
-                        </template>
-                        <template x-if="$store.game.isLocationInfoCard(card)">
-                          <article class="location-space-card" x-data="{ space: null, activeNodeId: '' }" x-init="space = $store.game.locationSpacePresentation(card.field); activeNodeId = space.selectedId" x-effect="space = $store.game.locationSpacePresentation(card.field); if (!activeNodeId) activeNodeId = space.selectedId">
-                            <header class="location-space-head"><span class="identity-info-lore-icon" aria-hidden="true">📍</span><div><strong>当前位置</strong><p x-text="space?.raw || '未记录'"></p></div></header>
-                            <div class="location-space-body">
-                              <section class="location-space-info">
-                                <small>空间信息</small>
-                                <h4 x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.name || space?.mapNodeName || '当前位置'"></h4>
-                                <p x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.intro || '当前位置空间。'"></p>
-                                <div class="location-space-items">
-                                  <strong>这里有什么</strong>
-                                  <template x-for="item in ($store.game.locationSpaceSelected(space, activeNodeId)?.items || [])" :key="`${item.name}-${item.place}`"><p><b x-text="`${item.name}：`"></b><span x-text="item.place"></span></p></template>
-                                  <p x-show="!($store.game.locationSpaceSelected(space, activeNodeId)?.items || []).length">暂无已记录物品。</p>
-                                </div>
-                              </section>
-                              <aside class="location-space-drawer">
-                                <small>上下级空间</small>
-                                <template x-for="node in space?.tree || []" :key="node.id">
-                                  <button type="button" :class="{ active: activeNodeId === node.id }" @click="activeNodeId = node.id"><span x-text="node.typeLabel"></span><strong x-text="node.name"></strong><em x-show="node.children.length" x-text="`${node.children.length}个下级`"></em></button>
-                                </template>
-                                <div class="location-space-children" x-show="($store.game.locationSpaceSelected(space, activeNodeId)?.children || []).length">
-                                  <template x-for="child in ($store.game.locationSpaceSelected(space, activeNodeId)?.children || [])" :key="child.id"><button type="button" @click="activeNodeId = child.id"><span x-text="child.typeLabel"></span><strong x-text="child.name"></strong></button></template>
-                                </div>
-                              </aside>
-                            </div>
-                          </article>
-                        </template>
-                      </div>
+                      <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
+                        <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
+                        <p x-text="card.preview"></p>
+                      </button>
                     </template>
                   </div>
                 </section>
@@ -3834,40 +3823,10 @@
                         <header class="identity-info-group-head"><strong><span class="identity-info-group-symbol">✦</span>叙事档案</strong><small>背景与人格</small></header>
                         <div class="identity-info-lore-grid">
                           <template x-for="card in dossier?.lore || []" :key="`entry-identity-lore-${card.label}`">
-                            <div>
-                              <template x-if="!$store.game.isLocationInfoCard(card)">
-                                <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
-                                  <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
-                                  <p x-text="card.preview"></p>
-                                </button>
-                              </template>
-                              <template x-if="$store.game.isLocationInfoCard(card)">
-                                <article class="location-space-card" x-data="{ space: null, activeNodeId: '' }" x-init="space = $store.game.locationSpacePresentation(card.field); activeNodeId = space.selectedId" x-effect="space = $store.game.locationSpacePresentation(card.field); if (!activeNodeId) activeNodeId = space.selectedId">
-                                  <header class="location-space-head"><span class="identity-info-lore-icon" aria-hidden="true">📍</span><div><strong>当前位置</strong><p x-text="space?.raw || '未记录'"></p></div></header>
-                                  <div class="location-space-body">
-                                    <section class="location-space-info">
-                                      <small>空间信息</small>
-                                      <h4 x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.name || space?.mapNodeName || '当前位置'"></h4>
-                                      <p x-text="$store.game.locationSpaceSelected(space, activeNodeId)?.intro || '当前位置空间。'"></p>
-                                      <div class="location-space-items">
-                                        <strong>这里有什么</strong>
-                                        <template x-for="item in ($store.game.locationSpaceSelected(space, activeNodeId)?.items || [])" :key="`${item.name}-${item.place}`"><p><b x-text="`${item.name}：`"></b><span x-text="item.place"></span></p></template>
-                                        <p x-show="!($store.game.locationSpaceSelected(space, activeNodeId)?.items || []).length">暂无已记录物品。</p>
-                                      </div>
-                                    </section>
-                                    <aside class="location-space-drawer">
-                                      <small>上下级空间</small>
-                                      <template x-for="node in space?.tree || []" :key="node.id">
-                                        <button type="button" :class="{ active: activeNodeId === node.id }" @click="activeNodeId = node.id"><span x-text="node.typeLabel"></span><strong x-text="node.name"></strong><em x-show="node.children.length" x-text="`${node.children.length}个下级`"></em></button>
-                                      </template>
-                                      <div class="location-space-children" x-show="($store.game.locationSpaceSelected(space, activeNodeId)?.children || []).length">
-                                        <template x-for="child in ($store.game.locationSpaceSelected(space, activeNodeId)?.children || [])" :key="child.id"><button type="button" @click="activeNodeId = child.id"><span x-text="child.typeLabel"></span><strong x-text="child.name"></strong></button></template>
-                                      </div>
-                                    </aside>
-                                  </div>
-                                </article>
-                              </template>
-                            </div>
+                            <button type="button" class="identity-info-lore-card ability-expandable" :class="[`tone-${card.meta.tone}`, { open: card.field && $store.game.isAbilityDetailOpen(card.field) }]" @click="card.field && $store.game.toggleAbilityDetail(card.field)">
+                              <div class="identity-info-lore-head"><span class="identity-info-lore-icon" aria-hidden="true" x-text="card.meta.icon"></span><strong x-text="card.label"></strong></div>
+                              <p x-text="card.preview"></p>
+                            </button>
                           </template>
                         </div>
                       </section>

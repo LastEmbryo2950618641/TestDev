@@ -7,7 +7,7 @@ window.GameModules.realWorldMap = {
   defaultState(profile = {}) {
     const home = this.inferHomeName(profile);
     const node = home ? this.makeNode(home, '', this.defaultDescription(home, profile)) : null;
-    return { current: home, currentId: node?.id || '', nodes: node ? [node] : [], edges: [], expanded: node ? { [node.id]: true } : {}, infoNodeId: '', lastText: home };
+    return { current: home, currentId: node?.id || '', nodes: node ? [node] : [], edges: [], expanded: node ? { [node.id]: true } : {}, infoNodeId: '', positionInfoByPlace: {}, lastText: home };
   },
 
   isAbstractName(name) {

@@ -94,7 +94,7 @@ test('map update prompt captures item container changes during settlement', () =
 
 test('surround unlock prompt forbids interior building payloads', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
-  assert.ok(prompt.includes('这次只做“周边解锁 + 出场人物位置按需同步”'));
+  assert.ok(prompt.includes('这次只做“周边解锁 + 当前位置信息 + 出场人物位置按需同步”'));
   assert.ok(prompt.includes('禁止返回 `interiorLayout`'));
   assert.ok(prompt.includes('`floors`'));
   assert.ok(prompt.includes('`slotObjects`'));
@@ -102,13 +102,17 @@ test('surround unlock prompt forbids interior building payloads', () => {
   assert.ok(prompt.includes('禁止返回空数组'));
 });
 
-test('surround unlock prompt documents five-field response with neighbor faction and character locations', () => {
+test('surround unlock prompt documents position info response with neighbor faction and character locations', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   assert.ok(prompt.includes('\u5f53\u524d\u5730\u70b9\u5b8c\u6574JSON'));
   assert.ok(prompt.includes('"当前节点"'));
+  assert.ok(prompt.includes('"当前完整位置"'));
   assert.ok(prompt.includes('"周围地点"'));
   assert.ok(prompt.includes('"势力"'));
   assert.ok(prompt.includes('"地点信息"'));
+  assert.ok(prompt.includes('"位置信息"'));
+  assert.ok(prompt.includes('"位置链"'));
+  assert.ok(prompt.includes('"空间介绍"'));
   assert.ok(prompt.includes('"出场人物位置"'));
   assert.ok(prompt.includes('出场人物地点快照：{{出场人物地点快照}}'));
   assert.ok(prompt.includes('## 出场人物位置（必读）'));
@@ -131,9 +135,9 @@ test('surround unlock prompt is simple and inline synced', () => {
   const prompt = read('publish/prompts/real-world-map-surround-unlock.md');
   const inline = read('publish/prompts/real-world-map-surround-unlock.js');
   assert.ok(prompt.includes('Stage10 电子地图周围解锁') || prompt.includes('电子地图周围解锁'));
-  assert.ok(prompt.includes('字段固定只有五个'));
+  assert.ok(prompt.includes('字段固定只有七个'));
   assert.ok(inline.includes('Stage10 电子地图周围解锁') || inline.includes('电子地图周围解锁'));
-  assert.ok(inline.includes('字段固定只有五个'));
+  assert.ok(inline.includes('字段固定只有七个'));
   assert.ok(inline.includes('出场人物位置'));
   assert.ok(!prompt.includes('\ufffd'));
   assert.ok(!inline.includes('\ufffd'));
@@ -148,6 +152,34 @@ test('map actions cache graph builds between reactive refreshes', () => {
   assert.ok(actions.includes('runtime.graphCache'));
   assert.ok(actions.includes('realWorldMapHasGraphNodes()'));
   assert.ok(actions.includes('if (options.fast && runtime.graphCache?.graph) return runtime.graphCache.graph;'));
+});
+
+test('map position spaces reveal each level only after its parent expands', () => {
+  const actions = read('publish/real-world-map-actions.js');
+  const html = read('publish/index.html');
+  assert.ok(actions.includes('parentId: index > 0'));
+  assert.ok(actions.includes('realWorldMapInfoVisibleSpaceNodes()'));
+  assert.ok(actions.includes('!node.parentId || expanded.has(node.parentId)'));
+  assert.ok(actions.includes('toggleRealWorldMapInfoSpaceNode(nodeId = \'\')'));
+  assert.ok(actions.includes('expanded.delete(node.id)'));
+  assert.ok(html.includes('realWorldMapInfoVisibleSpaceNodes()'));
+  assert.ok(html.includes('toggleRealWorldMapInfoSpaceNode(node.id)'));
+});
+
+test('map drawer reads one canonical persisted position info record', () => {
+  const actions = read('publish/real-world-map-actions.js');
+  const fog = read('publish/real-world-map-fog.js');
+  assert.ok(actions.includes('map.positionInfoByPlace?.[node?.name]'));
+  assert.ok(fog.includes('map.positionInfoByPlace[placeName] = storedPositionInfo'));
+  assert.ok(!actions.includes('positionInfoByNode'));
+  assert.ok(!fog.includes('positionInfoByNode'));
+  assert.ok(!fog.includes('applyPositionInfo('));
+});
+
+test('map revisits request a position-info backfill when the current location has an interior chain', () => {
+  const fog = read('publish/real-world-map-fog.js');
+  assert.ok(fog.includes('shouldBackfillPositionInfo(state, anchor)'));
+  assert.ok(fog.includes('|| needPositionInfoBackfill'));
 });
 
 test('map json dump exports only standard graph nodes and edges', () => {
@@ -533,6 +565,8 @@ test('game store has graph map UI fallbacks before gameplay chunk loads', () => 
     'realWorldMapInteriorSummary()',
     'realWorldMapInteriorView()',
     'realWorldMapInfoControlLine()',
+    'realWorldMapInfoSpacePresentation()',
+    'realWorldMapInfoSpaceSelected(space = {}, activeNodeId = \'\')',
     'realWorldWordCountValue()',
     'realWorldWordCountValid()',
   ].forEach((name) => assert.ok(game.includes(name), `missing fallback ${name}`));
@@ -545,6 +579,9 @@ test('map css prevents node text overlap and avoids expensive filters', () => {
   assert.ok(css.includes('-webkit-line-clamp: 2'));
   assert.ok(css.includes('contain: layout paint style'));
   assert.ok(css.includes('filter: none;'));
+  assert.ok(css.includes('.real-world-map-info-pop {'));
+  assert.ok(css.includes('overflow-y: auto;'));
+  assert.ok(css.includes('max-height: min(560px, calc(100vh - 150px));'));
 });
 
 
@@ -552,6 +589,7 @@ test('token stats rows do not let long cost text squeeze titles', () => {
   const index = read('publish/index.html');
   const css = read('publish/skills-app.css');
   assert.ok(index.includes('tokenPromptRowCostText(item)'));
+  assert.ok(index.includes('$store.game.realWorldMapInfoSpace?.tree || []'));
   assert.ok(!index.includes('`${item.tokens} token｜约 ${item.credits} 积分`'));
   assert.ok(css.includes('.token-row .prompt-title {'));
   assert.ok(css.includes('grid-template-columns: minmax(0, 1fr);'));
@@ -993,11 +1031,34 @@ test('surround unlock applies neighbor faction and appearing character locations
         },
         orgTerritory: { ensureMapControls() {}, bumpOrgExposureOnScheduleLocation() {} },
         realWorldLocationGraph: {
+          ensureGraphState(state) {
+            state.locationGraph = state.locationGraph || { nodesById: {}, poiGraph: { nodes: [], edges: [] }, characterLocations: {} };
+            state.locationGraph.nodesById = state.locationGraph.nodesById || {};
+            state.locationGraph.poiGraph = state.locationGraph.poiGraph || { nodes: [], edges: [] };
+            state.locationGraph.characterLocations = state.locationGraph.characterLocations || {};
+            return state.locationGraph;
+          },
+          legacyKey(kind, value) { return `${kind}:${value}`; },
           poiAncestor: () => null,
           getNode(state, ref) {
             const name = String(ref || '').trim();
             const nodes = Object.values(state.locationGraph?.nodesById || {});
             return nodes.find((node) => node.id === name || node.name === name) || null;
+          },
+          ensureChildNode(graph, data = {}) {
+            const safeName = String(data.name || '').replace(/[^\w\u4e00-\u9fff]+/g, '_');
+            const id = `child_${String(data.parentId || 'root')}_${safeName}_${data.type || 'node'}`;
+            const node = {
+              ...(graph.nodesById[id] || {}),
+              id,
+              type: data.type || 'node',
+              name: data.name,
+              displayName: data.displayName || data.name,
+              parentId: data.parentId || '',
+              order: data.order || 0,
+            };
+            graph.nodesById[id] = node;
+            return node;
           },
           ensurePoiFromPayload(state, payload = {}) {
             state.locationGraph = state.locationGraph || { nodesById: {}, poiGraph: { nodes: [], edges: [] } };
@@ -1020,6 +1081,7 @@ test('surround unlock applies neighbor faction and appearing character locations
               edges: state.locationGraph?.poiGraph?.edges || [],
             };
           },
+          projectLocationGraphToLegacyMap() {},
           setCharacterCurrentNode(state, characterId, nodeId, data = {}) {
             state.locationGraph = state.locationGraph || { characterLocations: {} };
             state.locationGraph.characterLocations = state.locationGraph.characterLocations || {};
@@ -1079,11 +1141,23 @@ test('surround unlock applies neighbor faction and appearing character locations
       '玉林街道玉林北路社区·基层治理组织·社区管辖',
     ],
     地点信息: ['1. 当前节点位于锦苑小区内部，为住宅楼栋。'],
+    当前完整位置: '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601室·刘思琪房间内',
+    位置信息: {
+      位置链: ['2单元', '601室', '刘思琪房间内'],
+      当前空间: '刘思琪房间内',
+      空间介绍: '少女卧室与休息空间',
+      物品: [{ 名称: '书包', 位置: '放在椅子上。' }],
+    },
     出场人物位置: [{ 姓名: '刘思琪', 当前位置: fullLocation }],
   }, anchor, map, 'full', { requiredLocationNames: ['刘思琪'] });
 
   await fog.applySurroundUnlock(state, map, anchor, anchor, payload);
 
+  assert.deepStrictEqual(payload.positionInfo.positionChain, ['2单元', '601室', '刘思琪房间内']);
+  const persistedPositionInfo = Object.values(state.realWorldMap.positionInfoByPlace)[0];
+  assert.deepStrictEqual(persistedPositionInfo.positionChain, ['2单元', '601室', '刘思琪房间内']);
+  assert.strictEqual(persistedPositionInfo.items[0].name, '书包');
+  assert.ok(!anchor.positionInfo);
   const neighbor = Object.values(state.locationGraph.nodesById).find((node) => node.name === '锦苑小区2栋');
   assert.ok(neighbor);
   assert.ok(neighbor.descriptionFacts.some((item) => item.includes('势力：中华人民共和国·四川省成都市·武侯区')));
