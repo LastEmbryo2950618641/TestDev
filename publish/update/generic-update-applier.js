@@ -282,7 +282,7 @@ Object.assign(window.GameModules.updateRegistry, {
       value.quantity = Math.max(1, Math.floor(Number(value.quantity) || 1));
       value.description = String(value.description || value.detail || '').trim();
       value.reason = String(value.reason || payload.reason || '').trim();
-      value.changeMode = String(value.changeMode || `Stage4-2 ${action}`).trim();
+      value.changeMode = String(value.changeMode || `Stage4-9 ${action}`).trim();
       value.type = value.type || value.kind || 'item';
       value.kind = value.kind || value.type;
       return value;

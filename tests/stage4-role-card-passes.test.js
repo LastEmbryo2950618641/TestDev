@@ -29,16 +29,17 @@ const participants = [
   { type: 'character', id: 'rel-ai-247528', name: '刘思琪', idOrName: 'rel-ai-247528' },
 ];
 
-assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-1 角色卡状态结算' }), 'stage4-1');
-assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-2 角色卡物品结算' }), 'stage4-2');
-assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-3 角色卡状态再次更新' }), 'stage4-3');
-assert.strictEqual(loop.stagePhaseLabel('stage4-1'), 'Stage4-1 角色卡状态结算');
-assert.strictEqual(loop.stagePhaseLabel('stage4-2'), 'Stage4-2 角色卡物品结算');
-assert.strictEqual(loop.stagePhaseLabel('stage4-3'), 'Stage4-3 角色卡状态再次更新');
+assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-1 基础结算' }), 'stage4-1');
+assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-9 角色卡物品' }), 'stage4-9');
+assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-12 角色卡补充更新' }), 'stage4-12');
+assert.strictEqual(loop.stagePhaseLabel('stage4-1'), 'Stage4-1 基础结算');
+assert.strictEqual(loop.stagePhaseLabel('stage4-9'), 'Stage4-9 角色卡物品');
+assert.strictEqual(loop.stagePhaseLabel('stage4-12'), 'Stage4-12 角色卡补充更新');
 
 const queue = loop.settlementTypeQueue(loop.realConfig(), {});
-assert.ok(!queue.includes('角色卡'));
 assert.ok(!queue.includes('物品'));
+assert.ok(!queue.includes('地图'));
+assert.ok(queue.includes('角色卡'));
 
 const itemParsed = loop.parseSettlementJson(JSON.stringify({
   角色卡物品: [{
@@ -62,7 +63,7 @@ const reviewParsed = loop.parseSettlementJson(JSON.stringify({
     field: 'profile.detail',
     op: '替换',
     value: '复核后的完整人物说明',
-    reason: '正文与前两段结算共同确认',
+    reason: '正文、上下文与前序结算共同确认',
   }],
 }), { requestedTypes: ['角色卡复核'], participants });
 assert.deepStrictEqual(JSON.parse(JSON.stringify(reviewParsed.completeTypes)), ['角色卡复核']);
