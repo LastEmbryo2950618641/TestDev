@@ -55,19 +55,28 @@ function registerGameStore() {
   };
   const defaultCompanyState = stateOf(gm.companySystem, 'defaultState', {
     open: false,
+    panelTab: 'profile',
+    activeCareerApp: 'work',
+    careerProfile: null,
+    workUnitProfile: null,
+    freelanceProfile: null,
+    freelanceProfiles: [],
+    selectedFreelanceId: '',
+    freelancePicker: { open: false, query: '', results: [], searched: false, loading: false, error: '' },
+    workStats: { performance: 100, attendanceStatus: {}, leaderReview: {}, employeeReview: {}, contributionItems: [], performanceHistory: [] },
+    freelanceStats: { performance: 100, attendanceStatus: {}, leaderReview: {}, employeeReview: {}, contributionItems: [], performanceHistory: [] },
+    freelanceStatsById: {},
     companies: [],
     currentCompanyId: '',
-    employment: { active: false, activeCompanyId: '' },
+    employment: { active: false, activeCompanyId: '', startAt: '', resignedAt: '', resignedCompany: '' },
     submissions: [],
-    records: [],
+    contracts: [],
+    employmentRecords: [],
   });
   const defaultFactionState = stateOf(gm.factionSystem, 'defaultState', {
     open: false,
     selectedId: '',
     factions: [],
-    orgChartMode: 'forest',
-    forestTab: 'corp',
-    forestData: { viewportRoot: null, domains: [], activeTree: null, breadcrumb: '' },
     orgTree: null,
     orgNodes: [],
     structureCards: [],
@@ -380,13 +389,13 @@ function registerGameStore() {
     taobaoWearFilters() { return gm.taobaoActions?.taobaoWearFilters?.call(this) || [{ slot: '', label: '全部' }]; },
     currentCompany() {
       return {
-        name: '暂无在职公司',
+        name: '暂无职业生涯',
         organization: [],
         salary: { base: 0, performanceRate: 0, performanceMonths: 0 },
       };
     },
     workStatusText() {
-      return this.companyState?.employment?.active === false ? '当前未处于在职状态。' : '公司资料加载中';
+      return this.companyState?.employment?.active === false ? '当前没有活跃职业生涯。' : '职业生涯加载中';
     },
     currentWorkAttendance() {
       return { className: 'idle', status: '未记录', detail: '上班状态尚未加载。', canCheckIn: false };
@@ -516,6 +525,85 @@ function registerGameStore() {
       if (summary) return summary;
       return faction.stub?.oneLine || faction.description || '尚未推演出稳定的宏观总览事实。';
     },
+    factionOverallView(faction = this.selectedFaction?.()) {
+      const ot = window.GameModules.orgTerritory;
+      const overview = ot?.normalizeFactionOverview?.(faction?.solid?.overview || {}, faction) || {};
+      const formatMetricLine = (item = {}) => {
+        const value = Number(item.value) || 0;
+        const max = Math.max(1, Number(item.max) || 100);
+        return `${value}/${max}（${item.level || '待评估'}，${item.comment || '等待推演补全'}）`;
+      };
+      const metrics = {
+        livelihood: overview.livelihood || overview.metrics?.livelihood || {},
+        economy: overview.economy || overview.metrics?.economy || {},
+        military: overview.military || overview.metrics?.military || {},
+        reputation: overview.reputation || overview.metrics?.reputation || {},
+      };
+      const composite = Number(overview.composite?.value) || 0;
+      const compositeMax = Math.max(1, Number(overview.composite?.max) || 100);
+      const rank = this.factionOverallRank(faction);
+      return {
+        rulerLine: overview.rulerTitle || overview.rulerName ? `${overview.rulerTitle || '最高负责人'}：${overview.rulerName || '未知'}` : '最高负责人：待推演补全',
+        power: this.factionPieRows(overview.powerDistribution),
+        powerStyle: this.factionPieStyle(overview.powerDistribution),
+        composite,
+        compositeMax,
+        compositeLabel: `${composite}/${compositeMax}`,
+        compositeFormula: '(民生×3.5 + 经济×3 + 军事×2.5 + 声誉) ÷ 10',
+        rank: rank ? `第 ${rank} 名` : '未入榜',
+        stability: Number(overview.stability?.value) || 0,
+        stabilityLabel: `${Number(overview.stability?.value) || 0}/100`,
+        stabilityFormula: '(民生率×4 + 经济率×3 + 军事率×2 + 声誉率) ÷ 10 × 100',
+        metrics: [
+          { key: 'livelihood', label: '民生', ...(metrics.livelihood || {}) },
+          { key: 'economy', label: '经济', ...(metrics.economy || {}) },
+          { key: 'military', label: '军事', ...(metrics.military || {}) },
+          { key: 'reputation', label: '声誉', ...(metrics.reputation || {}) },
+        ].map((item) => ({
+          ...item,
+          value: Number(item.value) || 0,
+          max: Math.max(1, Number(item.max) || 100),
+          line: formatMetricLine(item),
+        })),
+        classes: this.factionPieRows(overview.classes).map((item) => ({
+          ...item,
+          approval: Number(item.approval) || 0,
+          view: item.view || '等待推演补全',
+        })),
+        classStyle: this.factionPieStyle(overview.classes),
+      };
+    },
+    factionOverallRank(faction = this.selectedFaction?.()) {
+      const id = faction?.id;
+      const ot = window.GameModules.orgTerritory;
+      const rows = (Array.isArray(this.factionState?.factions) ? this.factionState.factions : [])
+        .map((item) => ({
+          id: item.id,
+          score: Number(ot?.normalizeFactionOverview?.(item?.solid?.overview || {}, item)?.composite?.value) || 0,
+        }))
+        .filter((item) => item.id && item.score > 0)
+        .sort((a, b) => b.score - a.score || String(a.id).localeCompare(String(b.id), 'zh-CN'));
+      const index = rows.findIndex((item) => item.id === id);
+      return index >= 0 ? index + 1 : 0;
+    },
+    factionPieRows(rows = []) {
+      return (Array.isArray(rows) ? rows : []).map((item, index) => ({
+        ...item,
+        key: `${index}-${item.label || item.name || 'row'}`,
+        label: item.label || item.name || '未命名',
+        percent: Math.max(0, Math.min(100, Number(item.percent) || 0)),
+      })).filter((item) => item.label && item.percent > 0);
+    },
+    factionPieStyle(rows = []) {
+      const colors = ['#72e4ff', '#ffe3a3', '#6fffb0', '#ff8f8f', '#b79cff', '#ffb86b', '#9af7df'];
+      let cursor = 0;
+      const stops = this.factionPieRows(rows).map((row, index) => {
+        const start = cursor;
+        cursor += row.percent;
+        return `${colors[index % colors.length]} ${start}% ${Math.min(100, cursor)}%`;
+      });
+      return `background:${stops.length ? `conic-gradient(${stops.join(', ')})` : 'rgba(255,255,255,.08)'};`;
+    },
     factionCapabilityCards() {
       const faction = this.selectedFaction?.();
       const ot = window.GameModules.orgTerritory;
@@ -523,7 +611,7 @@ function registerGameStore() {
         || ot?.defaultOverviewPanels?.()
         || { ideology: {}, economy: { entries: {} }, politics: { entries: {} }, military: { entries: {} }, diplomacy: { entries: {} } };
       const meta = this.factionOverviewModeMeta(faction);
-      return ['ideology', 'economy', 'politics', 'military', 'diplomacy'].map((panelKey) => {
+      return ['ideology', 'politics', 'economy', 'military', 'diplomacy'].map((panelKey) => {
         const skin = this.factionOverviewPanelSkin(panelKey);
         if (panelKey === 'ideology') {
           const ideology = panels.ideology || {};
@@ -573,29 +661,6 @@ function registerGameStore() {
       const resolution = String(faction.resolution || 'L1').toUpperCase();
       if (resolution === 'L1' && !(faction.structure || []).length) return '尚未接触，无法审计结构；仅显示 stub。';
       return '';
-    },
-    forestDomainTabs() {
-      const forest = window.GameModules.factionOrgForest;
-      return forest?.DOMAIN_KEYS?.map((key) => ({ key, label: forest.DOMAIN_LABELS?.[key] || key }))
-        || [
-          { key: 'gov', label: '国家机构' },
-          { key: 'geo', label: '行政区划' },
-          { key: 'corp', label: '经济组织' },
-          { key: 'community', label: '社群' },
-        ];
-    },
-    factionOrgChartMode() { return this.factionState?.orgChartMode || 'forest'; },
-    setFactionOrgChartMode(mode = 'forest') {
-      this.factionState = this.factionState || {};
-      this.factionState.orgChartMode = mode === 'detail' ? 'detail' : 'forest';
-    },
-    setFactionForestTab(domain = 'corp') {
-      this.factionState = this.factionState || {};
-      this.factionState.forestTab = domain || 'corp';
-    },
-    factionForestTab() { return this.factionState?.forestTab || 'corp'; },
-    factionForestViewportTitle() {
-      return this.factionState?.forestData?.viewportRoot?.name || this.selectedFaction?.()?.name || '';
     },
     factionOrgTreeRows() { return []; },
     skillCategories() { return gm.skillsActions?.skillCategories?.call(this) || []; },
@@ -657,6 +722,172 @@ function registerGameStore() {
     realWorldWordCountValid() {
       return this.realWorldFreedomMode !== 'words' || this.realWorldWordCountValue() >= 200;
     },
+    realWorldSceneLocationText() {
+      const locField = gm.currentLocationField;
+      const state = this.rpgStates?.['player-self'] || null;
+      return locField?.displayFromCharacterState?.(state)
+        || locField?.fromCharacterState?.(state)
+        || locField?.normalize?.(state?.profile?.currentLocation || this.playerProfile?.currentLocation || '')
+        || String(state?.profile?.currentLocation || this.playerProfile?.currentLocation || '').trim();
+    },
+    realWorldMapInfoSpacePresentation() {
+      const mapApi = gm.realWorldMap;
+      const graphApi = gm.realWorldLocationGraph;
+      const node = mapApi?.infoNode?.(this.realWorldMap);
+      if (!node?.id || !graphApi?.ensureGraphState) {
+        return { title: '未选择地点', selectedId: '', tree: [], emptyText: '点击地图节点查看空间。' };
+      }
+      const graph = graphApi.ensureGraphState(this);
+      const graphNode = graphApi.getNode?.(this, node.graphNodeId || node.id || node.name)
+        || Object.values(graph.nodesById || {}).find((item) => item.name === node.name)
+        || node;
+      const childrenByParent = Object.values(graph.nodesById || {}).reduce((result, item) => {
+        if (!item?.parentId) return result;
+        (result[item.parentId] ||= []).push(item);
+        return result;
+      }, {});
+      Object.values(childrenByParent).forEach((items) => items.sort((left, right) => (Number(left.order) || 0) - (Number(right.order) || 0) || String(left.name || '').localeCompare(String(right.name || ''))));
+      const typeLabels = { poi: '地点', floor: '楼层', room: '房间', zone: '位置' };
+      const records = [];
+      const visit = (current, depth = 0) => {
+        if (!current?.id || records.some((item) => item.id === current.id)) return;
+        const children = childrenByParent[current.id] || [];
+        const objectChildren = children.filter((item) => ['object', 'container-item'].includes(String(item.type || '')));
+        const spaceChildren = children.filter((item) => !['object', 'container-item'].includes(String(item.type || '')));
+        const type = String(current.type || '');
+        const typeLabel = typeLabels[type] || '空间';
+        const intro = String(current.description || (Array.isArray(current.descriptionFacts) ? current.descriptionFacts[0] : '') || `${typeLabel}：${current.name || ''}`)
+          .replace(/^地点[:：]\s*/u, '').trim().slice(0, 20);
+        records.push({
+          id: String(current.id), name: String(current.displayName || current.name || current.id), type, typeLabel, depth,
+          intro: intro || `${typeLabel}空间。`,
+          items: objectChildren.map((item) => ({ name: item.displayName || item.name || item.id || '物品', place: item.position || item.placement || item.description || '位于该空间内。' })),
+          children: spaceChildren.map((item) => ({ id: String(item.id), name: item.displayName || item.name || item.id || '下级空间', typeLabel: typeLabels[String(item.type || '')] || '下级空间' })),
+        });
+        spaceChildren.forEach((item) => visit(item, depth + 1));
+      };
+      visit(graphNode);
+      const selected = records.find((item) => item.depth > 0 && (item.children.length || item.items.length)) || records[0] || null;
+      return {
+        title: node.displayName || node.name || '地点内部',
+        selectedId: selected?.id || '',
+        tree: records,
+        emptyText: '该地点内部仍处于迷雾，等待现实行动推演。',
+      };
+    },
+    realWorldMapInfoSpaceSelected(space = {}, activeNodeId = '') {
+      return (space.tree || []).find((node) => node.id === activeNodeId) || (space.tree || [])[0] || null;
+    },
+    realWorldMapInfoVisibleSpaceNodes() {
+      const tree = Array.isArray(this.realWorldMapInfoSpace?.tree) ? this.realWorldMapInfoSpace.tree : [];
+      const expanded = new Set(Array.isArray(this.realWorldMapInfoSpaceExpandedIds) ? this.realWorldMapInfoSpaceExpandedIds : []);
+      return tree.filter((node) => !node.parentId || expanded.has(node.parentId));
+    },
+    toggleRealWorldMapInfoSpaceNode() {},
+    isFreelanceCareer() {
+      return this.companyState?.activeCareerApp === 'freelance';
+    },
+    hasActiveCareerProfile(app = this.companyState?.activeCareerApp || 'work') {
+      const profile = app === 'freelance'
+        ? (this.companyState?.freelanceProfiles || []).find((item) => item?.id === this.companyState?.selectedFreelanceId) || null
+        : this.companyState?.workUnitProfile || this.companyState?.careerProfile || null;
+      return !!(profile && profile.active !== false && (profile.organizationName || profile.name || profile.title));
+    },
+    companyHeaderView() {
+      const freelance = this.isFreelanceCareer();
+      const profile = freelance
+        ? (this.companyState?.freelanceProfiles || []).find((item) => item?.id === this.companyState?.selectedFreelanceId) || null
+        : this.companyState?.workUnitProfile || this.companyState?.careerProfile || null;
+      return {
+        title: profile?.organizationName || profile?.name || profile?.title || (freelance ? '暂无自由职业者' : '暂无工作单位'),
+        subtitle: profile?.positionTitle || profile?.industry || profile?.desc || '等待现实推演同步职业生涯',
+      };
+    },
+    careerAppName() {
+      return this.isFreelanceCareer() ? '自由职业' : '工作';
+    },
+    freelanceProfiles() {
+      return Array.isArray(this.companyState?.freelanceProfiles) ? this.companyState.freelanceProfiles : [];
+    },
+    selectedFreelanceProfile() {
+      return this.freelanceProfiles().find((item) => item?.id === this.companyState?.selectedFreelanceId) || null;
+    },
+    companyAttendanceView() {
+      return { label: this.isFreelanceCareer() ? '今日接单状态' : '今日上班状态' };
+    },
+    currentWorkAttendance() {
+      return { className: 'idle', status: '未同步', detail: '等待职业生涯数据同步。', canCheckIn: false };
+    },
+    companyFields() {
+      return [];
+    },
+    freelanceLevelSectionView() {
+      const profile = this.selectedFreelanceProfile() || {};
+      const title = profile.reputationTitle || profile.levelTitle || '未定称号';
+      const current = Number(profile.reputationValue ?? profile.reputation ?? 0);
+      const max = Number(profile.reputationMax ?? profile.reputationCap ?? 100) || 100;
+      const next = profile.nextReputationTitle || profile.nextTitle || '待定';
+      return {
+        titleText: `${title}(${current}/${max}, 下一级：${next}${profile.reputationReview ? `，${profile.reputationReview}` : ''})`,
+        abilities: [],
+        specialty: profile.specialty || '等待 Stage13 生成擅长方向。',
+        emptyText: '暂无与该自由职业匹配的知识、技能或职业等级。',
+      };
+    },
+    companyOrganizationSectionView() {
+      return {
+        currentPosition: this.companyHeaderView().title,
+        directLeader: '未同步',
+        currentRoute: '未同步',
+        routeRows: [],
+        emptyText: '暂无职业晋级路线。',
+        promotionMessage: '',
+      };
+    },
+    freelanceWorksSectionView() {
+      return { works: [], emptyText: '暂无成果记录。' };
+    },
+    companyPayPanelView() {
+      return {
+        summary: { title: '薪酬绩效', summaryLine: '暂无薪酬绩效信息。', performanceLine: '当前绩效：0/100' },
+        performance: {
+          title: '绩效记录',
+          nextReviewAt: '',
+          attendanceStatus: '未同步',
+          attendanceDetail: '等待职业生涯数据同步。',
+          leaderSummary: '暂无评价',
+          leaderScore: 0,
+          leaderDetail: '',
+          employeeSummary: '暂无自评',
+          employeeDetail: '',
+          contributionItems: [],
+        },
+        section: { contractRows: [], submissionRows: [] },
+      };
+    },
+    wechatFriendRequestPendingCount() {
+      return (Array.isArray(this.wechatFriendRequests) ? this.wechatFriendRequests : []).filter((item) => item?.status === 'pending').length;
+    },
+    wechatFriendRequestPendingList() {
+      return (Array.isArray(this.wechatFriendRequests) ? this.wechatFriendRequests : []).filter((item) => item?.status === 'pending');
+    },
+    wechatBodyStatusReasonItems() {
+      return [];
+    },
+    wechatWearingReasonItems() {
+      return [];
+    },
+    wechatItemReasonItems() {
+      return [];
+    },
+    wechatRelationshipReasonItems() {
+      return [];
+    },
+    openWechatFriendRequests() {
+      this.wechatView = 'friendRequests';
+    },
+    async acceptWechatFriendRequest() {},
+    async rejectWechatFriendRequest() {},
   };
   const modules = [
     criticalActionFallback, gm.actions, gm.rpgFieldUi, gm.resultActions, gm.loadingActions, gm.roleCardLoadingActions, gm.solidifyActions, gm.wearingSyncActions, gm.saveActions, gm.styleActions,
@@ -729,8 +960,8 @@ function registerGameStore() {
       pixaiBaseUrl: cfg.drawProviders?.pixai?.baseUrl || 'https://api.pixai.art',
       pixaiModelVersionId: cfg.drawProviders?.pixai?.defaultModel || '',
       pixaiMode: cfg.drawProviders?.pixai?.defaultMode || 'standard',
-      stage1MaterialIterationLimited: false,
-      stage1MaterialMaxIterations: 2,
+      stage1MaterialIterationLimited: true,
+      stage1MaterialMaxIterations: 3,
       modelTestLoading: false,
       modelTestOk: null,
       modelTestMessage: '',
@@ -789,7 +1020,7 @@ function registerGameStore() {
     mindText: '', feedbackSource: 'pending',
     characterIntent: '',
     choices: cfg.openingChoices,
-    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, locationGraph: null, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], socialInbox: [], socialInboxPreparedIds: [], newsDriverState: defaultNewsDriverState, realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
+    log: [], realWorldOpen: false, realWorldBusy: false, realWorldInput: '', realWorldThinkMode: false, realWorldFreedomMode: 'scope', realWorldWordCount: 1000, realWorldFunctionOpen: false, realWorldFunctionView: 'menu', realWorldMatterState: { open: false, activeId: '' }, realWorldSceneTitle: '现实世界', realWorldLocationName: '', realWorldMap: defaultRealWorldMapState, realWorldMapInfoSpace: { title: '未选择地点', tree: [], selectedId: '', emptyText: '点击地图节点查看空间。' }, realWorldMapInfoSpaceActiveNodeId: '', realWorldMapInfoSpaceExpandedIds: [], locationGraph: null, realWorldQuest: '确认手机异常与现实处境', realWorldStatus: '现实稳定', realWorldChoices: ['检查手机记录', '观察居住环境', '联系熟人确认', '暂时休息'], realWorldLog: [], realWorldLogPage: 1, realWorldLogPageSize: 12, realWorldLogTotal: 0, realWorldLongingEvents: [], realWorldLongingPreparedIds: [], socialInbox: [], socialInboxPreparedIds: [], newsDriverState: defaultNewsDriverState, realWorldlineState: { events: [], plots: [], pendingPlot: null }, realWorldProfileOpen: false, companyState: defaultCompanyState, bossState: defaultBossState, calendarState: defaultCalendarState, eventState: defaultEventState, factionState: defaultFactionState, skillsState: gm.skillsApp?.defaultState?.() || {}, promptState: gm.promptTemplates?.defaultState?.() || {}, tokenStatsState: gm.tokenStats?.defaultState?.() || {},
     nextId: 1,
     ragQuery: '',
     ragContext: '',

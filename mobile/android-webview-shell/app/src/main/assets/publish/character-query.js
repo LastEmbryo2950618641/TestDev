@@ -90,7 +90,7 @@ window.GameModules.characterQuery = {
     if (intro) return this.introText(intro, maxChars || 1600);
 
     const label = name || id;
-    return `未找到角色资料：${label}｜世界：${worldTag}。自然出场请用可区分姓名写入 Stage1 participants 为 姓名(待建卡)，系统会分配共享 ID 并先生成介绍卡（不是完整角色卡）。结算可补 appearedCharacters（name、role、intro、work、presenceKind：individual|group）；solidifiableCharacters 仅标记值得玩家手动升格。禁止无名纯「路人」。`;
+    return `未找到角色资料：${label}｜世界：${worldTag}。自然出场请用可区分姓名写入 Stage1 participants 为 姓名(待建卡)，系统会先分配共享 ID；真正介绍卡由正文后 Stage5 创建（不是完整角色卡）。结算可补 appearedCharacters（name、role、intro、work、presenceKind：individual|group）；solidifiableCharacters 仅标记值得玩家手动升格。禁止无名纯「路人」。`;
   },
 
   listKnownCharacters(store = null, params = {}) {
@@ -307,3 +307,4 @@ window.GameModules.characterQuery = {
     ].filter(Boolean).join('\n'), maxChars);
   },
 };
+

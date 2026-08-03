@@ -253,6 +253,11 @@ window.GameModules.updateRegistry = {
     };
   },
 
+  isSystemSettlementRow(row = {}) {
+    const text = `${row.updateType || ''} ${row.field || ''} ${row.name || ''} ${row.group || ''} ${row.section || ''} ${row.uiTitle || ''} ${row.uiName || ''} ${row.cardTitle || ''}`;
+    return /系统记录|系统卡/u.test(text) || String(row.cardId || '').startsWith('system:');
+  },
+
   defaultCard(change = {}, store = null) {
     const subject = change.subject || {};
     const label = subject.name || subject.id || change.group || change.target || '';
@@ -370,8 +375,9 @@ window.GameModules.updateRegistry = {
   settlementGroups(entry = {}, store = null) {
     const groups = new Map();
     for (const item of this.settlementRows(entry, store)) {
-      const title = item.cardTitle || item.group || store?.realWorldSettlementGroup?.(item.field, item.name) || item.section || '其他';
-      const id = item.cardId || `legacy:${title}`;
+      const isSystem = this.isSystemSettlementRow(item);
+      const title = isSystem ? '系统记录' : (item.cardTitle || item.group || store?.realWorldSettlementGroup?.(item.field, item.name) || item.section || '其他');
+      const id = isSystem ? 'system-records' : (item.cardId || `legacy:${title}`);
       if (!groups.has(id)) groups.set(id, { id, title, section: item.section || item.group || title, items: [] });
       groups.get(id).items.push(item);
     }

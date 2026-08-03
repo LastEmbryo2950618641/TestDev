@@ -118,8 +118,8 @@ test('surround unlock prompt documents position info response with neighbor fact
   assert.ok(prompt.includes('## 出场人物位置（必读）'));
   assert.ok(prompt.includes('"ID"'));
   assert.ok(prompt.includes('越具体越好') || prompt.includes('尽量精确'));
-  assert.ok(prompt.includes('不需要更新（禁止输出）'));
-  assert.ok(prompt.includes('需要更新（必须输出）'));
+  assert.ok(prompt.includes('仅位置变化时输出'));
+  assert.ok(prompt.includes('角色卡/介绍卡中已存的当前位置与本轮当前位置相同'));
   assert.ok(prompt.includes('所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3'));
   assert.ok(prompt.includes('角色卡当前位置格式为固定“地点链|空间位置链”格式'));
   assert.ok(prompt.includes('"距离"'));
@@ -166,14 +166,16 @@ test('map position spaces reveal each level only after its parent expands', () =
   assert.ok(html.includes('toggleRealWorldMapInfoSpaceNode(node.id)'));
 });
 
-test('map drawer reads one canonical persisted position info record', () => {
+test('map drawer reads position info from the persisted location graph node', () => {
   const actions = read('publish/real-world-map-actions.js');
+  const helpers = read('publish/ui/real-world/map-info-view-helpers.js');
   const fog = read('publish/real-world-map-fog.js');
-  assert.ok(actions.includes('map.positionInfoByPlace?.[node?.name]'));
-  assert.ok(fog.includes('map.positionInfoByPlace[placeName] = storedPositionInfo'));
-  assert.ok(!actions.includes('positionInfoByNode'));
-  assert.ok(!fog.includes('positionInfoByNode'));
-  assert.ok(!fog.includes('applyPositionInfo('));
+  assert.ok(actions.includes('graphNode?.positionInfo'));
+  assert.ok(helpers.includes('const positionInfo = graphNode?.positionInfo || null;'));
+  assert.ok(fog.includes('persistedAnchorNode.positionInfo = storedPositionInfo'));
+  assert.ok(!actions.includes('positionInfoByPlace'));
+  assert.ok(!helpers.includes('positionInfoByPlace'));
+  assert.ok(!fog.includes('positionInfoByPlace'));
 });
 
 test('map revisits request a position-info backfill when the current location has an interior chain', () => {
@@ -581,7 +583,7 @@ test('map css prevents node text overlap and avoids expensive filters', () => {
   assert.ok(css.includes('filter: none;'));
   assert.ok(css.includes('.real-world-map-info-pop {'));
   assert.ok(css.includes('overflow-y: auto;'));
-  assert.ok(css.includes('max-height: min(560px, calc(100vh - 150px));'));
+  assert.ok(css.includes('max-height: min(620px, calc(100vh - 140px));'));
 });
 
 
@@ -1154,7 +1156,8 @@ test('surround unlock applies neighbor faction and appearing character locations
   await fog.applySurroundUnlock(state, map, anchor, anchor, payload);
 
   assert.deepStrictEqual(payload.positionInfo.positionChain, ['2单元', '601室', '刘思琪房间内']);
-  const persistedPositionInfo = Object.values(state.realWorldMap.positionInfoByPlace)[0];
+  assert.strictEqual(state.rpgStates['player-self']?.profile?.currentLocation, '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601室·刘思琪房间内');
+  const persistedPositionInfo = Object.values(state.locationGraph.nodesById).find((node) => node.positionInfo).positionInfo;
   assert.deepStrictEqual(persistedPositionInfo.positionChain, ['2单元', '601室', '刘思琪房间内']);
   assert.strictEqual(persistedPositionInfo.items[0].name, '书包');
   assert.ok(!anchor.positionInfo);

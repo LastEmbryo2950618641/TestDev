@@ -34,6 +34,10 @@ window.GameModules.app.storage.restorePostFlow = {
   applyNonFieldSideEffects(store) {
     window.GameModules.runtimeConfig?.applyToStore?.(store);
     window.GameModules.realWorldMap?.ensure?.(store, store.playerProfile || {});
+    const recovery = window.GameModules.realWorldThinkingActions?.recoverInterruptedRealWorldActions?.call(store);
+    if (recovery?.catch) recovery.catch((err) => {
+      console.warn('[现实日志] 中断推演恢复失败:', err?.message || err);
+    });
     if ((window.GameModules.realWorldLogStore?.count?.() || 0) <= 0 && (store.realWorldLog || []).length) {
       window.GameModules.realWorldLogStore?.saveAll?.(store.realWorldLog).catch((err) => {
         console.warn('[现实日志] 旧日志迁移失败:', err.message, err.stack);

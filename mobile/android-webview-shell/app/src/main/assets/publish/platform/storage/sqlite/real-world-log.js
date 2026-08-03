@@ -5,14 +5,9 @@ window.GameModules = window.GameModules || {};
   const baseMigrate = save.migrate.bind(save);
   const baseReadFallbackState = save.readFallbackState.bind(save);
 
-  save.readFallbackState = function readFallbackState(raw) {
-    const state = baseReadFallbackState(raw);
-    try {
-      const parsed = raw ? JSON.parse(raw) : null;
-      state.realWorldLogEntries = parsed?.realWorldLogEntries || {};
-    } catch (_) {
-      state.realWorldLogEntries = {};
-    }
+  save.readFallbackState = async function readFallbackState(raw) {
+    const state = await baseReadFallbackState(raw);
+    state.realWorldLogEntries = state.realWorldLogEntries || {};
     return state;
   };
 

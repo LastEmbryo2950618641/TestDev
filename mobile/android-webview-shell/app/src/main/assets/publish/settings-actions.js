@@ -194,12 +194,12 @@ window.GameModules.settingsActions = {
     const providerId = this.settingsState?.textProvider || window.GameModules.aiProvider?.currentProviderId?.() || 'deepseek';
     if (providerId === 'deepseek') {
       return [
-        { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: false },
+        { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: true },
         { internalName: 'deepseek-v4-pro', displayName: 'DeepSeek V4 Pro', description: 'DeepSeek 高质量文本模型', thinkingSupported: true },
       ];
     }
     return [
-      { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: false },
+      { internalName: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', description: 'DeepSeek 默认备用文本模型', thinkingSupported: true },
       { internalName: 'nalang-medium-0826', displayName: '均衡性能', description: '默认备用文本模型', thinkingSupported: false },
     ];
   },
@@ -356,7 +356,7 @@ window.GameModules.settingsActions = {
 
   async setStage1MaterialMaxIterations(value) {
     if (!this.settingsState) return;
-    const next = Math.max(1, Math.min(8, Math.round(Number(value) || 2)));
+    const next = Math.max(1, Math.min(8, Math.round(Number(value) || 3)));
     this.settingsState.stage1MaterialMaxIterations = next;
     await this.save?.();
   },
@@ -378,7 +378,7 @@ window.GameModules.settingsActions = {
       aiOutputLimitStage2Mode: 'global',
       aiOutputLimitStage2MaxTokens: 3000,
       aiOutputLimitStage3Mode: 'limited',
-      aiOutputLimitStage3MaxTokens: 3000,
+      aiOutputLimitStage3MaxTokens: 12000,
       aiOutputLimitStage4Mode: 'global',
       aiOutputLimitStage4MaxTokens: 3000,
       aiOutputLimitOtherMode: 'global',
@@ -387,6 +387,10 @@ window.GameModules.settingsActions = {
     Object.entries(defaults).forEach(([key, value]) => {
       if (s[key] === undefined || s[key] === null || s[key] === '') s[key] = value;
     });
+    if (Number(s.aiOutputLimitStage3BudgetVersion || 0) < 3) {
+      if ([3000, 8000].includes(Number(s.aiOutputLimitStage3MaxTokens))) s.aiOutputLimitStage3MaxTokens = 12000;
+      s.aiOutputLimitStage3BudgetVersion = 3;
+    }
   },
 
   aiOutputLimitMode(kind = 'other') {
@@ -425,3 +429,4 @@ SETTINGS_VIEW_HELPER_METHODS.forEach((method) => {
     return callSettingsViewHelper(this, method, ...args);
   };
 });
+

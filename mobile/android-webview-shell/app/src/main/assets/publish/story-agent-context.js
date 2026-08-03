@@ -93,15 +93,6 @@ window.GameModules.storyAgentContext = {
     return store?.character?.work || store?.selectedWork || '原创世界';
   },
 
-  splitChineseRequestLine(line = '') {
-    const shared = window.GameModules.realWorldAgentContext?.splitChineseRequestLine;
-    if (typeof shared === 'function') return shared(line);
-    const catalog = window.GameModules.realWorldAgentContextParts?.materialRequestCatalog?.splitChineseRequestLine;
-    if (typeof catalog === 'function') return catalog.call(window.GameModules.realWorldAgentContextParts.materialRequestCatalog, line);
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    return body.split(/[，、；;]/u).map((part) => part.trim()).filter(Boolean);
-  },
-
   guidedMaterialRequestCatalog(mode = 'story') {
     const sharedCatalog = window.GameModules.realWorldAgentContext?.guidedMaterialRequestCatalog;
     const fallbackCatalog = window.GameModules.realWorldAgentContextParts?.materialRequestCatalog?.guidedMaterialRequestCatalog;
@@ -114,29 +105,49 @@ window.GameModules.storyAgentContext = {
     const work = (p, store) => p[1] || this.worldLabel(store);
     return [
       ...base,
-      { mode: 'story', category: '作品设定查询', action: '入口说明', skill: 'worklore.query', method: 'getReadme', buildParams: (p, options) => ({ world: p[0] || this.worldLabel(options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '常驻设定', skill: 'worklore.query', method: 'getDefaultLoad', buildParams: (p, options) => ({ world: p[0] || this.worldLabel(options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '搜索人物', skill: 'worklore.query', method: 'searchPeople', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '搜索剧情', skill: 'worklore.query', method: 'searchPlot', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '搜索时间线', skill: 'worklore.query', method: 'searchTimeline', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '搜索能力', skill: 'worklore.query', method: 'searchAbility', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '搜索关系', skill: 'worklore.query', method: 'searchRelationship', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '搜索地点', skill: 'worklore.query', method: 'searchLocation', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
-      { mode: 'story', category: '作品设定查询', action: '搜索物品', skill: 'worklore.query', method: 'searchItem', buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '入口说明', skill: 'worklore.query', method: 'getReadme', requiredParams: [], buildParams: (p, options) => ({ world: p[0] || this.worldLabel(options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '常驻设定', skill: 'worklore.query', method: 'getDefaultLoad', requiredParams: [], buildParams: (p, options) => ({ world: p[0] || this.worldLabel(options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索人物', skill: 'worklore.query', method: 'searchPeople', requiredParams: ['keyword'], buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索剧情', skill: 'worklore.query', method: 'searchPlot', requiredParams: ['keyword'], buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索时间线', skill: 'worklore.query', method: 'searchTimeline', requiredParams: ['keyword'], buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索能力', skill: 'worklore.query', method: 'searchAbility', requiredParams: ['keyword'], buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索关系', skill: 'worklore.query', method: 'searchRelationship', requiredParams: ['keyword'], buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索地点', skill: 'worklore.query', method: 'searchLocation', requiredParams: ['keyword'], buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
+      { mode: 'story', category: '作品设定查询', action: '搜索物品', skill: 'worklore.query', method: 'searchItem', requiredParams: ['keyword'], buildParams: (p, options) => ({ keyword: p[0] || '', world: work(p, options.store) }) },
     ];
   },
 
   stage1MaterialCatalogText(mode = 'story') {
-    const lines = [];
-    const seen = new Map();
-    this.guidedMaterialRequestCatalog(mode).forEach((item) => {
-      if (!(item.mode === 'both' || item.mode === mode || mode === 'story')) return;
-      const list = seen.get(item.category) || [];
-      if (!list.includes(item.action)) list.push(item.action);
-      seen.set(item.category, list);
-    });
-    seen.forEach((actions, category) => lines.push(`${category}：${actions.join('、')}`));
+    const lines = this.guidedMaterialRequestCatalog(mode)
+      .filter((item) => item.mode === 'both' || item.mode === mode || mode === 'story')
+      .map((item) => {
+        const params = Array.isArray(item.requiredParams) ? item.requiredParams : [];
+        return `- type=${item.category}；action=${item.action}；params顺序=${params.length ? params.join('、') : '无必填参数'}`;
+      });
     return lines.join('\n') || '无可请求资料';
+  },
+
+  parseJsonMaterialRequest(request = null, options = {}) {
+    if (!request || typeof request !== 'object' || Array.isArray(request)) return null;
+    const category = String(request.type || '').trim();
+    const action = String(request.action || '').trim();
+    const params = (Array.isArray(request.params) ? request.params : [])
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+    const placeholders = new Set(['角色全称', '世界全称', '地点全称', '人物全称', '作品全称', '参数1', '参数2', '参数3']);
+    if (!category || !action || params.some((item) => placeholders.has(item))) return null;
+    const entry = this.guidedMaterialRequestCatalog('story')
+      .find((item) => (item.mode === 'both' || item.mode === 'story') && item.category === category && item.action === action);
+    if (!entry) return null;
+    const built = entry.buildParams(params, { ...options, store: options.store });
+    const required = Array.isArray(entry.requiredParams) ? entry.requiredParams : Object.keys(built).filter((key) => key !== 'world');
+    if (required.some((key) => built[key] === '' || built[key] === undefined)) return null;
+    return {
+      skill: entry.skill,
+      method: entry.method,
+      params: built,
+      sourceJson: { type: category, action, params },
+    };
   },
 
   redactPromptPollution(text = '') {
@@ -150,16 +161,15 @@ window.GameModules.storyAgentContext = {
   buildStage1RoutingContext({ store, action, loaded = [], config = null } = {}) {
     const work = this.worldLabel(store);
     const character = store?.character?.name || '未知角色';
+    const characterId = store?.character?.id || store?.characterRpgState?.id || '';
     const scene = store?.sceneTitle || '未知场景';
     return [
       `模式：${config?.label || '操控剧情'}`,
       `本次行动：${action || '继续推进操控剧情'}`,
       `当前位置：${scene}`,
       `当前时间：${store?.entryTimeLabel?.() || '未知时间'}`,
-      `当前对象线索：${character}｜作品：${work}`,
-      `已加载资料摘要：\n${this.loadedRoutingSummary(loaded)}`,
-      `可请求资料目录：\n${this.stage1MaterialCatalogText('story')}`,
-    ].join('\n');
+      `当前被控主体：${character}${characterId ? `(${characterId})` : ''}｜作品：${work}`,
+    ].filter(Boolean).join('\n');
   },
 
   loadedAnchorSummary(items = []) {
@@ -213,17 +223,6 @@ window.GameModules.storyAgentContext = {
       `最近事实连续性：正文承接最近已发生事实，不改写已发送内容；只写本次行动直接结果。`,
       `最近剧情摘要：\n${recent || '无'}`,
     ].join('\n');
-  },
-
-  parseChineseMaterialRequest(line = '', options = {}) {
-    const parts = this.splitChineseRequestLine(line);
-    if (parts.length < 2) return null;
-    const [category, action, ...params] = parts;
-    const entry = this.guidedMaterialRequestCatalog('story').find((item) => item.category === category && item.action === action);
-    if (!entry) return null;
-    const built = entry.buildParams(params, { ...options, store: options.store });
-    if (Object.values(built).some((value) => value === '')) return null;
-    return { skill: entry.skill, method: entry.method, params: built, sourceText: String(line || '').trim() };
   },
 
   participantProfileRequests(data = {}, options = {}) {
@@ -499,7 +498,7 @@ window.GameModules.storyAgentContext = {
     if (skill === 'past.event.query') return window.GameModules.pastEventQuery?.query?.(store, method, { question: action, characterId: store.character?.id, characterName: store.character?.name, worldTag: store.character?.work, ...params }) || '';
     if (skill === 'lexicon.query') return typeof realCtx?.lexicon === 'function' ? await realCtx.lexicon(store, method, params) : '词条查询模块未加载。';
     if (skill === 'item.query') return typeof realCtx?.itemQuery === 'function' ? await realCtx.itemQuery(store, method, { target: params.target || store.character?.id, ...params }) : '物品查询模块未加载。';
-    if (skill === 'company.query') return typeof realCtx?.company === 'function' ? realCtx.company(store, method, params) : '公司查询模块未加载。';
+    if (skill === 'company.query') return typeof realCtx?.company === 'function' ? realCtx.company(store, method, params) : '工作查询模块未加载。';
     if (skill === 'faction.query') return typeof realCtx?.faction === 'function' ? realCtx.faction(store, method, params) : '势力查询模块未加载。';
     if (skill === 'realworld.location.query') return typeof realCtx?.location === 'function' ? realCtx.location(store, method, params, action, { queryOnly: true, noAudit: true, returnJsonOnMiss: true }) : '';
     if (skill === 'realworld.history.query') return this.history(store, method, { ...params, world: params.world || params.worldTag || store.character?.work });

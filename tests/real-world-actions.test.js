@@ -6,7 +6,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const relativeScriptPath = 'real-world-actions.js';
 
-function loadActions({ failAi = false } = {}) {
+function loadActions({ failAi = false, hangAi = false, hangLog = false } = {}) {
   const calls = [];
   const persisted = [];
   const context = vm.createContext({
@@ -17,12 +17,17 @@ function loadActions({ failAi = false } = {}) {
     Object,
     Set,
     String,
+    setTimeout,
+    clearTimeout,
     window: {
       GameModules: {
         ai: { choiceText: (choice) => choice.text || '', clampElapsed: (value) => value },
         realWorldAi: {
-          generate: async () => {
+          latestRequestId: 0,
+          generate: async function generate() {
             calls.push(['generate']);
+            this.latestRequestId += 1;
+            if (hangAi) return await new Promise(() => {});
             if (failAi) throw Object.assign(new Error('AI failed'), { code: 'TEST_FAILURE' });
             return { narration: '推演完成', choices: ['继续'], elapsedSeconds: 60 };
           },
@@ -30,6 +35,7 @@ function loadActions({ failAi = false } = {}) {
         realWorldLogStore: {
           append: async (entry) => {
             calls.push(['append', entry.type]);
+            if (hangLog) return await new Promise(() => {});
             persisted.push({ ...entry });
             return entry;
           },
@@ -47,7 +53,7 @@ function loadActions({ failAi = false } = {}) {
   });
   const source = fs.readFileSync(path.join(root, 'publish', relativeScriptPath), 'utf8');
   vm.runInContext(source, context, { filename: `publish/${relativeScriptPath}` });
-  return { actions: context.window.GameModules.realWorldActions, calls, persisted };
+  return { actions: context.window.GameModules.realWorldActions, calls, persisted, ai: context.window.GameModules.realWorldAi };
 }
 
 function createRuntime(actions, calls) {
@@ -68,6 +74,7 @@ function createRuntime(actions, calls) {
     phoneDateText: () => '2026年7月14日',
     phoneTimeText: () => '12:00:00',
     normalizeRealWorldLog: (entries) => entries,
+    realWorldLogPersistQueue: Promise.resolve(),
     realWorldLogMaxPage: () => 1,
     refreshRealWorldLogPage: () => {},
     scrollRealWorldLogBottom: () => {},
@@ -88,7 +95,7 @@ async function run() {
   assert.strictEqual(successRuntime.realWorldBusy, false);
   assert.deepStrictEqual(
     success.calls.filter((call) => ['append', 'prepare', 'generate', 'apply', 'archive', 'memory', 'save'].includes(call[0])).map((call) => call[0]),
-    ['append', 'append', 'prepare', 'generate', 'apply', 'archive', 'memory', 'save'],
+    ['prepare', 'generate', 'append', 'append', 'append', 'append', 'apply', 'archive', 'memory', 'save'],
   );
   assert.strictEqual(success.persisted[0].text, '观察车站');
   assert.strictEqual(success.persisted[1].narration, '现实世界正在推演…');
@@ -97,13 +104,40 @@ async function run() {
   const failureRuntime = createRuntime(failure.actions, failure.calls);
   await failureRuntime.submitRealWorldAction('尝试失败行动');
   assert.strictEqual(failureRuntime.realWorldBusy, false);
-  assert.strictEqual(failure.calls.some((call) => call[0] === 'remove'), true);
+  assert.strictEqual(failure.calls.some((call) => call[0] === 'remove'), false);
   const failedEntry = failureRuntime.realWorldLog.find((entry) => entry.type === 'ai');
-  assert.strictEqual(failedEntry.narration, 'AI请求失败，请重试');
+  assert.strictEqual(failedEntry.narration, 'AI请求失败：AI failed');
   assert.strictEqual(failedEntry.transientError, true);
   assert.strictEqual(failedEntry.promptPack, null);
+  assert.strictEqual(failure.persisted.some((entry) => entry.id === failedEntry.id), true);
 
-  console.log('PASS real-world action runtime preserves submit order, failure cleanup, and log-store boundaries');
+  const settlementFailure = loadActions();
+  const settlementFailureRuntime = createRuntime(settlementFailure.actions, settlementFailure.calls);
+  settlementFailureRuntime.applyRealWorldResult = async () => { throw new Error('Stage4 settlement failed'); };
+  await settlementFailureRuntime.submitRealWorldAction('前往刘思琪房间');
+  const generatedEntry = settlementFailureRuntime.realWorldLog.find((entry) => entry.type === 'ai');
+  assert.strictEqual(generatedEntry.narration, '推演完成');
+  assert.strictEqual(generatedEntry.streaming, false);
+  assert.match(generatedEntry.settlementError, /Stage4 settlement failed/);
+  assert.strictEqual(settlementFailure.persisted.some((entry) => entry.id === generatedEntry.id && entry.narration === '推演完成'), true);
+
+  const timeout = loadActions({ hangAi: true });
+  const timeoutRuntime = { ...createRuntime(timeout.actions, timeout.calls), realWorldActionTimeoutMs: 10 };
+  await timeoutRuntime.submitRealWorldAction('等待超时行动');
+  assert.strictEqual(timeoutRuntime.realWorldBusy, false);
+  const timedOutEntry = timeoutRuntime.realWorldLog.find((entry) => entry.type === 'ai');
+  assert.strictEqual(timedOutEntry.streaming, false);
+  assert.strictEqual(timedOutEntry.transientError, true);
+  assert.match(timedOutEntry.narration, /超时/);
+  assert.strictEqual(timeout.ai.latestRequestId, 2);
+
+  const delayedLog = loadActions({ hangLog: true });
+  const delayedLogRuntime = createRuntime(delayedLog.actions, delayedLog.calls);
+  await delayedLogRuntime.submitRealWorldAction('日志延迟时也应推演');
+  assert.strictEqual(delayedLogRuntime.realWorldBusy, false);
+  assert.strictEqual(delayedLog.calls.some((call) => call[0] === 'generate'), true);
+
+  console.log('PASS real-world action runtime preserves submit order, timeout cleanup, and nonblocking log persistence');
 }
 
 run().catch((error) => {

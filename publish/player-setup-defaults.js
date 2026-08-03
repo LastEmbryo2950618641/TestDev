@@ -374,8 +374,19 @@ Object.assign(window.GameModules.playerSetupActions, {
       await window.GameModules.predefinedRoleCards.saveSelectedRoleCardStates(this);
       await this.syncPlayerCurrentLocationToIdentityState?.(this.playerProfile.currentLocation);
       await this.syncKnownProfessionsFromProfile?.(this.playerProfile.knownProfessions);
-      await this.save?.();
-      await this.finishActivationFlow?.();
+      try {
+        await this.save?.();
+      } catch (err) {
+        console.error('[玩家身份] 激活后存档失败:', err.code, err.message, err.stack);
+        this.setupError = `已进入游戏，但当前进度尚未保存：${err.message || '存档失败'}`;
+      }
+      try {
+        await this.finishActivationFlow?.();
+      } catch (err) {
+        console.error('[玩家身份] 激活后引导失败:', err.code, err.message, err.stack);
+        this.aspirationSetupOpen = false;
+        this.homeScreenView = 'playing';
+      }
       if (this.currentLocationFillState?.status === 'done') this.closeCurrentLocationFillProgress(450);
     } catch (err) {
       console.error('[玩家身份] 激活失败:', err.code, err.message, err.stack);

@@ -7,8 +7,6 @@ window.GameModules.factionSystem = {
       open: false,
       detailOpen: false,
       orgChartOpen: false,
-      orgChartMode: 'forest',
-      forestTab: 'corp',
       generating: false,
       error: '',
       requestId: 0,

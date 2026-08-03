@@ -345,9 +345,9 @@ window.GameModules.orgTerritory = {
     const stabilityWeights = { livelihood: 4, economy: 3, military: 2, reputation: 1 };
     const compositeMax = this.weightedOverviewMax(flatMetrics, compositeWeights);
     const composite = this.clampMetricValue(
-      source.composite?.value ?? source.compositeScore ?? source.composite ?? source['国家综合数值'],
-      compositeMax,
       this.weightedOverviewScore(flatMetrics, compositeWeights),
+      compositeMax,
+      0,
     );
     const stability = this.clampScore(
       source.stability?.value ?? source.stability ?? source['稳定度'],

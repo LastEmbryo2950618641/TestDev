@@ -148,8 +148,8 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     if (!String(store.settingsState.pixaiApiKey || '').trim() && keepPixaiKey) {
       store.settingsState.pixaiApiKey = keepPixaiKey;
     }
-    store.settingsState.stage1MaterialIterationLimited = Boolean(store.settingsState.stage1MaterialIterationLimited);
-    store.settingsState.stage1MaterialMaxIterations = Math.max(1, Math.min(8, Math.round(Number(store.settingsState.stage1MaterialMaxIterations) || 2)));
+    store.settingsState.stage1MaterialIterationLimited = store.settingsState.stage1MaterialIterationLimited !== false;
+    store.settingsState.stage1MaterialMaxIterations = Math.max(1, Math.min(8, Math.round(Number(store.settingsState.stage1MaterialMaxIterations) || 3)));
     store.settingsState.textProvider = store.settingsState.textProvider || 'deepseek';
     store.settingsState.deepseekBaseUrl = store.settingsState.deepseekBaseUrl || 'https://api.deepseek.com';
     store.settingsState.drawProvider = store.settingsState.drawProvider || 'pixai';
@@ -182,4 +182,3 @@ window.GameModules.domain.storage.restoreStateHelpers = {
     store.controlExperienceConfigState.previewItems = window.GameModules.controlExperienceConfigApp?.controlExperiencePreviewItems?.(store.controlExperienceConfigState) || [];
   },
 };
-

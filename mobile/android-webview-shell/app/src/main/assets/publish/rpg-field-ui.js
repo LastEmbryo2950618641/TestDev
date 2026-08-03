@@ -87,7 +87,7 @@ window.GameModules.rpgFieldUi = {
   isIdentityInfoStyledField(field = {}) {
     const label = String(field?.label || '').trim();
     const key = String(field?.key || '').trim();
-    return /姓名|身份|职业|所属世界|年龄|生日|性别|思念度|当前位置|外貌|喜好|性格|人物说明|备注|社群角色|阵营|人事归属|证书|称号|world_tag|current_location|appearance|preferences|personality|detail|factions|memberships|certificates|titles|longing|(^|[-_])(name|role|job|work|age|birthday|gender)$/.test(`${label} ${key}`);
+    return /姓名|身份|职业|所属世界|年龄|生日|性别|思念度|当前位置|外貌|喜好|性格|人物说明|备注|社群角色|阵营|人事归属|证书|称号|world_tag|appearance|preferences|personality|detail|factions|memberships|certificates|titles|longing|(^|[-_])(name|role|job|work|age|birthday|gender)$/.test(`${label} ${key}`);
   },
   identityInfoSummary(field = {}) {
     const meta = this.identityInfoFieldMeta(field);
@@ -134,7 +134,7 @@ window.GameModules.rpgFieldUi = {
     const row = (key, label, value, desc) => ({ key: `profile-${state?.id || 'target'}-${key}`, stateId: state?.id || '', label, kind: '角色卡', value: value || '未记录', raw: value || '', desc, reason: reasonFor(label, key), worldTag, targetType: p.isPlayer ? '非角色' : '角色', commonField: key !== 'work' });
     return [
       row('name', '姓名', p.name || state?.name, '角色卡固化姓名。'), row('work', '所属世界', worldTag, '角色出身作品或世界。'),
-      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为[势力层级链...]·地点·地点内位置（倒数第2段=地图节点，最后1段=室内细节）。'),
+      row('currentLocation', '当前位置', locationText, '角色卡当前位置；格式为所在世界·势力·层级1·层级2·地点|位置1·位置2·位置3（| 前最后一段=地图节点，| 后=空间所属位置链）。'),
       row('role', '身份', p.role || p.job, '角色当前身份。'),
       row('job', '职业', p.job, '角色真实职业、训练身份或社会功能。'),
       row('gender', '性别', p.gender, '角色性别资料。'), row('birthday', '生日', p.birthday, '角色生日资料。'),
@@ -949,7 +949,7 @@ window.GameModules.rpgFieldUi = {
     if (match(/生日|(^|[-_])birthday$/)) return { icon: '🎂', section: 'tag', tone: 'pink' };
     if (match(/性别|(^|[-_])gender$/)) return { icon: '⚥', section: 'tag', tone: 'violet' };
     if (match(/思念度|longing/)) return { icon: '💞', section: 'tag', tone: 'pink' };
-    if (match(/当前位置|current_location/)) return { icon: '📍', section: 'lore', tone: 'cyan' };
+    if (match(/当前位置/)) return { icon: '📍', section: 'lore', tone: 'cyan' };
     if (match(/外貌|appearance/)) return { icon: '🧬', section: 'lore', tone: 'violet' };
     if (match(/喜好|preferences/)) return { icon: '🎀', section: 'lore', tone: 'pink' };
     if (match(/性格|personality/)) return { icon: '🧠', section: 'lore', tone: 'cyan' };

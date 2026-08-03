@@ -7,7 +7,7 @@ window.GameModules.factionAiActions = {
     this.initFactionSystem?.();
     if (this.factionState) {
       this.factionState.generating = false;
-      this.factionState.error = '手动全量检视已移除；势力由正文后 Stage6（createFaction / patchFactionField）写入。';
+      this.factionState.error = '手动全量检视已移除；势力由正文后 Stage9（createFaction / patchFactionField）写入。';
     }
   },
 
@@ -102,3 +102,4 @@ window.GameModules.factionAiActions = {
     if (!this.selectedFaction()) this.factionState.selectedId = this.factionState.factions[0]?.id || '';
   },
 };
+

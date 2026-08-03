@@ -65,6 +65,9 @@ async function main() {
       { 距离: '约20米', 地点名: '锦苑小区2栋', 势力: '中华人民共和国·四川省成都市·武侯区' },
       { 距离: '约25米', 地点名: '锦苑小区4栋', 势力: '中华人民共和国·四川省成都市·武侯区' },
       { 距离: '约40米', 地点名: '锦苑小区正门', 势力: '中华人民共和国·四川省成都市·武侯区' },
+      { 距离: '约60米', 地点名: '小区中心花园', 势力: '中华人民共和国·四川省成都市·武侯区' },
+      { 距离: '约80米', 地点名: '小区东侧步道', 势力: '中华人民共和国·四川省成都市·武侯区' },
+      { 距离: '约100米', 地点名: '玉林北路', 势力: '中华人民共和国·四川省成都市·武侯区' },
     ],
     势力: ['中华人民共和国·四川省成都市·武侯区'],
     地点信息: ['1. 当前节点位于锦苑小区内部，为住宅楼栋。'],
@@ -78,24 +81,33 @@ async function main() {
     出场人物位置: [],
   };
   const payload = fog.validateUnlockPayload(raw, anchor, map, 'full');
-  assert.strictEqual(payload.surroundLocations.length, 3);
+  assert.strictEqual(payload.surroundLocations.length, 6);
   assert.strictEqual(payload.surroundLocations[0].distanceMeters, 20);
 
   await fog.applySurroundUnlock(state, map, anchor, anchor, payload);
   const std = graph.standardPoiGraph(state);
-  assert.ok(std.nodes.length >= 4, `expected merged graph nodes, got ${std.nodes.length}`);
-  assert.ok(std.edges.length >= 3, `expected route edges, got ${std.edges.length}`);
-  assert.ok((state.realWorldMap.nodes || []).length >= 4, 'legacy big map must receive projected neighbors');
-  assert.ok((state.realWorldMap.edges || []).length >= 3, 'legacy big map must receive projected edges');
+  assert.ok(std.nodes.length >= 7, `expected merged graph nodes, got ${std.nodes.length}`);
+  assert.ok(std.edges.length >= 6, `expected route edges, got ${std.edges.length}`);
+  assert.ok((state.realWorldMap.nodes || []).length >= 7, 'legacy big map must receive projected neighbors');
+  assert.ok((state.realWorldMap.edges || []).length >= 6, 'legacy big map must receive projected edges');
+  assert.ok(std.nodes.some((node) => node.name === '小区东侧步道'), 'path node must be rendered');
+  assert.ok(std.nodes.some((node) => node.name === '玉林北路'), 'road node must be rendered');
+  assert.ok(
+    Object.values(state.locationGraph.nodesById)
+      .filter((node) => node.type === 'poi' && node.name !== '锦苑小区3栋')
+      .every((node) => !node.parentId),
+    'surrounding places must remain peers instead of becoming child spaces of the current POI',
+  );
   assert.ok(state.realWorldMap.nodes.every((node) => node.graphNodeId), 'projected nodes must retain their graph identity');
   const projectedAnchor = state.realWorldMap.nodes.find((node) => node.name === '锦苑小区3栋');
-  const persistedPositionInfo = Object.values(state.realWorldMap.positionInfoByPlace)[0];
+  const persistedPositionInfo = Object.values(state.locationGraph.nodesById).find((node) => node.positionInfo).positionInfo;
   assert.deepStrictEqual(Array.from(persistedPositionInfo.positionChain), ['2单元', '601室', '刘思琪房间内']);
   assert.strictEqual(persistedPositionInfo.items[0].name, '书桌');
   assert.ok(!projectedAnchor.positionInfo, 'position info must have one canonical persistence source');
 
   const savedMap = context.window.GameModules.storage.snapshotPlainValue(state.realWorldMap);
-  const savedPositionInfo = Object.values(savedMap.positionInfoByPlace)[0];
+  assert.ok(!savedMap.positionInfoByPlace, '地图投影不再保存空间资料副本');
+  const savedPositionInfo = context.window.GameModules.storage.snapshotPlainValue(Object.values(state.locationGraph.nodesById).find((node) => node.positionInfo).positionInfo);
   assert.deepStrictEqual(Array.from(savedPositionInfo.positionChain), ['2单元', '601室', '刘思琪房间内']);
   assert.strictEqual(savedPositionInfo.items[0].name, '书桌');
 

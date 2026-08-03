@@ -264,6 +264,47 @@ window.GameModules.realWorldThinkingActions = {
     }).sort((a, b) => this.realWorldLogSortKey(a).localeCompare(this.realWorldLogSortKey(b)));
   },
 
+  async recoverInterruptedRealWorldActions() {
+    const byId = new Map();
+    (window.GameModules.realWorldLogStore?.listRecent?.(600) || []).forEach((entry) => {
+      if (entry?.id) byId.set(String(entry.id), entry);
+    });
+    (this.realWorldLog || []).forEach((entry) => {
+      if (entry?.id) byId.set(String(entry.id), entry);
+    });
+    const allEntries = [...byId.values()];
+    const interruptedIds = new Set(
+      allEntries
+        .filter((entry) => entry?.type === 'ai' && entry?.streaming)
+        .map((entry) => String(entry.id || ''))
+        .filter(Boolean),
+    );
+    if (!interruptedIds.size) return 0;
+    const recover = (entry) => {
+      if (!interruptedIds.has(String(entry?.id || ''))) return entry;
+      return {
+        ...entry,
+        narration: 'AI请求已中断，请重新发起行动。',
+        thinking: '',
+        thinkingSections: [],
+        settlementThinking: '',
+        settlementThinkingSections: [],
+        streamTrace: [],
+        agentTrace: [],
+        statusText: '',
+        streaming: false,
+        transientError: true,
+        promptPack: null,
+      };
+    };
+    const recoveredEntries = allEntries.filter((entry) => interruptedIds.has(String(entry?.id || ''))).map(recover);
+    for (const entry of recoveredEntries) await window.GameModules.realWorldLogStore?.append?.(entry);
+    this.realWorldLog = this.normalizeRealWorldLog((this.realWorldLog || []).map(recover));
+    this.realWorldLogTotal = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLog.length;
+    this.realWorldBusy = false;
+    return recoveredEntries.length;
+  },
+
   realWorldLogPairSortKey(entry = {}) {
     const id = String(entry.id || '');
     const match = id.match(/^(real-(\d+)-[a-z0-9]+)-(user|ai)$/u);

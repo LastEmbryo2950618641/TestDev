@@ -31,9 +31,13 @@ assert.ok(html.includes('退出当前附身控制，把身体控制权交还给�
 assert.ok(!html.includes('real-world-paired-player'));
 assert.ok(!read('publish/real-world-clock-actions.js').includes('this.sharedControlActive = false;'));
 const clockActions = read('publish/real-world-clock-actions.js');
-assert.ok(clockActions.includes('const total = window.GameModules.realWorldLogStore?.count?.() || 0'));
-assert.ok(clockActions.includes('const loadedLatest = total > 0'));
-assert.ok(clockActions.includes('if (!loadedLatest) this.refreshRealWorldLogPage?.(999999)'));
+assert.ok(clockActions.includes('await this.flushRealWorldLogPersistence?.()'));
+assert.ok(clockActions.includes('window.GameModules.realWorldLogStore?.count?.() > 0'));
+assert.ok(clockActions.includes("[现实日志] 打开面板刷新失败"));
+const realWorldActions = read('publish/real-world-actions.js');
+assert.ok(realWorldActions.includes('async flushRealWorldLogPersistence()'));
+assert.ok(realWorldActions.includes('await this.persistRealWorldLogEntries([...(playerEntry?.id ? [playerEntry] : []), next])'));
+assert.ok(realWorldActions.includes('await this.persistGeneratedRealWorldResult(entry.id, result, currentUserEntry)'));
 assert.ok(!read('publish/current-world-actions.js').includes('if (this.realWorldOpen) this.openRealWorldPanel?.()'));
 const sqliteRealWorldLog = read('publish/platform/storage/sqlite/real-world-log.js');
 assert.ok(sqliteRealWorldLog.includes('LIMIT ? OFFSET ?'));

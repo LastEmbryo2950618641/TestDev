@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-07-25-learned-stage10-v26",
+  "version": "2026-08-03-real-world-stage3-log-v59",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",
@@ -109,6 +109,7 @@ window.GameScriptManifest = {
       "world-lore.js",
       "world-attributes.js",
       "character-profile-source.js",
+      "current-location-field.js",
       "character-reason-fallback.js",
       "character-profile-template-class.js",
       "appearance-profile-tags-config.js",
@@ -169,6 +170,7 @@ window.GameScriptManifest = {
       "update/vital-update.js",
       "update/role-card-update.js",
       "update/relationship-update.js",
+      "update/character-schedule-update.js",
       "update/sexual-experience-update.js",
       "update/control-experience-update.js",
       "update/sexual-history-update.js",
@@ -185,6 +187,7 @@ window.GameScriptManifest = {
       "update/vital-update-ui.js",
       "update/role-card-update-ui.js",
       "update/relationship-update-ui.js",
+      "update/character-schedule-update-ui.js",
       "update/sexual-experience-update-ui.js",
       "update/sexual-history-update-ui.js",
       "update/body-status-update-ui.js",
@@ -273,7 +276,9 @@ window.GameScriptManifest = {
       "ui/faction/overview-view-helpers.js",
       "prompts/location-tree-audit-fill.js",
       "prompts/real-world-map-surround-unlock.js",
-      "prompts/推演引擎/stage6-faction-update.js",
+      "prompts/推演引擎/stage9-1-faction-create.js",
+      "prompts/推演引擎/stage9-2-faction-update.js",
+      "prompts/推演引擎/stage13-career-update.js",
       "prompts/推演引擎/stage11-world-news-update.js"
     ],
     "gameplay": [
@@ -303,6 +308,7 @@ window.GameScriptManifest = {
       "inference/material-loader.js",
       "inference/faction-stage-update.js",
       "inference/news-driver-stage-update.js",
+      "inference/work-performance-stage-update.js",
       "real-world-agent-context.js",
       "prompts/materials/real-world-materials.js",
       "prompts/materials/real-world-material-query.js",
@@ -321,6 +327,7 @@ window.GameScriptManifest = {
       "real-world-target-updates.js",
       "real-world-thinking-actions.js",
       "real-world-settlement-actions.js",
+      "inference/intro-card-stage-update.js",
       "real-world-profile-stage5.js",
       "real-world-utility-actions.js",
       "real-world-actions.js",
@@ -454,6 +461,6 @@ window.GameScriptManifest = {
       "inference-prompts-runtime.js"
     ]
   },
-  "generatedAt": "2026-07-26T07:04:46.100Z",
-  "total": 436
+  "generatedAt": "2026-07-29T00:00:00.000Z",
+  "total": 439
 };

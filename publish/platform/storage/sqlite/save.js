@@ -38,7 +38,7 @@ window.GameModules.sqliteSave = {
     const raw = await this.readRaw(this.activeSlot);
     if (this.fallback) {
       this.db = null;
-      this.fallbackState = this.readFallbackState(raw);
+      this.fallbackState = await this.readFallbackState(raw);
       return;
     }
     this.db = raw ? new this.SQL.Database(this.fromBase64(raw)) : new this.SQL.Database();
@@ -54,7 +54,7 @@ window.GameModules.sqliteSave = {
     let playerName = '';
     let phoneSetupDone = false;
     if (this.fallback) {
-      const state = this.readFallbackState(raw);
+      const state = await this.readFallbackState(raw);
       const main = state?.main || {};
       savedAt = state?.updatedAt || '';
       playerName = String(main.playerName || main.playerProfile?.name || '').trim();
@@ -99,7 +99,11 @@ window.GameModules.sqliteSave = {
   async readRaw(slot) {
     const key = this.key(slot);
     try {
-      if (window.dzmm?.kv) return (await window.dzmm.kv.get(key))?.value || null;
+      // file: 页面使用本地槽位存储；不要等待不存在或无响应的宿主桥接层。
+      if (window.location?.protocol !== 'file:' && window.dzmm?.kv) {
+        const value = (await window.dzmm.kv.get(key))?.value;
+        if (value) return value;
+      }
     } catch (err) {
       console.warn('SQLite 瀛樻。璇诲彇 KV 澶辫触:', err.code, err.message);
     }
@@ -109,19 +113,27 @@ window.GameModules.sqliteSave = {
   async writeRaw(slot, value) {
     const key = this.key(slot);
     try {
-      if (window.dzmm?.kv) {
+      // file: 页面直接写入 localStorage，避免 dzmm.kv 阻塞日志和推演启动。
+      if (window.location?.protocol !== 'file:' && window.dzmm?.kv) {
         await window.dzmm.kv.put(key, value);
-        return;
+        const written = (await window.dzmm.kv.get(key))?.value;
+        if (written !== value) throw new Error('dzmm.kv 写后校验失败');
+        return true;
       }
     } catch (err) {
       console.warn('SQLite 瀛樻。鍐欏叆 KV 澶辫触:', err.code, err.message);
     }
-    window.GameModules.platform.core.storage.sqliteSlotSource.write(key, value);
+    const source = window.GameModules.platform.core.storage.sqliteSlotSource;
+    const written = source.write(key, value);
+    if (!written || source.read(key) !== value) throw new Error('本地存档写入失败，旧存档未被覆盖。请检查浏览器存储空间。');
+    return true;
   },
 
   async deleteSlot(slot) {
     const key = this.key(slot);
-    try { if (window.dzmm?.kv) await window.dzmm.kv.delete(key); } catch (_) { /* 蹇界暐 */ }
+    try {
+      if (window.location?.protocol !== 'file:' && window.dzmm?.kv) await window.dzmm.kv.delete(key);
+    } catch (_) { /* 蹇界暐 */ }
     window.GameModules.platform.core.storage.sqliteSlotSource.remove(key);
   },
 
@@ -131,22 +143,57 @@ window.GameModules.sqliteSave = {
 
   async persist() {
     if (this.fallback) {
-      await this.writeRaw(this.activeSlot, JSON.stringify(this.fallbackState || { version: 1, main: null, updatedAt: '' }));
+      const raw = await this.serializeFallbackState(this.fallbackState || { version: 1, main: null, updatedAt: '' });
+      await this.writeRaw(this.activeSlot, raw);
       return;
     }
     if (!this.db) return;
     await this.writeRaw(this.activeSlot, this.toBase64(this.db.export()));
   },
 
-  readFallbackState(raw) {
-    if (!raw) return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {}, characterIntros: {} };
+  async serializeFallbackState(state) {
+    const text = JSON.stringify(state);
+    if (typeof CompressionStream !== 'function' || typeof Blob !== 'function' || typeof Response !== 'function') return text;
     try {
-      const parsed = JSON.parse(raw);
+      const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+      const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      return `gzip:${this.toBase64(bytes)}`;
+    } catch (err) {
+      console.warn('本地存档压缩失败，使用原始 JSON:', err?.message || err);
+      return text;
+    }
+  },
+
+  async parseFallbackRaw(raw) {
+    if (!raw) return null;
+    const text = String(raw);
+    if (!text.startsWith('gzip:')) return JSON.parse(text);
+    if (typeof DecompressionStream !== 'function' || typeof Blob !== 'function' || typeof Response !== 'function') {
+      throw new Error('当前环境不支持压缩存档读取。');
+    }
+    const bytes = this.fromBase64(text.slice(5));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(stream).text());
+  },
+
+  async readFallbackState(raw) {
+    const empty = { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {}, characterIntros: {}, realWorldLogEntries: {} };
+    if (!raw) return empty;
+    try {
+      const parsed = await this.parseFallbackRaw(raw);
       return parsed && typeof parsed === 'object'
-        ? { version: 1, main: parsed.main || null, updatedAt: parsed.updatedAt || '', characterStates: parsed.characterStates || {}, characterWorlds: parsed.characterWorlds || {}, characterIntros: parsed.characterIntros || {} }
-        : { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {}, characterIntros: {} };
-    } catch (_) {
-      return { version: 1, main: null, updatedAt: '', characterStates: {}, characterWorlds: {}, characterIntros: {} };
+        ? {
+          version: 1,
+          main: parsed.main || null,
+          updatedAt: parsed.updatedAt || '',
+          characterStates: parsed.characterStates || {},
+          characterWorlds: parsed.characterWorlds || {},
+          characterIntros: parsed.characterIntros || {},
+          realWorldLogEntries: parsed.realWorldLogEntries || {},
+        }
+        : empty;
+    } catch (err) {
+      throw new Error(`本地存档读取失败，原始数据未被覆盖：${err?.message || err}`);
     }
   },
 
@@ -174,7 +221,7 @@ window.GameModules.sqliteSave = {
     await this.persist();
   },
 
-  loadGameState() {
+  async loadGameState() {
     if (this.fallback) return this.fallbackState?.main || null;
     if (!this.db) return null;
     return this.getJson('SELECT value FROM game_state WHERE key=?', ['main']);

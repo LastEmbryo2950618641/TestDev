@@ -560,7 +560,7 @@ window.GameModules.inferenceFactionStageUpdate = {
     const ctx = window.GameModules.realWorldAgentContext;
     const lines = [];
     const applied = [];
-    for (const item of (Array.isArray(items) ? items : []).slice(0, 24)) {
+    for (const item of (Array.isArray(items) ? items : [])) {
       const finalOps = phase === 'create' ? [this.normalizeCreateItem(item)] : this.normalizePatchItem(store, item);
       for (const op of finalOps) {
         const method = this.normalizeKey(op?.method || op?.skillMethod);
@@ -613,10 +613,10 @@ window.GameModules.inferenceFactionStageUpdate = {
     const createRawParts = [];
     let createItems = [];
     const appliedCreate = { lines: [], applied: [] };
-    try {
-      const targets = unresolvedBeforeCreate.length ? unresolvedBeforeCreate : [null];
-      for (let index = 0; index < targets.length; index += 1) {
-        const target = targets[index];
+    const targets = unresolvedBeforeCreate.length ? unresolvedBeforeCreate : [null];
+    for (let index = 0; index < targets.length; index += 1) {
+      const target = targets[index];
+      try {
         const phaseTitle = target ? `Stage9-1【${this.createTargetLabel(target, index, targets.length)}】` : 'Stage9-1【上下文复查 1/1】';
         const createPrompt = await this.buildCreatePrompt({
           narration,
@@ -638,15 +638,15 @@ window.GameModules.inferenceFactionStageUpdate = {
         );
         createRawParts.push(raw);
         const items = this.parseArrayPayload(raw);
-        const accepted = items.slice(0, target ? 1 : items.length);
-        createItems.push(...accepted);
-        const applied = this.applyItems(store, accepted, 'create');
+        createItems.push(...items);
+        const applied = this.applyItems(store, items, 'create');
         appliedCreate.lines.push(...applied.lines);
         appliedCreate.applied.push(...applied.applied);
+      } catch (err) {
+        const label = target ? this.createTargetLabel(target, index, targets.length) : '上下文复查 1/1';
+        console.warn('[Stage9-1势力创建] 单个候选失败:', label, err?.message || err);
+        appliedCreate.lines.push(`势力Stage9-1 ${label}失败：${err?.message || '未知错误'}；继续后续候选。`);
       }
-    } catch (err) {
-      console.warn('[Stage9-1势力创建] 生成失败:', err?.message || err);
-      return { ops: [], lines: [`势力Stage9-1失败：${err?.message || '未知错误'}`], skipped: true, error: err?.message };
     }
 
     const unresolvedAfterCreate = this.unresolvedPendingCandidates(store, pendingFactionCandidates, createItems);

@@ -1,39 +1,41 @@
-﻿window.GameModules = window.GameModules || {};
+window.GameModules = window.GameModules || {};
 
 window.GameModules.companyFactionActions = {
   upsertCompanyFromBossJob(job = {}) {
     if (!job?.company) return null;
     if (!this.companyState) this.initCompanySystem?.();
     const now = new Date().toISOString();
-    let company = this.companyState.companies.find((item) => item.name === job.company || item.id === `company-${job.id}`);
-    if (!company) {
-      company = window.GameModules.companySystem.defaultCompany(job.company, this.playerProfile || {});
-      company.id = `company-${job.id || Date.now()}`;
-      this.companyState.companies.push(company);
-    }
-    Object.assign(company, {
+    const company = {
+      id: `company-${job.id || Date.now()}`,
+      factionId: this.factionIdByName?.(job.company) || '',
       name: job.company,
       type: job.payType === '创作者' ? '文创机构' : '公司',
-      industry: job.industry || company.industry,
-      scale: job.scale || company.scale,
-      location: job.address || company.location,
+      industry: job.industry || '',
+      scale: job.scale || '',
+      location: job.address || '',
+      openings: [{ id: job.id || `job-${now}`, name: job.title || '招聘岗位', type: job.payType || '员工', desc: job.desc || '由 BOSS 招聘记录同步。' }],
+      organization: [],
       updatedAt: now,
-    });
-    company.openings = [{ id: job.id || `job-${now}`, name: job.title || '招聘岗位', type: job.payType || '员工', desc: job.desc || '由Boss招聘记录同步。' }, ...(company.openings || []).filter((item) => item.name !== job.title)].slice(0, 12);
-    this.ensureCompanyFaction(company, `Boss招聘出现公司“${job.company}”，公司APP与势力系统必须同步。`);
+      source: 'boss-job',
+    };
+    const faction = this.ensureCompanyFaction(company, `BOSS招聘出现单位“${job.company}”，需与势力系统同步。`);
+    if (faction) {
+      this.companyState.currentCompanyId = faction.id;
+      this.companyState.employment.activeCompanyId = faction.id;
+    }
     return company;
   },
 
   ensureAllCompanyFactions() {
-    // No-op: company APP must not invent factions; only AI / explicit upsert may create them.
+    // No-op: 工作 App 不再凭空创建单位；组织主体只来自势力系统。
   },
 
-  ensureCompanyFaction(company = {}, reason = '公司APP同步到势力系统。') {
+  ensureCompanyFaction(company = {}, reason = '工作 App 与势力系统同步。') {
     if (!company?.name) return null;
     if (!this.factionState) this.initFactionSystem?.();
     if (!this.factionState?.factions) return null;
-    const id = company.id === 'main-company' ? 'company-main' : this.factionIdByName?.(company.name);
-    const faction = this.factionState.factions.find((item) => item.id === id || item.name === company.name);
+    const id = String(company.factionId || this.factionIdByName?.(company.name) || '').trim();
+    const faction = this.factionState.factions.find((item) => (id && item.id === id) || item.name === company.name);
     if (!faction) return null;
     const now = new Date().toISOString();
     const top = this.factionState.factions.find((item) => item.type === '国家' && !item.parentId) || null;
@@ -58,11 +60,11 @@ window.GameModules.companyFactionActions = {
     window.GameModules.app?.orgTerritory?.economyActions?.syncCompanyEconomicEntry?.(this, faction, company, reason);
     Object.assign(faction, window.GameModules.orgTerritory?.normalizeFaction?.(faction, this) || faction);
     faction.fieldReasons = this.completeFactionReasons?.(faction, faction.fieldReasons, reason) || faction.fieldReasons || {};
-    faction.changeLog = [{ field: 'company-sync', reason, at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);
+    faction.changeLog = [{ field: 'work-app-sync', reason, at: now, action: 'sync' }, ...(faction.changeLog || [])].slice(0, 50);
     return faction;
   },
 
-  syncCompanyOrganizationToFaction(faction, company, reason, now) {
+  syncCompanyOrganizationToFaction(faction, company) {
     faction.structure = faction.structure || [];
     const org = Array.isArray(company.organization) ? company.organization : [];
     for (const dept of org) {
@@ -87,7 +89,7 @@ window.GameModules.companyFactionActions = {
 
   ensureBossJobFaction(job = {}, event = {}) {
     const company = this.upsertCompanyFromBossJob(job);
-    const faction = this.ensureCompanyFaction(company, `申请岗位并约定${event.type || '面试'}，招聘公司进入势力系统。`);
+    const faction = this.ensureCompanyFaction(company, `申请岗位并约定${event.type || '面试'}，招聘单位进入势力系统。`);
     if (faction) this.addFactionRoleOccupant(faction, job.title || '招聘岗位', this.playerProfile?.name || '玩家本人', `玩家已申请该岗位，当前为候选/待${event.type || '面试'}状态。`);
   },
 

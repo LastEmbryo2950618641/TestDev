@@ -170,11 +170,11 @@
   </script>
   <script src="../deepseek_key.js"></script>
   <script src="../pixatart_key.js"></script>
-  <script src="boot/script-loader.js?v=2026-08-03-current-location-field-v39"></script>
+  <script src="boot/script-loader.js?v=2026-08-03-real-world-stage3-log-v59"></script>
   <script src="boot/store-modules.js"></script>
-  <script src="boot/script-manifest.js?v=2026-08-03-map-space-clean-v56"></script>
-  <script src="boot/boot-actions.js?v=2026-08-03-current-location-field-v39"></script>
-  <script src="boot/boot.js?v=2026-08-03-current-location-field-v39"></script>
+  <script src="boot/script-manifest.js?v=2026-08-03-real-world-stage3-log-v59"></script>
+  <script src="boot/boot-actions.js?v=2026-08-03-real-world-stage3-log-v59"></script>
+  <script src="boot/boot.js?v=2026-08-03-real-world-stage3-log-v59"></script>
   <script>
     window.openEventAppNative = async function openEventAppNative(event) {
       try {
@@ -1070,29 +1070,27 @@
               <article class="real-world-map-space-pop">
                 <header><strong x-text="$store.game.realWorldMapInfoNode()?.name"></strong><button class="small-btn" type="button" @click="$store.game.closeRealWorldMapInfo()">&#x5173;&#x95ED;</button></header>
                 <div class="real-world-map-space-body">
-                  <section class="real-world-map-space-info">
-                    <small>空间信息</small>
-                    <h3 x-text="$store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.name || $store.game.realWorldMapInfoSpace?.title || '地点内部'"></h3>
-                    <p x-text="$store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.intro || '该空间等待推演补全。'"></p>
-                    <div class="real-world-map-space-items">
-                      <strong>这里有什么</strong>
-                      <template x-for="item in ($store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.items || [])" :key="`${item.name}-${item.place}`"><p><b x-text="`${item.name}：`"></b><span x-text="item.place"></span></p></template>
-                      <p x-show="!($store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.items || []).length">暂无已记录物品。</p>
-                    </div>
-                    <p class="real-world-map-control-line" x-show="$store.game.realWorldMapInfoControlLine()" x-text="$store.game.realWorldMapInfoControlLine()"></p>
-                    <div class="real-world-map-facts" x-show="$store.game.realWorldMapInfoFacts().length">
-                      <template x-for="(fact, index) in $store.game.realWorldMapInfoFacts()" :key="fact.id || index">
-                        <p x-text="$store.game.realWorldMapFactText(fact, index)"></p>
-                      </template>
-                    </div>
-                  </section>
                   <aside class="real-world-map-space-drawer">
-                    <small>上下级空间</small>
+                    <div class="real-world-map-space-section-title"><span>◆</span><small>上下级空间</small></div>
                     <template x-for="node in $store.game.realWorldMapInfoVisibleSpaceNodes()" :key="node.id">
-                      <button type="button" :class="{ active: $store.game.realWorldMapInfoSpaceActiveNodeId === node.id }" :style="`padding-left:${8 + (node.depth || 0) * 12}px`" @click="$store.game.toggleRealWorldMapInfoSpaceNode(node.id)"><span x-text="node.typeLabel"></span><strong x-text="node.name"></strong><em x-show="node.children.length" x-text="($store.game.realWorldMapInfoSpaceExpandedIds || []).includes(node.id) ? '收起' : `${node.children.length}个下级`"></em></button>
+                      <button type="button" :class="{ active: $store.game.realWorldMapInfoSpaceActiveNodeId === node.id }" :style="`padding-left:${10 + (node.depth || 0) * 14}px`" @click="$store.game.toggleRealWorldMapInfoSpaceNode(node.id)"><span class="real-world-map-space-node-icon" x-text="node.children.length ? (($store.game.realWorldMapInfoSpaceExpandedIds || []).includes(node.id) ? '▾' : '▸') : '•'"></span><span x-text="node.typeLabel"></span><strong x-text="node.name"></strong><em x-show="node.children.length" x-text="($store.game.realWorldMapInfoSpaceExpandedIds || []).includes(node.id) ? '已展开' : `${node.children.length}个下级`"></em></button>
                     </template>
                     <p class="real-world-empty" x-show="!($store.game.realWorldMapInfoSpace?.tree || []).length" x-text="$store.game.realWorldMapInfoSpace?.emptyText || '该地点内部仍处于迷雾。'"></p>
                   </aside>
+                  <section class="real-world-map-space-info">
+                    <div class="real-world-map-space-section-title"><span>✦</span><small>空间资料</small></div>
+                    <h3 x-text="$store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.name || $store.game.realWorldMapInfoSpace?.title || '地点内部'"></h3>
+                    <div class="real-world-map-space-location"><span>⌖ 位置</span><b x-text="($store.game.realWorldMapInfoSpace?.tree || []).map(node => node.name).join(' · ') || '未记录位置链' "></b></div>
+                    <div class="real-world-map-space-sheet">
+                      <small>空间信息</small>
+                      <p x-text="$store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.intro || '该空间等待推演补全。'"></p>
+                    </div>
+                    <div class="real-world-map-space-items">
+                      <div class="real-world-map-space-section-title"><span>✦</span><strong>物品摆放</strong></div>
+                      <template x-for="item in ($store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.items || [])" :key="`${item.name}-${item.place}`"><p><b x-text="item.name"></b><span x-text="item.place"></span></p></template>
+                      <p x-show="!($store.game.realWorldMapInfoSpaceSelected($store.game.realWorldMapInfoSpace, $store.game.realWorldMapInfoSpaceActiveNodeId)?.items || []).length">暂无已记录物品。</p>
+                    </div>
+                  </section>
                 </div>
               </article>
             </div>

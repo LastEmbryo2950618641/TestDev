@@ -47,6 +47,7 @@ async function main() {
 
   const aiJson = {
     当前节点: '锦苑小区3栋',
+    当前完整位置: '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601室·刘思琪房间内',
     周围地点: [
       { 距离: '约20米', 地点名: '锦苑小区2栋', 势力: '中华人民共和国·四川省成都市·武侯区' },
       { 距离: '约25米', 地点名: '锦苑小区4栋', 势力: '中华人民共和国·四川省成都市·武侯区' },
@@ -54,6 +55,12 @@ async function main() {
     ],
     势力: ['中华人民共和国·四川省成都市·武侯区'],
     地点信息: ['1. 当前节点位于锦苑小区内部，为住宅楼栋。'],
+    位置信息: {
+      位置链: ['2单元', '601室', '刘思琪房间内'],
+      当前空间: '刘思琪房间内',
+      空间介绍: '少女卧室与休息空间',
+      物品: [{ 名称: '书包', 位置: '放在椅子上。' }],
+    },
     出场人物位置: [],
   };
 
@@ -153,6 +160,12 @@ async function main() {
   assert.ok((saved.locationGraph.poiGraph?.nodes || []).length >= 4, 'saved poiGraph.nodes');
   assert.ok((saved.locationGraph.poiGraph?.edges || []).length >= 3, 'saved poiGraph.edges');
   assert.ok((saved.realWorldMap?.nodes || []).length >= 4, 'saved legacy map nodes');
+  assert.deepStrictEqual(
+    Object.values(saved.locationGraph.nodesById).find((node) => node.positionInfo)?.positionInfo?.positionChain,
+    ['2单元', '601室', '刘思琪房间内'],
+    'saved map position chain',
+  );
+  assert.strictEqual(Object.values(saved.locationGraph.nodesById).find((node) => node.positionInfo)?.positionInfo?.items?.[0]?.name, '书包', 'saved map item');
 
   const restored = {
     ...state,
@@ -166,6 +179,13 @@ async function main() {
     },
   };
   restoreHelpers.normalizeRealWorldState(restored, saved);
+  mapApi.ensure(restored, restored.playerProfile);
+  assert.deepStrictEqual(
+    Object.values(restored.locationGraph.nodesById).find((node) => node.positionInfo)?.positionInfo?.positionChain,
+    ['2单元', '601室', '刘思琪房间内'],
+    'continued game restores position chain',
+  );
+  assert.strictEqual(Object.values(restored.locationGraph.nodesById).find((node) => node.positionInfo)?.positionInfo?.items?.[0]?.name, '书包', 'continued game restores item');
   const restoredDump = graph.standardPoiGraph(restored);
   assert.ok(restoredDump.nodes.length >= 4, `restored dump nodes: ${restoredDump.nodes.length}`);
   assert.ok(restoredDump.edges.length >= 3, `restored dump edges: ${restoredDump.edges.length}`);

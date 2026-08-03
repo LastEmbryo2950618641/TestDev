@@ -341,7 +341,7 @@ window.GameModules.metrics = {
     const keys = group === 'player' ? this.playerKeys : this.emotionKeys;
     items.forEach((item) => {
       const key = this.normalizeKey(item?.key, keys);
-      if (!keys.includes(key)) return;
+      if (!key) return;
       const isFixed = Object.prototype.hasOwnProperty.call(target, key);
       const targetGroup = isFixed ? target : temporaryTarget;
       if (!targetGroup) return;

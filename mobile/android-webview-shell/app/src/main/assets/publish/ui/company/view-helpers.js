@@ -19,6 +19,12 @@ window.GameModules.ui.company.viewHelpers = {
 
   companyOrganizationSectionView() { return window.GameModules.ui.company.organizationViewHelpers.companyOrganizationSectionView.call(this); },
 
+  freelanceLevelSectionView() { return window.GameModules.ui.company.organizationViewHelpers.freelanceLevelSectionView.call(this); },
+
+  freelanceOrderSectionView() { return window.GameModules.ui.company.organizationViewHelpers.freelanceOrderSectionView.call(this); },
+
+  freelanceWorksSectionView() { return window.GameModules.ui.company.organizationViewHelpers.freelanceWorksSectionView.call(this); },
+
   companyFieldSectionView() { return window.GameModules.ui.company.fieldSectionViewHelpers.companyFieldSectionView.call(this); },
 
   companyContractSectionView() { return window.GameModules.ui.company.contractViewHelpers.companyContractSectionView.call(this); },

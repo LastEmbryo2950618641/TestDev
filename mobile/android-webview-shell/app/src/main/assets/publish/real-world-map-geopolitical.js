@@ -82,9 +82,11 @@ window.GameModules.realWorldMapGeopolitical = {
         description: `${item.name}（政区 stub，接触后细化）`,
         mapVisible: item.kind === 'community',
         geopoliticalStub: true,
+        geopoliticalKind: item.kind,
       }, { source: 'real-world-map-geopolitical' });
       if (!node) return;
       node.geopoliticalStub = true;
+      node.geopoliticalKind = item.kind;
       if (item.kind !== 'community') node.mapVisible = false;
       parentNodeId = node.id;
 

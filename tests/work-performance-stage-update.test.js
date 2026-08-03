@@ -93,6 +93,72 @@ test('Stage13 buildPrompt forces review when next review date is due', async () 
   assert.match(prompt, /inference-stage13-career-update/);
 });
 
+test('Stage13 skips an existing career when the turn has no career change', async () => {
+  const context = createContext();
+  load('publish/company-system.js', context);
+  load('publish/company-actions.js', context);
+  load('publish/inference/work-performance-stage-update.js', context);
+  const stage = context.window.GameModules.inferenceWorkPerformanceStageUpdate;
+  const store = {
+    ...context.window.GameModules.companyActions,
+    companyState: context.window.GameModules.companySystem.defaultState(),
+    initFactionSystem() {},
+    syncCompanyLexicon() {},
+    phoneDate() { return new Date('2026-08-03T12:00:00.000Z'); },
+  };
+  store.initCompanySystem();
+  store.companyState.workUnitProfile = store.normalizeCareerProfile({
+    active: true,
+    organizationName: '成都市高新区科创有限公司',
+    positionTitle: '软件工程师',
+    workMode: { type: '员工制' },
+  });
+  store.companyState.workStats.nextPerformanceReviewAt = '2026-09-01T00:00:00.000Z';
+  let requested = false;
+  const result = await stage.runAfterSettlement({
+    store, action: '回家休息', narration: '刘悠回到住处整理个人物品。', updates: {}, logId: 'test-log', config: { mode: 'real' },
+    loop: { completeCachedJsonPrompt() { requested = true; throw new Error('不应请求 AI'); } },
+  });
+  assert.equal(requested, false);
+  assert.equal(result.skipped, true);
+  assert.match(result.lines[0], /无职业相关事实/);
+});
+
+test('Stage13 updates an existing career when the turn contains career facts', () => {
+  const context = createContext();
+  load('publish/inference/work-performance-stage-update.js', context);
+  const stage = context.window.GameModules.inferenceWorkPerformanceStageUpdate;
+  const store = { companyState: { workUnitProfile: { organizationName: '成都市高新区科创有限公司', positionTitle: '软件工程师' }, freelanceProfiles: [] } };
+  assert.equal(stage.shouldRequestCareerSync(store, '去公司处理项目', '刘悠开始处理项目迭代。', false).shouldRequest, true);
+  assert.equal(stage.shouldRequestCareerSync(store, '回家休息', '刘悠在房间内看书。', false).shouldRequest, false);
+  assert.equal(stage.shouldRequestCareerSync(store, '回家休息', '刘悠在房间内看书。', true).reason, 'no-career-change');
+});
+
+test('Stage13 keeps a due review dormant until a career fact occurs', () => {
+  const context = createContext();
+  load('publish/inference/work-performance-stage-update.js', context);
+  const stage = context.window.GameModules.inferenceWorkPerformanceStageUpdate;
+  const store = { companyState: { workUnitProfile: { organizationName: '成都市高新区科创有限公司', positionTitle: '软件工程师' }, freelanceProfiles: [] } };
+  assert.equal(stage.shouldRequestCareerSync(store, '回家休息', '刘悠在房间内看书。', true).shouldRequest, false);
+  assert.equal(stage.shouldRequestCareerSync(store, '去公司处理项目', '刘悠完成项目阶段交付。', true).shouldRequest, true);
+});
+
+test('Stage13 lets AI replace explicit freelance career fields', () => {
+  const context = createContext();
+  load('publish/inference/work-performance-stage-update.js', context);
+  const stage = context.window.GameModules.inferenceWorkPerformanceStageUpdate;
+  const result = stage.mergeFreelanceProfile({
+    id: 'freelance-1', createdAt: '2026-08-01T00:00:00.000Z', organizationName: '旧身份', orders: [{ title: '旧订单' }], works: [{ title: '旧成果' }],
+  }, {
+    id: 'freelance-1', organizationName: '合并后的自由职业', orders: [], works: [], currentTasks: ['更新档案'],
+  });
+  assert.equal(result.id, 'freelance-1');
+  assert.equal(result.createdAt, '2026-08-01T00:00:00.000Z');
+  assert.equal(result.organizationName, '合并后的自由职业');
+  assert.deepEqual(result.orders, []);
+  assert.deepEqual(result.works, []);
+});
+
 test('Stage13 applyUpdate writes work stats and pay panel reads unit fields', () => {
   const context = createContext();
   load('publish/company-system.js', context);

@@ -339,31 +339,52 @@ window.GameModules.realWorldAgentLoop = {
     session.requestCount += 1;
   },
 
+  normalizeReasoningPhase(phase = '') {
+    const text = String(phase || '').trim();
+    const stage4Pass = text.match(/^stage\s*4\s*[-–—]\s*([123])$/iu);
+    if (stage4Pass) return `stage4-${stage4Pass[1]}`;
+    const match = text.match(/^stage\s*(1[0-3]|[1-9])$/iu);
+    if (match) return `stage${Number(match[1])}`;
+    return text.toLowerCase();
+  },
+
   inferReasoningPhase(config = {}) {
-    if (config.reasoningPhase) return String(config.reasoningPhase);
+    if (config.reasoningPhase) return this.normalizeReasoningPhase(config.reasoningPhase);
     const promptId = String(config.promptId || config.firstTemplateId || '');
     const byPromptId = {
       'inference-stage1-guided-query': 'stage1',
       'inference-stage2-scene-anchor': 'stage2',
       'inference-stage3-narration': 'stage3',
       'inference-stage4-settlement-window': 'stage4',
-      'inference-stage5-profile-gate': 'stage5',
-      'inference-stage5-body-profile-patch': 'stage6',
-      'inference-stage5-dressed-profile-patch': 'stage7',
-      'inference-stage6-faction-update': 'stage8',
-      'inference-stage10-life-energy-exp': 'stage10',
-      'real-world-map-surround-unlock': 'stage9',
+      'inference-stage4-role-card-status': 'stage4-1',
+      'inference-stage4-role-card-items': 'stage4-2',
+      'inference-stage4-role-card-review': 'stage4-3',
+      'inference-stage5-intro-card-update': 'stage5',
+      'inference-stage5-profile-gate': 'stage6',
+      'inference-stage5-body-profile-patch': 'stage7',
+      'inference-stage5-dressed-profile-patch': 'stage8',
+      'inference-stage6-faction-update': 'stage9',
+      'inference-stage10-life-energy-exp': 'stage11',
+      'real-world-map-surround-unlock': 'stage10',
+      'inference-stage11-world-news-update': 'stage12',
+      'inference-stage13-career-update': 'stage13',
     };
     if (byPromptId[promptId]) return byPromptId[promptId];
     if (config.guidedStep) return 'stage1';
     const sourceTitle = String(config.sourceTitle || '');
-    if (/Stage\s*10|生命层次/iu.test(sourceTitle)) return 'stage10';
-    if (/Stage\s*9|周围解锁/iu.test(sourceTitle)) return 'stage9';
-    if (/Stage\s*8|势力更新/iu.test(sourceTitle)) return 'stage8';
-    if (/Stage\s*7|盛装外观补丁/iu.test(sourceTitle)) return 'stage7';
-    if (/Stage\s*6|自然外观补丁/iu.test(sourceTitle)) return 'stage6';
-    if (/Stage\s*5|外观判定/iu.test(sourceTitle)) return 'stage5';
+    if (/Stage\s*13|职业生涯|工作与绩效|评绩效/iu.test(sourceTitle)) return 'stage13';
+    if (/Stage\s*12|新闻热榜/iu.test(sourceTitle)) return 'stage12';
+    if (/Stage\s*11|生命层次|经验结算/iu.test(sourceTitle)) return 'stage11';
+    if (/Stage\s*10|周围解锁/iu.test(sourceTitle)) return 'stage10';
+    if (/Stage\s*9|势力更新/iu.test(sourceTitle)) return 'stage9';
+    if (/Stage\s*8|盛装外观补丁/iu.test(sourceTitle)) return 'stage8';
+    if (/Stage\s*7|自然外观补丁/iu.test(sourceTitle)) return 'stage7';
+    if (/Stage\s*6|外观判定/iu.test(sourceTitle)) return 'stage6';
+    if (/Stage\s*5|介绍卡/iu.test(sourceTitle)) return 'stage5';
     if (sourceTitle.includes('场景锚定') || /Stage\s*2/iu.test(sourceTitle)) return 'stage2';
+    if (/Stage\s*4\s*[-–—]\s*1|角色卡状态结算/iu.test(sourceTitle)) return 'stage4-1';
+    if (/Stage\s*4\s*[-–—]\s*2|角色卡物品结算/iu.test(sourceTitle)) return 'stage4-2';
+    if (/Stage\s*4\s*[-–—]\s*3|角色卡状态再次更新|角色卡字段复核/iu.test(sourceTitle)) return 'stage4-3';
     if (/Stage\s*4|滑动结算|状态结算/iu.test(sourceTitle)) return 'stage4';
     if (config.streamToUi) return 'stage3';
     return '';
@@ -375,12 +396,18 @@ window.GameModules.realWorldAgentLoop = {
       stage2: 'Stage2 场景锚定',
       stage3: 'Stage3 正文生成',
       stage4: step > 0 ? `Stage4 状态结算 - ${step + 1}` : 'Stage4 状态结算',
-      stage5: 'Stage5 外观判定',
-      stage6: 'Stage6 自然外观补丁',
-      stage7: 'Stage7 盛装外观补丁',
-      stage8: 'Stage8 势力更新',
-      stage9: 'Stage9 电子地图周围解锁',
-      stage10: 'Stage10 经验结算',
+      'stage4-1': 'Stage4-1 角色卡状态结算',
+      'stage4-2': 'Stage4-2 角色卡物品结算',
+      'stage4-3': 'Stage4-3 角色卡状态再次更新',
+      stage5: 'Stage5 介绍卡更新',
+      stage6: 'Stage6 外观判定',
+      stage7: 'Stage7 自然外观补丁',
+      stage8: 'Stage8 盛装外观补丁',
+      stage9: 'Stage9 势力更新',
+      stage10: 'Stage10 电子地图周围解锁',
+      stage11: 'Stage11 经验结算',
+      stage12: 'Stage12 世界新闻热榜',
+      stage13: 'Stage13 职业生涯',
     };
     return labels[phase] || '未知阶段';
   },
@@ -401,7 +428,8 @@ window.GameModules.realWorldAgentLoop = {
         id: attempt > 0 ? `stage4-${attempt}` : 'stage4',
       };
     }
-    if (/^stage(?:[2-9]|10)$/u.test(phase)) {
+    if (/^stage4-[123]$/u.test(phase)) return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
+    if (/^stage(?:[2-9]|1[0-3])$/u.test(phase)) {
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     }
     return { phase: 'unknown', step: 0, label: '未知阶段', id: `reasoning-${Date.now()}` };
@@ -416,7 +444,12 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseReasoningLabel(label = '') {
-    const match = String(label || '').trim().match(/^Stage\s*([1-9])(?:\s*[^\d-]*?)?(?:\s*[-–—]\s*(\d+))?/iu);
+    const stage4Pass = String(label || '').trim().match(/^Stage\s*4\s*[-–—]\s*([123])/iu);
+    if (stage4Pass) {
+      const phase = `stage4-${stage4Pass[1]}`;
+      return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
+    }
+    const match = String(label || '').trim().match(/^Stage\s*(1[0-3]|[1-9])(?:\s*[^\d-]*?)?(?:\s*[-–—]\s*(\d+))?/iu);
     if (!match) return null;
     const phase = `stage${match[1]}`;
     const step = Number(match[2]) || 0;
@@ -448,15 +481,21 @@ window.GameModules.realWorldAgentLoop = {
       if (storedPhase === 'stage4') {
         return { phase: storedPhase, step, label: String(section?.label || (step > 0 ? `Stage4 状态结算 - ${step + 1}` : 'Stage4 状态结算')), id: id || (step > 0 ? `stage4-${step}` : 'stage4') };
       }
+      if (/^stage4-[123]$/u.test(storedPhase)) {
+        return { phase: storedPhase, step: 0, label: String(section?.label || this.stagePhaseLabel(storedPhase)), id: id || storedPhase };
+      }
       const fallbackLabels = {
         stage2: 'Stage2 场景锚定',
         stage3: 'Stage3 正文生成',
-        stage5: 'Stage5 外观判定',
-        stage6: 'Stage6 自然外观补丁',
-        stage7: 'Stage7 盛装外观补丁',
-        stage8: 'Stage8 势力更新',
-        stage9: 'Stage9 电子地图周围解锁',
-        stage10: 'Stage10 经验结算',
+        stage5: 'Stage5 介绍卡更新',
+        stage6: 'Stage6 外观判定',
+        stage7: 'Stage7 自然外观补丁',
+        stage8: 'Stage8 盛装外观补丁',
+        stage9: 'Stage9 势力更新',
+        stage10: 'Stage10 电子地图周围解锁',
+        stage11: 'Stage11 经验结算',
+        stage12: 'Stage12 世界新闻热榜',
+        stage13: 'Stage13 职业生涯',
       };
       return {
         phase: storedPhase,
@@ -470,6 +509,7 @@ window.GameModules.realWorldAgentLoop = {
       const step = Number(stage1Match[1]) || 1;
       return { phase: 'stage1', step, label: this.stagePhaseLabel('stage1', step), id: `stage1-${step}` };
     }
+    if (/^stage4-[123]$/u.test(id)) return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     if (/^stage(?:[2-9]|10)$/u.test(id)) {
       return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     }
@@ -502,9 +542,7 @@ window.GameModules.realWorldAgentLoop = {
     const occupy = (meta, section) => {
       const key = this.reasoningStageGroupKey(meta);
       const sectionId = String(section?.id || '');
-      const existing = occupied.get(key);
-      if (existing && existing.sectionId && sectionId && existing.sectionId !== sectionId) return false;
-      occupied.set(key, { sectionId, meta });
+      if (!occupied.has(key)) occupied.set(key, { sectionId, meta });
       assigned.push({ meta, section });
       return true;
     };
@@ -563,7 +601,7 @@ window.GameModules.realWorldAgentLoop = {
   isSettlementReasoning(config = {}) {
     if (config.settlementThinking) return true;
     const phase = this.inferReasoningPhase(config);
-    return /^(stage[4-9])$/u.test(phase);
+    return /^(stage(?:[4-9]|1[0-3]))$/u.test(phase);
   },
 
   settlementReasoningLabel(meta = {}, config = {}) {
@@ -589,7 +627,7 @@ window.GameModules.realWorldAgentLoop = {
     store.patchRealWorldLogEntry?.(logId, {
       settlementThinkingSections: sections,
       settlementThinking: this.joinSettlementThinkingSections(sections),
-      settlementThinkingOpen: entry.settlementThinkingOpen !== false,
+      settlementThinkingOpen: Boolean(entry.settlementThinkingOpen),
     }, { live: Boolean(config.livePatch) });
   },
 
@@ -688,11 +726,13 @@ window.GameModules.realWorldAgentLoop = {
     const ctx = config.ctx;
     if (!ctx) throw new Error(`${config.label || 'Loop'}上下文未加载`);
     try {
+      this.markConfiguredStep(store, logId, `${config.label}正在加载推演技能资料…`, config);
       const loaded = [];
       const trace = [];
       const loadedKeys = new Set();
       const memoryIds = new Set();
       const skills = await ctx.skillText(store);
+      this.markConfiguredStep(store, logId, `${config.label}正在整理当前场景…`, config);
       const base = ctx.baseSnapshot(store, action);
       const materialSession = config.materials?.createSession?.(action) || null;
       let lastPrompt = '';
@@ -700,6 +740,9 @@ window.GameModules.realWorldAgentLoop = {
       let lastGuidance = null;
 
       const guidedMaxSteps = this.guidedMaxSteps(store, config);
+      const autoLoadedStart = await ctx.autoLoadForStep?.(store, action, loadedKeys, materialSession, config.materials, memoryIds, 1, loaded, []) || [];
+      loaded.push(...autoLoadedStart);
+      this.markConfiguredStep(store, logId, `${config.label}正在请求 AI 推演…`, config);
       for (let step = 1; step <= guidedMaxSteps; step += 1) {
         const prompt = await this.buildConfiguredPrompt({ store, action, base, loaded, skills, step, materialSession, config, guidance: lastGuidance, logId });
         lastPrompt = prompt;
@@ -709,10 +752,12 @@ window.GameModules.realWorldAgentLoop = {
         const data = raw.data;
         if (!data) throw new Error(`${config.label || 'Loop'}返回格式错误`);
         lastGuidance = data;
+        this.recordStage1PendingFactions(materialSession, data.factions, raw.raw);
         const traceItem = this.traceItem(step, data, raw.raw, ctx);
         trace.push(traceItem);
 
         const results = await this.loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession, config.materials, config);
+        traceItem.factions = data.factions || traceItem.factions;
         traceItem.loaded = results.map((item) => ({ title: item.title, text: ctx.limit(item.text, 800) }));
         this.updateConfiguredTrace(store, logId, trace, config);
         if (results.length) {
@@ -720,7 +765,7 @@ window.GameModules.realWorldAgentLoop = {
           this.markConfiguredStep(store, logId, this.loadedContextText(data, results, step, config), config);
         }
 
-        if (data.type === 'request_context' && step < guidedMaxSteps) continue;
+        if ((data.type === 'request_context' || results.some((item) => item?.stage1MustReview)) && step < guidedMaxSteps) continue;
         if (step < this.minSteps && data.type !== 'context_done') continue;
         break;
       }
@@ -746,8 +791,8 @@ window.GameModules.realWorldAgentLoop = {
     try {
       const batch = await window.GameModules.characterIdEnsure?.ensureBatch?.(store, effectiveSceneLayers);
       if (batch?.count) {
-        this.markConfiguredStep?.(store, logId, `${config.label}Stage1后批量建卡 ${batch.count} 人…`, config);
-        console.info('[characterIdEnsure] Stage1后批量建卡:', batch.ensured);
+        this.markConfiguredStep?.(store, logId, `${config.label}Stage1后批量分配ID ${batch.count} 人…`, config);
+        console.info('[characterIdEnsure] Stage1后批量分配ID:', batch.ensured);
       }
       effectiveSceneLayers = this.resolveEffectiveSceneLayers(trace, store, config);
       // Re-apply ensured ids onto latest layer objects by name.
@@ -762,7 +807,7 @@ window.GameModules.realWorldAgentLoop = {
         });
       });
     } catch (err) {
-      console.warn('[characterIdEnsure] Stage1后批量建卡失败:', err?.message || err);
+      console.warn('[characterIdEnsure] Stage1后批量分配ID失败:', err?.message || err);
     }
     const sceneAnchorPrompt = await this.buildConfiguredSceneAnchorPrompt({ store, action, base, loaded, trace, effectiveSceneLayers, materialSession, config });
     this.markConfiguredStep(store, logId, `${config.label}资料已载入，正在生成场景锚定报告…`, config);
@@ -784,35 +829,70 @@ window.GameModules.realWorldAgentLoop = {
     this.showConfiguredNarration(store, logId, narration, config);
     this.patchConfiguredSettlementThinking(store, logId, '正文已完成，准备进入结算。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
 
-    const postStage3Checkpoint = this.snapshotKvMessages(config.kvCacheSession);
-    const stage5KvConfig = {
-      ...config,
-      kvCacheSession: this.forkKvCacheSession(config.kvCacheSession, postStage3Checkpoint),
-    };
-
     let settlementPrompt = 'Stage4 状态结算', settlementRaw = '', updates = {}, profilePatches = [];
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
-      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算 → Stage11 新闻热榜；地图周围解锁为 Stage9）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, '正文已完成，正在串行结算（Stage4-1 角色卡状态结算 → Stage4-2 角色卡物品结算 → Stage4-3 角色卡状态再次更新 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
-        const settled = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config });
-        stage4Updates = { ...settled, type: settled.type || 'final' };
+        const stage41Config = { ...config, reasoningPhase: 'stage4-1', sourceTitle: `${config.label}Stage4-1 角色卡状态结算`, settlementStageLabel: 'Stage4-1 角色卡状态结算', settlementPromptId: 'inference-stage4-settlement-window' };
+        let stage41;
+        try {
+          stage41 = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config: stage41Config });
+        } catch (err) {
+          console.warn(`${config.label}Stage4-1 状态结算失败，使用最小状态结算:`, err.message);
+          stage41 = this.fallbackUpdateJson(store, action, config);
+        }
+        const stage42Config = { ...config, reasoningPhase: 'stage4-2', sourceTitle: `${config.label}Stage4-2 角色卡物品结算`, settlementStageLabel: 'Stage4-2 角色卡物品结算', settlementPromptId: 'inference-stage4-role-card-items' };
+        let stage42 = { type: 'final', genericUpdates: [], events: [] };
+        try {
+          stage42 = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config: stage42Config, types: ['角色卡物品'], priorStageSummary: stage41 });
+        } catch (err) {
+          console.warn(`${config.label}Stage4-2 物品结算失败，保留前序状态结算:`, err.message);
+        }
+        const stage43Config = { ...config, reasoningPhase: 'stage4-3', sourceTitle: `${config.label}Stage4-3 角色卡状态再次更新`, settlementStageLabel: 'Stage4-3 角色卡状态再次更新', settlementPromptId: 'inference-stage4-role-card-review' };
+        let stage43 = { type: 'final', genericUpdates: [], events: [] };
+        try {
+          stage43 = await this.completeConfiguredSettlementKvWindow({ store, action, base, loaded, skills, materialSession, narration, trace, participants, logId, config: stage43Config, types: ['角色卡复核'], priorStageSummary: { stage41, stage42 } });
+        } catch (err) {
+          console.warn(`${config.label}Stage4-3 角色卡复核失败，保留前序结算:`, err.message);
+        }
+        stage4Updates = {
+          ...stage41,
+          type: 'final',
+          genericUpdates: [...(stage41.genericUpdates || []), ...(stage42.genericUpdates || []), ...(stage43.genericUpdates || [])],
+          events: [...(stage41.events || []), ...(stage42.events || []), ...(stage43.events || [])],
+        };
       } catch (err) {
         console.warn(`${config.label}状态更新生成失败，保留已生成正文并使用最小结算:`, err.message);
         stage4Updates = this.fallbackUpdateJson(store, action, config);
       }
-      const stage5 = window.GameModules.realWorldProfileStage5;
-      const stage5Result = stage5?.runAfterStage4
-        ? await stage5.runAfterStage4({ store, narration, participants, logId, config: stage5KvConfig, loop: this, updates: stage4Updates })
-        : (stage5?.runParallelWithStage4
-          ? await stage5.runParallelWithStage4({
+      const postStage4Checkpoint = this.snapshotKvMessages(config.kvCacheSession);
+      const postBodyKvConfig = {
+        ...config,
+        kvCacheSession: this.forkKvCacheSession(config.kvCacheSession, postStage4Checkpoint),
+      };
+      const introStage5 = window.GameModules.inferenceIntroCardStageUpdate;
+      const introStage5Result = introStage5?.runAfterSettlement
+        ? await introStage5.runAfterSettlement({ store, action, narration, participants, logId, config: postBodyKvConfig, loop: this, updates: stage4Updates, materialSession })
+        : { lines: [], skipped: true };
+      if (introStage5Result?.lines?.length) {
+        stage4Updates = {
+          ...stage4Updates,
+          characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...introStage5Result.lines],
+        };
+      }
+      const profileStage = window.GameModules.realWorldProfileStage5;
+      const stage5Result = profileStage?.runAfterStage4
+        ? await profileStage.runAfterStage4({ store, narration, participants, logId, config: postBodyKvConfig, loop: this, updates: stage4Updates })
+        : (profileStage?.runParallelWithStage4
+          ? await profileStage.runParallelWithStage4({
             store,
             narration,
             participants,
             logId,
-            config: stage5KvConfig,
+            config: postBodyKvConfig,
             loop: this,
             stage4Promise: Promise.resolve(stage4Updates),
           })
@@ -820,18 +900,19 @@ window.GameModules.realWorldAgentLoop = {
       updates = stage5Result.updates || stage4Updates;
       updates = { ...updates, type: updates.type || 'final' };
       profilePatches = Array.isArray(stage5Result.patches) ? stage5Result.patches : [];
-      const stage6 = window.GameModules.inferenceFactionStageUpdate;
+      const factionStage = window.GameModules.inferenceFactionStageUpdate;
       let factionOps = [];
-      if (stage6?.runAfterSettlement) {
-        const stage6Result = await stage6.runAfterSettlement({
+      if (factionStage?.runAfterSettlement) {
+        const stage6Result = await factionStage.runAfterSettlement({
           store,
           action,
           narration,
           updates,
           participants,
           logId,
-          config,
+          config: postBodyKvConfig,
           loop: this,
+          materialSession,
         });
         factionOps = Array.isArray(stage6Result?.ops) ? stage6Result.ops : [];
         if (stage6Result?.lines?.length) {
@@ -852,8 +933,9 @@ window.GameModules.realWorldAgentLoop = {
           updates,
           participants,
           logId,
-          config,
+          config: postBodyKvConfig,
           loop: this,
+          materialSession,
         });
         lifeEnergyGains = Array.isArray(stage10Result?.gains) ? stage10Result.gains : [];
         learnedGains = Array.isArray(stage10Result?.learnedGains) ? stage10Result.learnedGains : [];
@@ -874,8 +956,9 @@ window.GameModules.realWorldAgentLoop = {
           updates,
           participants,
           logId,
-          config,
+          config: postBodyKvConfig,
           loop: this,
+          materialSession,
         });
         newsOps = Array.isArray(newsResult?.ops) ? newsResult.ops : [];
         if (newsResult?.lines?.length) {
@@ -885,16 +968,40 @@ window.GameModules.realWorldAgentLoop = {
           };
         }
       }
+      const stageWorkPerformance = window.GameModules.inferenceWorkPerformanceStageUpdate;
+      let careerUpdate = null;
+      if (stageWorkPerformance?.runAfterSettlement) {
+        const stage13Result = await stageWorkPerformance.runAfterSettlement({
+          store,
+          action,
+          narration,
+          updates,
+          participants,
+          logId,
+          config: postBodyKvConfig,
+          loop: this,
+          materialSession,
+        });
+        careerUpdate = stage13Result?.applied || stage13Result?.update || null;
+        if (stage13Result?.lines?.length) {
+          updates = {
+            ...updates,
+            characterCardChanges: [...(updates.characterCardChanges || []), ...stage13Result.lines],
+          };
+        }
+      }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = 'Stage4 状态结算 → Stage5–7 外观 → Stage8 势力更新 → Stage10 经验结算 → Stage11 新闻热榜（Stage9 地图周围解锁在落库后）';
+      settlementPrompt = 'Stage4-1 角色卡状态结算 → Stage4-2 角色卡物品结算 → Stage4-3 角色卡状态再次更新 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯（Stage10 地图周围解锁在落库后）';
       settlementRaw = JSON.stringify({
         settlement: updates,
+        introStage5: { cards: introStage5Result.cards?.map((card) => ({ id: card.id, name: card.name, displayType: card.displayType })) || [] },
         stage5Gate: stage5Result.gate || null,
         profilePatches: profilePatches.map((item) => ({ subject: item.subject, parts: item.parts })),
         factionOps,
         lifeEnergyGains,
         learnedGains,
         newsOps,
+        careerUpdate,
       });
     } catch (err) {
       console.warn(`${config.label}串行结算失败，保留已生成正文并使用最小结算:`, err.message);
@@ -910,6 +1017,8 @@ window.GameModules.realWorldAgentLoop = {
 
   async loadStepContext(ctx, store, action, data, loadedKeys, loaded, memoryIds, step, materialSession = null, materials = window.GameModules.realWorldMaterials, config = this.realConfig()) {
     const out = [];
+    const factionResolve = this.resolveStage1Factions(materialSession, data.factions, store, loadedKeys, materials);
+    if (factionResolve.loaded.length) out.push(...factionResolve.loaded);
     if (data.type === 'request_context') {
       const autoLoaded = await ctx.autoLoadForStep?.(store, action, loadedKeys, materialSession, materials, memoryIds, step, loaded, out) || [];
       out.push(...autoLoaded);
@@ -922,7 +1031,7 @@ window.GameModules.realWorldAgentLoop = {
       const anchorRequests = data.sceneQueriesAreReasons ? [] : (ctx.sceneAnchorRequests?.(data, store, { mode: data.mode }) || []);
       out.push(...await load(anchorRequests, 4));
       const requestList = Array.isArray(data.requests) && data.requests.length ? data.requests : (Array.isArray(data.needed) ? data.needed : []);
-      out.push(...await load(requestList, 2));
+      out.push(...await load(requestList, 3));
     }
     const memoryItem = ctx.characterMemoriesForStep?.(store, action, data.characters || data.relatedCharacters || [], [...loaded, ...out], memoryIds, step === 1);
     if (memoryItem?.text) {
@@ -931,6 +1040,152 @@ window.GameModules.realWorldAgentLoop = {
       out.push(memoryItem);
     }
     return out;
+  },
+
+  parseFactionToken(raw = "") {
+    const text = String(raw || "").trim();
+    if (!text || text === "无") return null;
+    const match = text.match(/^(.+?)\(([^()]+)\)$/u);
+    if (!match) return null;
+    const name = String(match[1] || "").trim();
+    const id = String(match[2] || "").trim();
+    if (!name) return null;
+    return { name, id, pending: /待(?:创建|建)|未创建|pending/i.test(id) };
+  },
+
+  normalizeFactionReferenceItem(item = null) {
+    if (typeof item === 'string') {
+      return null;
+    }
+    if (!item || typeof item !== 'object') return null;
+    const name = String(item.name || item.factionName || item['势力名'] || '').trim();
+    const id = String(item.id || item.factionId || item['势力ID'] || '').trim();
+    const statusRaw = String(item.status || item['状态'] || '').trim();
+    if (!name) return null;
+    const pending = /待(?:创建|建)|未创建|pending/i.test(statusRaw || id);
+    return {
+      name,
+      id: pending ? '' : id,
+      type: String(item.type || item.factionType || item['类型'] || '').trim() || '组织',
+      status: pending ? '待创建' : (statusRaw === '已获取' ? '已获取' : (id ? '已获取' : '待创建')),
+      pending,
+    };
+  },
+
+  normalizeFactionReferenceList(value = []) {
+    const list = Array.isArray(value) ? value : this.splitNameList(value);
+    const seen = new Set();
+    return list.map((item) => {
+      const parsed = this.normalizeFactionReferenceItem(item);
+      if (!parsed) return null;
+      const id = parsed.id;
+      const pending = parsed.pending || parsed.status === '待创建' || !id;
+      const name = parsed.name;
+      const key = name + "::" + (pending ? "pending" : id);
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return { name, id: pending ? "" : id, type: parsed.type || "组织", status: pending ? "待创建" : "已获取", pending };
+    }).filter(Boolean).slice(0, 12);
+  },
+
+  factionReferencesText(value = []) {
+    const rows = this.normalizeFactionReferenceList(value);
+    return rows.length ? rows.map((item) => item.name + "(" + (item.pending ? "待创建" : item.id) + ")").join("、") : "无";
+  },
+
+  recordStage1PendingFactions(materialSession = null, factions = [], sourceText = "") {
+    if (!materialSession || !Array.isArray(factions) || !factions.length) return [];
+    return (Array.isArray(factions) ? factions : [])
+      .filter((item) => item?.pending && item.name)
+      .map((item) => window.GameModules.realWorldMaterials?.deferStage1FactionCandidate?.(
+        materialSession,
+        { id: item.id || "", name: item.name, status: "待创建", type: item.type || "组织", worldTag: window.GameModules.realWorld2026?.label || "2026 现代都市现实世界" },
+        sourceText || "Stage1 factions：" + item.name + "(待创建)",
+      ))
+      .filter(Boolean);
+  },
+
+  pendingFactionInferenceContext(materialSession = null, config = this.realConfig()) {
+    const materials = config?.materials || window.GameModules.realWorldMaterials;
+    const rows = materials?.pendingFactionCandidates?.(materialSession) || [];
+    if (!rows.length) return "";
+    const candidates = rows.map((item, index) => (index + 1) + ". " + item.name + "｜" + (item.type || "组织") + "｜" + (item.worldTag || "未知世界"));
+    return [
+      "Stage1 待创建势力推演上下文：",
+      candidates.join("\n"),
+      "以上势力可以在场景锚定与正文中作为有效背景线索正常使用，并结合上下文合理推演，但不得编造势力ID。Stage9-1 会根据完整上下文统一创建。",
+    ].join("\n");
+  },
+
+  stage1PendingFactionId(name = '') {
+    const text = String(name || '').trim() || 'unknown';
+    let hash = 0;
+    for (const ch of text) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
+    return `force-pending-${Math.abs(hash).toString(36)}`;
+  },
+
+  resolveStage1Factions(materialSession = null, factions = [], store = null, loadedKeys = null, materials = null) {
+    if (!materialSession || !Array.isArray(factions) || !factions.length) return { items: [], loaded: [], statusSummary: "" };
+    const ctx = window.GameModules.realWorldAgentContext;
+    const items = [];
+    const loaded = [];
+    const members = materials || window.GameModules.realWorldMaterials;
+    factions.forEach((item) => {
+      if (!item || !item.name) return;
+      const entry = { name: item.name, id: item.id || "", status: "待创建", sourceId: item.id || "" };
+      const factionRows = store?.factionState?.factions || [];
+      const hit = factionRows.find((f) => (item.id && f.id === item.id) || (item.name && f.name === item.name));
+      if (hit) {
+        entry.id = hit.id;
+        entry.status = "已获取";
+        const key = "faction:verified:" + hit.id;
+        if (loadedKeys && !loadedKeys.has(key)) {
+          loadedKeys.add(key);
+          const text = ctx?.factionDetail?.(store, hit.id) || ctx?.factionText?.(store, hit) || "";
+          if (text) {
+            loaded.push({ title: "势力核验：" + hit.name, text, max: 1600, stage1MustReview: true });
+            members?.record?.(materialSession, { skill: "faction.query", method: "getFactionDetail", params: { id: hit.id } }, "势力核验：" + hit.name, text);
+          }
+        }
+      } else {
+        entry.id = this.stage1PendingFactionId(item.name);
+        entry.status = "待创建";
+      }
+      members?.deferStage1FactionCandidate?.(materialSession, { ...entry, type: item.type || "组织", worldTag: item.worldTag || "" }, "Stage1 factions 核验");
+      items.push(entry);
+    });
+    if (items.length) factions.splice(0, factions.length, ...items.map((item) => ({ ...item, pending: item.status === "待创建" })));
+    const statusSummary = items.map((it) => it.name + "(" + it.id + "，" + it.status + ")").join("、");
+    if (statusSummary) loaded.push({ title: "势力核验状态", text: "Stage1 势力核验结果：" + statusSummary, max: 1000 });
+    return { items, loaded, statusSummary };
+  },
+
+  buildFactionStage9Context({ base = "", loaded = [], trace = [], sceneAnchor = null, updates = {}, participants = [], materialSession = null, config = null } = {}) {
+    const loadText = (Array.isArray(loaded) ? loaded : []).map((item, i) => {
+      const title = String(item?.title || '').trim();
+      const text = String(item?.text || '').trim();
+      return (i + 1) + ". " + [title, text].filter(Boolean).join("：").slice(0, 900);
+    }).join("\n");
+    const factionHints = [];
+    (Array.isArray(trace) ? trace : []).forEach((item) => {
+      if (Array.isArray(item?.factions)) {
+        item.factions.forEach((f) => {
+          if (f && f.name) factionHints.push(f.name + (f.id ? "(" + f.id + ")" : "") + (f.reason || item.reason ? " 理由=" + (f.reason || item.reason) : ""));
+        });
+      }
+    });
+    const pendingSummary = window.GameModules.realWorldMaterials?.pendingFactionSummary?.(materialSession) || "";
+    return [
+      base || "",
+      "已加载资料摘要：",
+      loadText || "无",
+      "Stage1势力线索：",
+      factionHints.join("\n") || "无",
+      pendingSummary ? "Stage1待建候选：\n" + pendingSummary : "",
+      "场景锚定：",
+      sceneAnchor?.data?.currentLocation || "",
+      sceneAnchor?.data?.currentAction || "",
+    ].filter(Boolean).join("\n");
   },
 
   async buildPrompt(args) {
@@ -958,7 +1213,6 @@ window.GameModules.realWorldAgentLoop = {
       推演自由度规则: [config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'), configuredControlPerspectiveRule].filter(Boolean).join('\n'),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
       随机场外角色候选: randomActiveCandidateText,
-      ['\u8d44\u6599\u8fed\u4ee3\u9650\u5236\u89c4\u5219']: this.stage1IterationRule(store),
     };
     if (!forceFinal) {
       const stage1RoutingContext = config.ctx.buildStage1RoutingContext?.({ store, action: actionText, loaded, materialSession, config }) || [
@@ -970,96 +1224,15 @@ window.GameModules.realWorldAgentLoop = {
       const previousGuidance = this.previousGuidanceSummary(guidance);
       const loadedRoutingSummary = config.ctx.loadedRoutingSummary?.(loaded) || '无';
       const materialCatalog = config.ctx.stage1MaterialCatalogText?.(config.mode) || '无';
-      const rulesText = [
-        '# Stage1 资料查询',
-        '任务：只输出一个合法 JSON 对象，不输出中文 K:V、Markdown、正文或解释。',
-        '你只负责判断本次行动生成正文前还需要哪些已有资料；不得写正文，不得锚定场景，不得结算状态，不得推进后续结果。',
-        '资料请求规则：',
-        '- 使用中文资料请求，不得输出英文 skill/method。地点查询未命中时，不要请求地点图补全；基于上下文进行符合逻辑的保守推演，地图持久化交给 Stage4 地图更新 / Stage9 电子地图周围解锁。',
-        '- 资料请求最多 Top3；超过 Top3 的候选必须丢弃，不得输出资料请求4或更多编号。',
-        '- 角色卡请求只代表可作为参考资料；不得因此把角色写入强制出场。',
-        '- 资料是否够用由你综合判断：对话链里的旧资料 + 之后的结算/正文变更 + 当前桌面时间 + 本次行动。不要机械“见过就不请求”，也不要仅因发生过结算/时间推进就强制重载。',
-        '- 需要重新请求的情况：关键出场对象/地点/路线在上下文中缺失；或旧资料与后续变更互相冲突、碎片化，无法可靠还原出支撑本次正文的最新状态；或切换被控者后上下文里根本没有该角色可用资料。',
-        '- 可跳过重复请求的情况：把旧资料与后续变更合在一起后，已能稳定支撑本次行动正文，且无明显缺口或冲突。',
-        '- 不得请求衣着、鞋袜、随身物品等细节；这些细节不属于本阶段必要资料。',
-        '- 不得照抄提示词中的占位词；角色全称、世界全称、地点全称、出场对象全称、作品全称都必须替换为本次行动中的真实名称。',
-        '- 资料请求格式：资料请求N：资料类型，查询动作，查询对象全称，世界或范围全称。',
-        '随机事件规则：',
-        '- 随机主动事件默认是场外背景，不自动入场。',
-        '- 随机场外角色候选不等于禁止出场；不得仅因角色出现在随机场外角色候选中，就写入禁止出场。',
-        '- 若随机角色已在强制出场、高优先候选、戏剧候选或禁止出场中，必须移除该随机事件。',
-        '- 无明确自然闯入条件时，随机事件闯入条件必须写“无明确条件则禁止闯入”。',
-        window.GameModules.socialEventBoundary?.stage1Ops?.() || '',
-        '势力资料规则：',
-        '- 系统已自动载入全部势力名/ID与组织架构；先对照该列表，不要重复请求势力列表。',
-        '- 若行动/资料/角色卡中出现现实世界真实组织、公司、学校、机关、社群等势力名，且不在已知列表中：必须请求「势力查询，创建势力，势力名，公司」。',
-        '- 创建时按上下文与常识补全可知字段；禁止因“本轮未打电话/未拜访/未改字段”而跳过创建。',
-        '- 禁止抽象身份（现实社会/公民）造势力；禁止批量灌库无关势力。',
-        '- 已存在势力只查询，不要重复创建。',
-        '自然出场规则：',
-        '- 不要只在玩家明确点名角色时才判断出场；任何现实或设定世界中的行动，都可能自然牵涉其他存在。',
-        '- 自然出现不是固定清单，而是根据当前世界状态推导；候选不限定为人类，只要符合世界规则并与本次行动形成合理关联，就可以进入候选。',
-        '- 有合理候选写入高优先候选或戏剧候选；只有本次行动必然涉及、出现、回应或受影响的存在才写入强制出场。',
-        '- 禁止为了热闹强行塞候选；每个候选都必须能被当前世界状态解释。',
-        '出场边界规则：',
-        '- 本轮必须基于上一轮查询规划摘要继续收敛；若候选层发生变化，以本轮字段作为当前判断，不要无理由重置候选层。',
-        '- 玩家/当前被控主体由系统最终兜底为强制出场；强制出场允许多个存在，表示本次行动必然涉及、出现、回应或受影响的集合。',
-        '- 不强制出场不等于禁止出场；禁止出场只用于明确场外、明确不可到达或被用户/资料规则明确禁止进入当前场景的存在。',
-        '- 同地点/同住/相邻候选不得仅因未强制出场而写入禁止出场；可按相关性放入高优先候选或戏剧候选，或写“无”。',
-        '- 玩家行动明确目标不得写入禁止出场，除非已加载资料明确显示其场外、不可到达或被规则禁止进入当前场景。',
-        '角色唯一标识与介绍卡：',
-        '- participants 每一项必须是可区分称呼(ID)；已知用真实ID，首次无真实ID写可区分称呼(待建卡)。',
-        '- Stage1整段结束后系统一次性批量分配 rel-ai-* 共享ID：先写同ID介绍卡再写空壳；不是完整角色卡，完整卡仅玩家手动升格（同一ID）。',
-        '- 称呼必须可区分：禁止无名纯「路人」、空泛“某人/某物”或不可追踪占位；一类存在/团体原型按群体意识理解。',
-        '- 角色查询可命中完整角色卡或介绍卡；不得因查到资料就强制写入出场。',
-      ].filter(Boolean).join('\n');
-      const contextText = [
-        `本次行动：${actionText}`,
-        `当前步骤：${commonVars.当前步骤} / ${commonVars.最大步骤}`,
-        '路由上下文：',
-        stage1RoutingContext,
-        '本轮上一轮查询规划摘要（同轮 Stage1 步骤间）：',
-        previousGuidance,
-        '已加载资料摘要：',
-        loadedRoutingSummary,
-        '可请求资料目录：',
-        materialCatalog,
-        eventStage1Context,
-        '推演自由度规则：',
-        commonVars.推演自由度规则,
-        `随机场外角色候选：${randomActiveCandidateText}`,
-      ].join('\n');
-      const requestText = [
-        '当前步骤输出要求：',
-        commonVars.当前步骤输出要求,
-        '固定输出规则：',
-        '- 只输出一个紧凑 JSON 对象，首字符必须是 {，末字符必须是 }。',
-        '- 不要 Markdown，不要 ```json 代码块，不要换行解释。',
-        '- status 只能二选一：资料已足够 / 继续请求资料。',
-        '- sceneQueries.location / sceneQueries.causality / sceneQueries.conflict 必须是字符串数组；没有则 []。',
-        '- 若 status 为“继续请求资料”，优先输出 materialRequests，最多 3 条；没有可执行资料请求时 materialRequests 输出 []，但必须保留 sceneQueries 理由或明确参与者候选。',
-        this.stage1IterationRule(store),
-        '- participants.forced / priority / drama / forbidden 都必须是字符串数组；没有则 []。',
-        '- 【强制】participants 每一项必须是可区分称呼(ID)。已知用真实ID（角色卡/介绍卡均可）；首次无真实ID写可区分称呼(待建卡)。禁止裸姓名或裸称呼。',
-        '- Stage1整段结束后系统一次性批量：分配 rel-ai-* 共享ID，先写同ID介绍卡再写空壳（不是完整角色卡；完整卡仅玩家手动升格且仍用同一ID）。禁止Stage1多轮逐个申请建卡或编造完整角色卡。',
-        '- 称呼必须可区分：禁止无名纯「路人」、空泛“某人/某物”或不可追踪占位。一类存在/团体原型按群体意识与团队行动理解（presenceKind=group）。',
-        '- randomEvents 必须是字符串数组；randomIntrusionCondition 没有明确条件时写“无明确条件则禁止闯入”。',
-        '- 资料请求只能使用中文结构，不得输出英文 skill/method；不得在 Stage1 请求地点图新增、地点图补全或 ensure。',
-        'JSON schema：',
-        '{"plan":"查询规划摘要","status":"继续请求资料|资料已足够","sceneQueries":{"location":["地点查询理由"],"causality":["因果查询理由"],"conflict":["冲突查询理由"]},"participants":{"forced":["玩家名(player-self)","已知出场对象名(真实ID)"],"priority":["可区分候选称呼(待建卡)"],"drama":[],"forbidden":[]},"randomEvents":["候选事件"],"randomIntrusionCondition":"无明确条件则禁止闯入","materialRequests":["角色查询，搜索角色卡，角色全称，世界全称","势力查询，创建势力，势力全称，势力类型"]}',
-        '【AI自检】：',
-        '- 输出前必须自检 status 与 materialRequests、sceneQueries、participants 是否一致。',
-        '- 输出前必须自检 participants 每一项都是可区分称呼(ID)，没有裸姓名或裸称呼。',
-        '- 输出前必须自检：本次行动相关关键资料是否已能从「本轮已加载摘要 / materialRequests / 对话链中的旧资料+后续变更」可靠覆盖；若仍有缺口或冲突会影响正文，不得写“资料已足够”。',
-        '- 输出前必须自检：行动/资料/角色卡中出现的现实组织/公司/学校等势力名，若已载入势力列表未收录，须在 materialRequests 写「势力查询，创建势力，势力名，类型」；不得因本轮未互动/无字段更新而跳过。',
-        '- 若 materialRequests、sceneQueries、participants.forced、participants.priority、participants.drama 全为空，status 必须为“资料已足够”。',
-        '- 不得输出旧 K:V 字段，例如“资料状态：”“资料请求1：”。',
-      ].join('\n');
-      return [
-        { role: 'user', content: rulesText },
-        { role: 'assistant', content: contextText },
-        { role: 'user', content: requestText },
-      ];
+      const prompt = await this.renderPrompt(config.firstTemplateId || 'inference-stage1-guided-query', {
+        ...commonVars,
+        路由上下文: stage1RoutingContext,
+        上一轮查询规划摘要: previousGuidance,
+        已加载资料摘要: loadedRoutingSummary,
+        可请求资料目录: materialCatalog,
+        日常驱动与事件Stage1要点: eventStage1Context,
+      });
+      return [{ role: 'user', content: prompt }];
     }
     return this.renderPrompt(config.templateId, {
       ...commonVars,
@@ -1071,7 +1244,7 @@ window.GameModules.realWorldAgentLoop = {
 
   guidedMaxSteps(store = {}, config = this.realConfig()) {
     if (!store?.settingsState?.stage1MaterialIterationLimited) return this.maxSteps;
-    const configured = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 2)));
+    const configured = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 3)));
     return configured;
   },
 
@@ -1080,15 +1253,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   guidedStepText(store = {}, step, config = this.realConfig()) {
-    return `${step}/${this.guidedMaxStepText(store, config)}`;
-  },
-
-  stage1IterationRule(store = {}) {
-    if (!store?.settingsState?.stage1MaterialIterationLimited) {
-      return '- 资料收集迭代默认不限制；只要仍有必要且有可执行资料请求，可以继续请求资料。若资料足够、无法继续获取或请求开始重复，必须进入场景锚定。';
-    }
-    const max = Math.max(1, Math.min(8, Math.round(Number(store?.settingsState?.stage1MaterialMaxIterations) || 2)));
-    return `- 最多${max}步后进入场景锚定；第${max}步不得为了重复确认而继续扩展资料循环。`;
+    return String(Math.max(1, Number(step) || 1));
   },
 
   storyFreedomRule(store) {
@@ -1135,27 +1300,19 @@ window.GameModules.realWorldAgentLoop = {
       return '当前为收敛步骤：禁止继续请求资料。只输出一个紧凑 JSON 对象；status 必须为“资料已足够”，materialRequests 必须为 []，sceneQueries 与 participants 按已确认事实填写；不得输出正文、旁白、Markdown、代码块或 final JSON。';
     }
     if (step === 1) {
-      return '当前是第1步：你是上下文路由器，只判断为了准确生成本次行动范围内正文需要载入哪些已有资料，并尽可能多而全地列出 sceneQueries 中的地点/因果/冲突查询理由。只输出 Stage1 JSON schema；不要写正文，不要结算状态，不要推演后续结果。';
+      return '当前是第1步：你是上下文路由器，只判断为了准确生成本次行动范围内正文需要载入哪些已有资料，并尽可能多而全地列出 sceneQueries 中的地点/因果/冲突查询理由。只输出符合字段契约的 Stage1 JSON 对象；不要写正文，不要结算状态，不要推演后续结果。';
     }
     if (step >= 2) {
-      return `当前是第${step}步/后续资料路由步骤：继续使用 Stage1 JSON schema 收敛资料需求。达到设置的资料收集迭代最大次数后，系统会带着已加载资料与 sceneQueries 进入场景锚定；若没有可执行 materialRequests，允许 materialRequests 为 [] 但保留 sceneQueries 或 participants 候选。不要输出中文 K:V、正文、旁白、Markdown、代码块和 final JSON。`;
+      return `当前是第${step}步/后续资料路由步骤：继续使用 Stage1 字段契约收敛资料需求。达到设置的资料收集迭代最大次数后，系统会带着已加载资料与 sceneQueries 进入场景锚定；若没有可执行 materialRequests，允许 materialRequests 为 [] 但保留 sceneQueries 或 participants 候选。不要输出正文、旁白、Markdown、代码块和 final JSON。`;
     }
-    return '当前只负责判断是否继续收集资料：只输出 Stage1 JSON schema。仍缺关键资料就写 status“继续请求资料”并列出 materialRequests；资料足够或无法继续获取时写 status“资料已足够”且 materialRequests 为 []。不要输出中文 K:V、正文、旁白、Markdown、代码块和 final JSON。';
+    return '当前只负责判断是否继续收集资料：只输出符合字段契约的 Stage1 JSON 对象。仍缺关键资料就写 status“继续请求资料”并列出 materialRequests；资料足够或无法继续获取时写 status“资料已足够”且 materialRequests 为 []。不要输出正文、旁白、Markdown、代码块和 final JSON。';
   },
 
   stage1JsonRetryInstruction(err = {}, semanticSelfCheckFailed = false) {
-    const droppedSummary = this.summarizeDroppedMaterialRequests(err.parseResult?.droppedMaterialRequests || []);
-    const parseDetail = err.parseResult
-      ? `score=${err.parseResult.score}/${err.parseResult.maxScore} successRate=${err.parseResult.successRate} missing=${err.parseResult.missing?.join('、') || '无'} droppedMaterialRequests=${droppedSummary}`
-      : '';
     return [
-      `上次 Stage1 JSON ${semanticSelfCheckFailed ? '语义自检失败' : '解析失败'}：${err.message}${parseDetail ? `（${parseDetail}）` : ''}`,
-      `已确认字段：${err.parseResult?.keyHits?.join('、') || '无'}`,
-      `已确认字段值：\n${this.confirmedKvValuesText(err.parseResult)}`,
-      `缺失字段：${err.parseResult?.missing?.join('、') || '未知'}`,
-      `已丢弃资料请求：${droppedSummary}`,
-      '请重新输出完整 Stage1 JSON 对象；必须保留已确认字段值，只补齐或修正缺失/错误字段；不得删除用户明确约束、forbidden 或已确认 forced；不要重复输出已丢弃 materialRequests。',
-      '【AI自检】若 status 为“继续请求资料”，优先输出最多 3 条 materialRequests 或明确 participants 候选；若没有可执行 materialRequests，必须保留尽可能多而全的 sceneQueries，系统会带着这些理由进入场景锚定。不得输出中文 K:V 或旧字段“资料状态：”“资料请求1：”。',
+      `上次 Stage1 JSON ${semanticSelfCheckFailed ? '语义自检失败' : '解析失败'}：${err.message}`,
+      '请重新输出完整 Stage1 JSON 对象；字段必须符合 Stage1 字段契约；不得删除用户明确约束、participants.forbidden 或已确认 participants.forced。',
+      '【AI自检】若 status 为“继续请求资料”，优先输出最多 3 条 materialRequests 对象或明确 participants 候选；若没有可执行 materialRequests，必须保留尽可能多而全的 sceneQueries，系统会带着这些理由进入场景锚定。不得输出 JSON 外解释或 materialRequests 字符串壳。',
     ].join('\n\n');
   },
 
@@ -1163,29 +1320,38 @@ window.GameModules.realWorldAgentLoop = {
     const ctx = window.GameModules.realWorldAgentContext;
     if (ctx?.stage1GuidanceSummary) return ctx.stage1GuidanceSummary(guidance);
     if (!guidance) return '无';
-    const names = (group = [], reasonLabel = '理由') => (Array.isArray(group) ? group : []).map((item) => {
-      const name = item.name || item.idOrName || item.id || item.characterName;
-      return `${name}${item.reason ? `（${reasonLabel}：${item.reason}）` : ''}`;
-    }).join('、') || '无';
-    const random = (Array.isArray(guidance.randomActiveEvents) ? guidance.randomActiveEvents : [])
-      .map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '背景行动'}｜${item.motivation || item.reason || ''}`)
-      .join('；') || '无';
-    const queryReasons = (label, key) => {
-      const items = [...new Set(Array.isArray(guidance.sceneQueries?.[key]) ? guidance.sceneQueries[key] : [])];
-      return items.length ? items.map((item, index) => `${label}${index + 1}：${item}`).join('\n') : `${label}1：无`;
-    };
-    return [
-      `资料状态：${guidance.type === 'context_done' ? '资料已足够' : '继续请求资料'}`,
-      queryReasons('地点查询理由', 'location'),
-      queryReasons('因果查询理由', 'causality'),
-      queryReasons('冲突查询理由', 'conflict'),
-      `强制出场：${names(guidance.forcedParticipants, '出场理由')}`,
-      `高优先候选：${names(guidance.priorityCandidates, '候选理由')}`,
-      `戏剧候选：${names(guidance.dramaCandidates, '候选理由')}`,
-      `禁止出场：${names(guidance.forbiddenParticipants, '不在场理由')}`,
-      `随机主动事件：${random}`,
-      `随机事件闯入条件：${guidance.randomIntrusionCondition || '无明确条件则禁止闯入'}`,
-    ].join('\n');
+    const compactParticipant = (item = {}) => ({
+      name: String(item.name || item.idOrName || item.characterName || '').trim(),
+      id: String(item.id || '').trim(),
+      reason: String(item.reason || '').trim(),
+    });
+    const compactEvent = (item = {}) => ({
+      name: String(item.characterName || item.name || '').trim(),
+      type: String(item.eventType || item.actionMethod || '背景行动').trim(),
+      reason: String(item.motivation || item.reason || '').trim(),
+    });
+    const uniqueStrings = (items = []) => [...new Set((Array.isArray(items) ? items : []).map((item) => String(item || '').trim()).filter(Boolean))];
+    return JSON.stringify({
+      status: guidance.type === 'context_done' ? '资料已足够' : '继续请求资料',
+      sceneQueries: {
+        location: uniqueStrings(guidance.sceneQueries?.location),
+        causality: uniqueStrings(guidance.sceneQueries?.causality),
+        conflict: uniqueStrings(guidance.sceneQueries?.conflict),
+      },
+      participants: {
+        forced: (guidance.forcedParticipants || []).map(compactParticipant).filter((item) => item.name || item.id),
+        priority: (guidance.priorityCandidates || []).map(compactParticipant).filter((item) => item.name || item.id),
+        drama: (guidance.dramaCandidates || []).map(compactParticipant).filter((item) => item.name || item.id),
+        forbidden: (guidance.forbiddenParticipants || []).map(compactParticipant).filter((item) => item.name || item.id),
+      },
+      factions: (guidance.factions || []).map((item) => ({
+        name: String(item.name || '').trim(),
+        id: String(item.id || '').trim(),
+        status: String(item.status || (item.pending ? '待创建' : '')).trim(),
+      })).filter((item) => item.name),
+      randomEvents: (guidance.randomActiveEvents || []).map(compactEvent).filter((item) => item.name || item.type),
+      randomIntrusionCondition: String(guidance.randomIntrusionCondition || '无明确条件则禁止闯入').trim(),
+    });
   },
 
   async buildNarrationPrompt(args) {
@@ -1260,15 +1426,25 @@ window.GameModules.realWorldAgentLoop = {
     return String(item?.id || item?.idOrName || item?.name || item?.characterName || '').trim();
   },
 
+  participantRawName(item = {}) {
+    if (typeof item === 'string') {
+      const parsed = this.parseParticipantToken(item);
+      return String(parsed?.name || item || '').trim();
+    }
+    return String(item?.name || item?.characterName || '').trim();
+  },
+
   dedupeParticipants(items = [], options = {}) {
     const seen = new Set();
     const blockedNames = options.blockedNames || new Set();
     return (Array.isArray(items) ? items : []).filter((item) => {
       const name = this.participantDisplayName(item);
+      const rawName = this.participantRawName(item);
       const key = this.participantKey(item) || name;
-      if (!name || blockedNames.has(name) || blockedNames.has(key) || seen.has(key) || seen.has(name)) return false;
+      if (!name || blockedNames.has(name) || blockedNames.has(rawName) || blockedNames.has(key) || seen.has(key) || seen.has(name) || seen.has(rawName)) return false;
       seen.add(key);
       seen.add(name);
+      if (rawName) seen.add(rawName);
       return true;
     });
   },
@@ -1305,21 +1481,24 @@ window.GameModules.realWorldAgentLoop = {
   resolveEffectiveSceneLayers(trace = [], store = null, config = this.realConfig()) {
     const items = Array.isArray(trace) ? trace : (trace ? [trace] : []);
     const forcedBase = this.latestLayer(items, 'forcedParticipants').map((item) => ({ ...item, role: item.role || 'forced', canSettle: item.canSettle === false ? false : true }));
-    const systemForced = this.currentForcedParticipants(store, config).map((item) => ({ ...item, role: item.role || 'actor', canSettle: true, reason: item.reason || '系统固定强制出场' }));
+    const forcedBaseNames = new Set(forcedBase.flatMap((item) => [this.participantDisplayName(item), this.participantRawName(item), this.participantKey(item)]).filter(Boolean));
+    const systemForced = this.currentForcedParticipants(store, config)
+      .filter((item) => !forcedBaseNames.has(this.participantDisplayName(item)) && !forcedBaseNames.has(this.participantRawName(item)) && !forcedBaseNames.has(this.participantKey(item)))
+      .map((item) => ({ ...item, role: item.role || 'actor', canSettle: true, reason: item.reason || '系统固定强制出场' }));
     const forcedParticipants = this.dedupeParticipants([...forcedBase, ...systemForced]);
-    const forcedNames = new Set(forcedParticipants.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const forcedNames = new Set(forcedParticipants.flatMap((item) => [this.participantDisplayName(item), this.participantRawName(item), this.participantKey(item)]).filter(Boolean));
 
     const forbiddenRaw = this.latestLayer(items, 'forbiddenParticipants').map((item) => ({ ...item, role: item.role || 'forbidden', canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
     const forbiddenParticipants = this.dedupeParticipants(forbiddenRaw, { blockedNames: forcedNames });
-    const forbiddenNames = new Set(forbiddenParticipants.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const forbiddenNames = new Set(forbiddenParticipants.flatMap((item) => [this.participantDisplayName(item), this.participantRawName(item), this.participantKey(item)]).filter(Boolean));
 
     const priorityBlocked = new Set([...forcedNames, ...forbiddenNames]);
     const priorityCandidates = this.dedupeParticipants(this.latestLayer(items, 'priorityCandidates').map((item) => ({ ...item, role: item.role || 'priority-candidate', canSettle: false })), { blockedNames: priorityBlocked });
-    const priorityNames = new Set(priorityCandidates.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const priorityNames = new Set(priorityCandidates.flatMap((item) => [this.participantDisplayName(item), this.participantRawName(item), this.participantKey(item)]).filter(Boolean));
 
     const dramaBlocked = new Set([...priorityBlocked, ...priorityNames]);
     const dramaCandidates = this.dedupeParticipants(this.latestLayer(items, 'dramaCandidates').map((item) => ({ ...item, role: item.role || 'drama-candidate', canSettle: false })), { blockedNames: dramaBlocked });
-    const dramaNames = new Set(dramaCandidates.flatMap((item) => [this.participantDisplayName(item), this.participantKey(item)]).filter(Boolean));
+    const dramaNames = new Set(dramaCandidates.flatMap((item) => [this.participantDisplayName(item), this.participantRawName(item), this.participantKey(item)]).filter(Boolean));
 
     const randomBlocked = new Set([...dramaBlocked, ...dramaNames]);
     const randomActiveEvents = this.dedupeParticipants(this.latestLayer(items, 'randomActiveEvents'), { blockedNames: randomBlocked });
@@ -1377,15 +1556,8 @@ window.GameModules.realWorldAgentLoop = {
   parseSceneAnchorReport(raw, config = this.realConfig()) {
     const jsonData = this.parseSceneAnchorJson(raw, config);
     if (jsonData) return jsonData;
-    const parsed = this.parseChineseKvBlock(raw, this.sceneAnchorFields(), { config });
-    const hardAnchors = ['当前地点', '当前时间', '空间状态', '当前动作'];
-    const missingHardAnchor = hardAnchors.some((key) => !String(parsed.values?.[key] || '').trim());
-    if (parsed.successRate < 0.8 || missingHardAnchor) throw new Error('场景锚定报告解析错误请重试');
-    const v = parsed.values;
-    this.assertSceneParticipantBoundary(v);
-    const currentSceneImpactObjects = v['当前场景影响对象'] || '';
-    const orderedText = this.sceneAnchorFields().map((key) => `${key}：${v[key] || ''}`).join('\n');
-    return { text: orderedText, currentLocation: v['当前地点'] || '', currentTime: v['当前时间'] || '', writingFocus: v['正文写作重点'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, values: v, parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate }, parseDegraded: parsed.successRate < 1 };
+    this.sceneAnchorDebug('reject-non-json-scene-anchor', { raw: String(raw || '').slice(0, 400) });
+    throw new Error('场景锚定报告必须返回合法 JSON object，且 currentSceneImpactObjects 必须为结构化对象');
   },
 
   parseSceneAnchorJson(raw, config = this.realConfig()) {
@@ -1399,8 +1571,7 @@ window.GameModules.realWorldAgentLoop = {
       }
       return '';
     };
-    const impactValue = data.currentSceneImpactObjects ?? data.impactObjects ?? data.settlementBoundary ?? data['当前场景影响对象'];
-    const sceneImpactObjects = this.sceneAnchorImpactGroups(impactValue);
+    const sceneImpactObjects = this.normalizeSceneAnchorImpactObjects(data.currentSceneImpactObjects);
     const values = {
       '场景锚定报告': pick('sceneAnchorReport', 'report', '场景锚定报告'),
       '当前地点': pick('currentLocation', 'location', '当前地点'),
@@ -1413,7 +1584,7 @@ window.GameModules.realWorldAgentLoop = {
       '禁止出场': pick('forbiddenParticipants', 'forbidden', '禁止出场'),
       '随机事件影响': pick('randomEventImpact', 'randomEvent', '随机事件影响'),
       '正文写作重点': pick('writingFocus', 'focus', '正文写作重点'),
-      '当前场景影响对象': this.sceneAnchorJsonText(impactValue) || pick('currentSceneImpactObjects', 'impactObjects', 'settlementBoundary', '当前场景影响对象'),
+      '当前场景影响对象': this.sceneAnchorJsonText(sceneImpactObjects),
     };
     const hardAnchors = ['当前地点', '当前时间', '空间状态', '当前动作'];
     const missingHardAnchor = hardAnchors.some((key) => !String(values[key] || '').trim());
@@ -1421,7 +1592,70 @@ window.GameModules.realWorldAgentLoop = {
     this.assertSceneParticipantBoundary(values);
     const orderedText = this.sceneAnchorFields().map((key) => `${key}：${values[key] || ''}`).join('\n');
     const currentSceneImpactObjects = values['当前场景影响对象'] || '';
+    this.sceneAnchorDebug('accepted-scene-anchor-json', { values, sceneImpactObjects });
     return { text: orderedText, currentLocation: values['当前地点'] || '', currentTime: values['当前时间'] || '', writingFocus: values['正文写作重点'] || '', currentSceneImpactObjects, settlementBoundary: currentSceneImpactObjects, sceneImpactObjects, values, parseScore: { score: this.sceneAnchorFields().length, maxScore: this.sceneAnchorFields().length, successRate: 1 }, parseDegraded: false, format: 'json' };
+  },
+
+  sceneAnchorDebug(event = '', payload = null) {
+    try {
+      if (payload === null || payload === undefined) {
+        console.debug(`[场景锚定调试] ${event}`);
+        return;
+      }
+      console.debug(`[场景锚定调试] ${event}`, payload);
+    } catch (_) { /* ignore debug logging failures */ }
+  },
+
+  normalizeSceneAnchorImpactObjects(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      this.sceneAnchorDebug('invalid-impact-objects-shape', { value });
+      throw new Error('currentSceneImpactObjects 必须是 JSON object');
+    }
+    const allowedKeys = ['people', 'locations', 'items', 'systems', 'summary'];
+    const unknownKeys = Object.keys(value).filter((key) => !allowedKeys.includes(key));
+    if (unknownKeys.length) {
+      this.sceneAnchorDebug('invalid-impact-objects-keys', { unknownKeys, value });
+      throw new Error(`currentSceneImpactObjects 只允许 keys: ${allowedKeys.join(', ')}`);
+    }
+    const normalizeList = (key) => {
+      const raw = value[key];
+      if (raw === undefined || raw === null) return [];
+      if (!Array.isArray(raw)) {
+        this.sceneAnchorDebug('invalid-impact-objects-list', { key, value: raw });
+        throw new Error(`currentSceneImpactObjects.${key} 必须是数组`);
+      }
+      const list = raw.map((item, index) => {
+        if (typeof item !== 'string') {
+          this.sceneAnchorDebug('invalid-impact-objects-item-type', { key, index, value: item });
+          throw new Error(`currentSceneImpactObjects.${key}[${index}] 必须是字符串`);
+        }
+        const text = String(item || '').trim();
+        if (!text) {
+          this.sceneAnchorDebug('invalid-impact-objects-item-empty', { key, index, value: item });
+          throw new Error(`currentSceneImpactObjects.${key}[${index}] 不能为空字符串`);
+        }
+        return text;
+      });
+      return [...new Set(list)];
+    };
+    const summaryRaw = value.summary;
+    if (summaryRaw !== undefined && summaryRaw !== null && typeof summaryRaw !== 'string') {
+      this.sceneAnchorDebug('invalid-impact-objects-summary-type', { value: summaryRaw });
+      throw new Error('currentSceneImpactObjects.summary 必须是字符串');
+    }
+    const groups = {
+      people: normalizeList('people'),
+      locations: normalizeList('locations'),
+      items: normalizeList('items'),
+      systems: normalizeList('systems'),
+      summary: String(summaryRaw || '').trim(),
+    };
+    const hasContent = groups.people.length || groups.locations.length || groups.items.length || groups.systems.length || groups.summary;
+    if (!hasContent) {
+      this.sceneAnchorDebug('invalid-impact-objects-empty', { value });
+      throw new Error('currentSceneImpactObjects 不能为空对象');
+    }
+    return groups;
   },
 
   sceneAnchorJsonText(value) {
@@ -1470,7 +1704,11 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   sceneAnchorNameSet(value = '') {
-    return new Set(this.splitNameList(value).map((item) => String(this.parseParticipantToken(item)?.name || item || '').replace(/[（(].*$/u, '').trim()).filter(Boolean));
+    return new Set(this.splitNameList(value).map((item) => {
+      const text = String(item || '').trim();
+      if (/^无\s*(?:[（(].*[）)])?\s*$/u.test(text)) return '';
+      return String(this.parseParticipantToken(text)?.name || text).replace(/[（(].*$/u, '').trim();
+    }).filter(Boolean));
   },
 
   assertSceneParticipantBoundary(values = {}) {
@@ -1504,7 +1742,7 @@ window.GameModules.realWorldAgentLoop = {
     const recent = priorKvCount ? '' : this.recentNarrationForMessages(store, config);
     const messages = [{ role: 'user', content: String(prompt || '') }];
     if (recent) messages.push({ role: 'assistant', content: recent });
-    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在1000 - 1400字之间。\n本次行动：${actionText}` });
+    messages.push({ role: 'user', content: `根据前面的规则与资料，推演“本次行动”，字数必须在2000 - 3000字之间。\n本次行动：${actionText}` });
     return messages;
   },
 
@@ -1532,20 +1770,35 @@ window.GameModules.realWorldAgentLoop = {
     const modeRule = config.mode === 'story'
       ? `推演自由度：${this.storyFreedomRule(store)}\n玩家不是角色本人，而是操控/影响被操控者行动的存在；正文必须写出本次行动的动作过程、环境变化、其他人物反应、被操控者身体与心理张力、直接结果。`
       : `推演自由度：${store.realWorldFreedomRule?.() || '只推演玩家本次输入行动自然抵达的直接结果。'}`;
-    const narrationRules = '行动范围内充分推演：写出本次行动的动作过程、身体感受、周围环境变化、可见细节、他人反应、对话回应和直接短期连锁影响；场景锚定报告中的强制出场必须在正文中实际出现、行动或回应；不替玩家执行下一步新行动；不把亲吻、抚摸、摩擦、按住等行为自动扩展为脱衣、转移地点、插入、高潮等未输入的新阶段。除“你”外每次写角色姓名必须使用 <role id="真实ID">姓名</role>。';
+    const activeRoleRules = [
+      '角色主动性推演规则：',
+      '- 正文必须把出场角色写成会自主判断和行动的人，而不是等待玩家继续输入才回应的道具。',
+      '- 角色反应必须广而全地综合性格、爱好、背景、成长经历、价值取向、当前处境、地点、时间、与玩家关系、好感/信任/依赖/警惕/反感、欲望/肉欲、身体状态、已知信息、近期事件、长期目标和当前压力。',
+      '- 主动行为必须基于已有上下文和连续性，不能凭空改写角色性格、关系、记忆、地点或已发生事实。',
+      '- 角色认知必须有边界：只能依据自己看见、听见、记得、推断得到或被告知的内容行动；未知秘密不能当作已知，但可以写出误会、试探、猜测、戒备或装作不知道。',
+      '- 主动性要有生活真实感：主动不只等于靠近或推进，也包括拒绝、沉默、观察、拖延、逃避、找借口、讲条件、试探、转移话题、整理物品、关灯、看手机、确认时间或压低声音。',
+      '- 角色动机可以互相拉扯：亲近与害羞、欲望与矜持、好感与警惕、疲惫与责任、讨好与自尊、依赖与防备都可以同时存在，并通过动作、语气、停顿、眼神或选择体现。',
+      '- 情绪和关系必须有惯性：不要让角色因为一句话瞬间完全转向；除非有强触发，否则用细微变化、试探、克制、压抑、犹豫、回避或逐步升级表现变化。',
+      '- 主动性不能抢夺玩家控制权：角色可以主动提出、拒绝、靠近、离开、设条件或诱导，但不要替玩家决定下一步新行动。',
+      '- 时间很晚、地点不合适、关系不足、好感不够、性格高冷/谨慎/警惕或边界被触碰时，角色应主动设限、要求休息/睡觉、要求离开、拒绝接触、保持距离或明确制止。',
+      '- 气氛、关系、好感/信任、欲望/肉欲、私密性、性格主动性与 consent 都支持时，角色可以自然主动靠近、讨好、诱导、表达需求或提出亲密要求；不得跳过必要条件或自动扩展到未输入的新阶段。',
+      '- 若角色足够了解玩家，并且性格与关系支持，应让角色利用这份了解主动投其所好、安抚弱点、迎合偏好或用玩家在意的事物讨好/诱导。',
+      '- 创造性必须服务于栩栩如生而不是破坏设定：可以补全符合上下文的小动作、停顿、语气、眼神、身体距离、生活物件、惯用表达、临场选择和微妙心理变化。',
+    ].join('\n');
+    const narrationRules = '行动范围内充分推演：先做一次紧凑内部梗概，不逐句解释或逐 token 分析；梗概要判断玩家意图、行动可行性、关键角色反应、行动是否成立和即时落点。若行动在任何一步被角色、现实条件、能力边界、关系边界或场景因果打断，确定具体打断点，正文只写到打断事实及即时反应；不替玩家执行下一步新行动，也不得替玩家决定继续尝试、解释、道歉、反抗、接受、离开或其它后续选择，等待下一轮玩家行动。行动完整成立时也只写本次输入的直接短期结果，不自动开启下一步新行动。写出本次行动的动作过程、身体感受、周围环境变化、可见细节、他人反应和对话回应；场景锚定报告中的强制出场必须在正文中实际出现、行动或回应；不把亲吻、抚摸、摩擦、按住等行为自动扩展为脱衣、转移地点、插入、高潮等未输入的新阶段。除“你”外每次写角色姓名必须使用 <role id="真实ID">姓名</role>。';
     const completenessRules = [
       '正文完整性规则：',
       '- 正文必须形成完整小段落：进入动作 → 现场反馈 → 对方反应 → 短期结果落点。',
       '- 即使本次行动因边界、consent、年龄、关系或安全限制不能继续描写，也不得短输出。',
       '- 若不能描写玩家输入中的某些肢体或性化细节，必须改写为允许描写的现场反应：角色察觉、制止、后退、质问、沉默、情绪变化、房间环境声响变化、进入方式、触发反应、双方距离变化、语言/沉默、身体姿态，但必须根据已有资料符合逻辑。',
       '- 不要只写“她在房间里”或只写场景开头；必须把本次行动推演到一个明确的即时落点。',
-      '- 目标长度 1000-1400 中文字符；低于 1000 汉字视为不合格，不要提前停止。',
+      '- 目标长度 2000 - 3000 字；低于 2000 字视为不合格，不要提前停止。',
       '- 强制输出结构只作为内部写作配比，最终正文仍必须是无标题、无编号、无换行的单段小说正文；唯一允许的标记是 <role id="…">姓名</role> 与 <force id="…">势力名</force>。',
       '- 每一次写出势力/组织/公司正式名称时，必须使用势力标签 <force id="真实ID">势力名</force>；id 必须来自势力标签清单。',
-      '- 环境五感渲染约100-150字：写出此刻场景中的气味、光线、触感。',
-      '- 角色内心独白约200-250字：围绕上一轮事件或本次行动带来的心理挣扎、试探或算计展开，必须使用比喻句。',
-      '- 对话与动作细节约400-450字：放慢动作，写清楚衣料摩擦声、眼神偏移、手部小动作、距离变化和对话回应。',
-      '- 悬念/决策钩子约150字：本轮结束时写出心理转向或下一步压力，但不替玩家执行下一步行动。',
+      '- 环境五感渲染约300-400字：写出此刻场景中的气味、光线、触感。',
+      '- 角色内心独白约500-700字：围绕上一轮事件或本次行动带来的心理挣扎、试探或算计展开，必须使用比喻句。',
+      '- 对话与动作细节约占正文一半：放慢动作，写清楚衣料摩擦声、眼神偏移、手部小动作、距离变化和对话回应。',
+      '- 悬念/决策钩子约200-300字：本轮结束时写出心理转向或下一步压力，但不替玩家执行下一步行动。',
       '- 若动作本身很短，就按上述四块扩展当前阶段内部细节，而不是开启下一步新行动。',
       '- 禁止把“NPC反问玩家/等待玩家说明来意/门口刚打开”当作最终落点；必须继续写到进入、被拒、落座、对峙、距离变化或关系张力变化等本次行动的直接结果。',
       '禁止越界不是禁止写长：不允许为了字数推进到新阶段；但必须充分描写当前阶段内部细节。',
@@ -1555,7 +1808,7 @@ window.GameModules.realWorldAgentLoop = {
     return this.renderPrompt('inference-stage3-narration', {
       模式标签: config.label,
       本次行动: actionText,
-      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, narrationRules, completenessRules, eventNarrationContext, newsNarrationContext, narrationContext].filter(Boolean).join('\n'),
+      基础上下文: [this.continuityFallbackRule(), `小说笔风：${writingStyle}`, modeRule, controlPerspectiveRule, activeRoleRules, narrationRules, completenessRules, eventNarrationContext, newsNarrationContext, narrationContext].filter(Boolean).join('\n'),
       场景锚定报告: sceneAnchorReport || '无',
       已动态载入资料: loadedText || '无',
       出场角色标签清单: roleTagGuide,
@@ -1648,9 +1901,9 @@ window.GameModules.realWorldAgentLoop = {
 
   sceneAnchorParticipants(sceneAnchor = null, store = null) {
     const values = sceneAnchor?.values || sceneAnchor || {};
+    const sceneImpactObjects = sceneAnchor?.sceneImpactObjects || this.sceneAnchorImpactGroups(sceneAnchor?.currentSceneImpactObjects);
     const playerName = String(store?.playerName || store?.playerProfile?.name || store?.realWorldPlayerSettlementName?.() || '').trim();
-    const fields = ['强制出场', '当前场景影响对象'];
-    return fields.flatMap((key) => this.splitNameList(values[key] || '').map((raw) => {
+    const forced = ['强制出场'].flatMap((key) => this.splitNameList(values[key] || '').map((raw) => {
       const parsed = this.parseParticipantToken(raw);
       const name = String(parsed?.name || raw || '').replace(/[（(].*$/u, '').trim();
       const id = String(parsed?.id || '').trim();
@@ -1658,6 +1911,15 @@ window.GameModules.realWorldAgentLoop = {
         ? { type: 'character', id: id || undefined, idOrName: id || name, name, role: 'current-scene', canSettle: true }
         : null;
     }).filter(Boolean));
+    const fromImpactPeople = (Array.isArray(sceneImpactObjects?.people) ? sceneImpactObjects.people : []).map((name) => {
+      const clean = String(name || '').trim();
+      return clean && !['无', '玩家', '系统', playerName].includes(clean)
+        ? { type: 'character', id: undefined, idOrName: clean, name: clean, role: 'current-scene', canSettle: true }
+        : null;
+    }).filter(Boolean);
+    const merged = [...forced, ...fromImpactPeople];
+    this.sceneAnchorDebug('scene-anchor-participants', { forced, fromImpactPeople, merged });
+    return merged;
   },
 
   characterParticipants(characters = [], store = null) {
@@ -1749,7 +2011,8 @@ window.GameModules.realWorldAgentLoop = {
     base.push(this.eventSettlementType());
     const story = config.mode === 'story';
     const realPossessed = config.mode === 'real' && Boolean(store?.sharedControlState?.());
-    return (story || realPossessed) ? base.concat(['操控体验']) : base;
+    const stateTypes = base.filter((type) => !['角色卡', '物品'].includes(type));
+    return (story || realPossessed) ? stateTypes.concat(['操控体验']) : stateTypes;
   },
 
   settlementTypeWindows(allTypes = []) {
@@ -1778,6 +2041,8 @@ window.GameModules.realWorldAgentLoop = {
       '性历史': { title: '性历史结算', format: '更新N：结算主体，状态转移，性对象，原因与证据' },
       '关系': { title: '关系结算', format: '更新N：结算主体，甲方(称谓)，乙方(称谓)，维度，当前状态，变化原因，根据性格造成结果' },
       '角色卡': { title: '角色卡结算', format: '更新N：结算主体，字段，替换/增加，新值，原因，根据性格造成结果' },
+      '角色卡物品': { title: '角色卡物品结算', format: '数组；每项 {"subject":"姓名","action":"add|update|remove|consume|equip|unequip|transfer|replace","itemName":"物品名","item":{},"quantity":1,"slot":"装备槽","to":"目标角色","reason":"正文证据"}；无变化 []' },
+      '角色卡复核': { title: '角色卡状态再次更新', format: '数组；每项 {"subject":"姓名","field":"标准字段或 profile.* 路径","op":"替换|增加|删除|合并","value":"新值或 JSON 值","reason":"正文与前两段结算后的复核证据"}；无变化 []' },
       '长期目标': { title: '长期目标结算', format: '数组；每项可含 subject、short/medium/long（content/deadline/progress/detail）、achievement、reason；无变化 []' },
       '物品': { title: '物品结算', format: '更新N：结算主体，物品类型，物品名，事实或变化，变化原因' },
       '地图': { title: '地图结算', format: '更新N：结算主体，当前位置/上级地点/地点事实/地图节点/路线事实，事实，原因' },
@@ -1860,9 +2125,8 @@ window.GameModules.realWorldAgentLoop = {
     const delta = Number(rawValueText.replace(/[^-+\d.]/gu, ''));
     const hasSignedDelta = Number.isFinite(delta) && /^[+-]\d/u.test(rawValueText) && delta !== 0;
     if (['情绪', '感觉'].includes(type)) {
-      const allowedKeys = this.settlementMetricKeysForSubject(store, subject, type);
       normalizedKey = this.metricAliasForSettlement(type, normalizedKey);
-      if (!allowedKeys.includes(normalizedKey) || !hasSignedDelta) return null;
+      if (!hasSignedDelta) return null;
     }
     if (entry.fieldMap && !entry.fieldMap[normalizedKey]) return null;
     if (type === '生命体征' && !hasSignedDelta) return null;
@@ -1884,8 +2148,7 @@ window.GameModules.realWorldAgentLoop = {
     const hasSignedDelta = Number.isFinite(delta) && /^[+-]\d/u.test(rawValueText) && delta !== 0;
     const reason = this.settlementJsonText(entry.reason ?? entry.原因 ?? entry.evidence ?? entry.证据 ?? '');
     const status = this.settlementJsonText(entry.status ?? entry.程度 ?? entry.解释 ?? entry.程度说明 ?? '');
-    const allowedKeys = this.settlementMetricKeysForSubject(store, subject, typeName);
-    if (!field || !hasSignedDelta || !reason || !allowedKeys.includes(field)) return null;
+    if (!field || !hasSignedDelta || !reason) return null;
     const change = { mode: 'delta', value: delta };
     if (status) change.status = status;
     return { updateType: entryCat.updateType, subject, field: `${entryCat.fieldPrefix}.${field}`, change, reasons: [{ trigger: typeName, evidence: reason, confidence: 'confirmed' }] };
@@ -2355,6 +2618,72 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
 
+  roleCardItemAction(raw = {}) {
+    const action = String(raw.action ?? raw.操作 ?? raw.op ?? '').trim().toLowerCase();
+    const map = {
+      新增: 'add', 增加: 'add', 添加: 'add', add: 'add',
+      修改: 'update', 更新: 'update', update: 'update', set: 'update',
+      删除: 'remove', 移除: 'remove', 丢弃: 'remove', remove: 'remove', delete: 'remove',
+      使用: 'consume', 消耗: 'consume', consume: 'consume', use: 'consume',
+      装备: 'equip', equip: 'equip',
+      卸下: 'unequip', 脱下: 'unequip', unequip: 'unequip',
+      转交: 'transfer', 交给: 'transfer', transfer: 'transfer',
+      替换: 'replace', replace: 'replace',
+    };
+    return map[action] || '';
+  },
+
+  parseRoleCardItemJsonEntry(entry = {}, subject = null, participants = []) {
+    if (!subject || !entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const action = this.roleCardItemAction(entry);
+    const item = entry.item && typeof entry.item === 'object' && !Array.isArray(entry.item) ? { ...entry.item } : {};
+    const itemName = String(entry.itemName ?? entry['物品名'] ?? entry.name ?? item.name ?? '').trim();
+    const reason = this.settlementJsonText(entry.reason ?? entry['原因'] ?? entry.evidence ?? entry['证据'] ?? '');
+    const quantity = Math.max(1, Math.floor(Number(entry.quantity ?? entry['数量'] ?? item.quantity ?? 1) || 1));
+    const slot = String(entry.slot ?? entry['装备槽'] ?? item.slot ?? '').trim();
+    const targetName = String(entry.to ?? entry.target ?? entry['目标角色'] ?? '').trim();
+    if (!action || !reason || (action !== 'replace' && !itemName) || (action === 'equip' && !slot) || (action === 'transfer' && !targetName)) return null;
+    if (itemName) item.name = itemName;
+    if (entry.description ?? entry['描述'] ?? item.description) item.description = String(entry.description ?? entry['描述'] ?? item.description).trim();
+    item.quantity = quantity;
+    const target = targetName ? this.subjectForSettlement(targetName, participants) : null;
+    if (action === 'transfer' && !target) return null;
+    return {
+      updateType: 'inventory-operation',
+      subject,
+      field: 'profile.items',
+      change: { mode: 'operation', value: { action, itemName, item, quantity, slot, target: target || null, reason, replaceItems: Array.isArray(entry.items) ? entry.items : null } },
+      reasons: [{ trigger: `角色卡物品${action}`, evidence: reason, confidence: 'confirmed' }],
+    };
+  },
+
+  roleCardReviewFieldPath(field = '') {
+    const text = String(field || '').trim();
+    const standard = this.roleCardFieldPath(text);
+    if (standard) return standard;
+    if (text === 'status_tags') return text;
+    if (!/^profile\.[A-Za-z0-9_\u4e00-\u9fff.-]+(?:\.[A-Za-z0-9_\u4e00-\u9fff.-]+)*$/u.test(text)) return '';
+    if (/(?:__proto__|prototype|constructor|roleCardUpdatedAt|roleCardInputSignature)$/iu.test(text)) return '';
+    return text;
+  },
+
+  parseRoleCardReviewJsonEntry(entry = {}, subject = null, participants = []) {
+    if (!subject || !entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const field = this.roleCardReviewFieldPath(entry.field ?? entry['字段'] ?? entry.path ?? entry['路径'] ?? '');
+    const rawOp = String(entry.op ?? entry['操作'] ?? entry.mode ?? '替换').trim();
+    const op = { 替换: 'set', 增加: 'append', 删除: 'remove', 合并: 'merge', set: 'set', append: 'append', remove: 'remove', merge: 'merge' }[rawOp] || '';
+    const value = entry.value ?? entry['新值'] ?? entry.data ?? entry['变化'];
+    const reason = this.settlementJsonText(entry.reason ?? entry['原因'] ?? entry.evidence ?? entry['证据'] ?? '');
+    if (!field || !op || !reason || (value === undefined && op !== 'remove')) return null;
+    return {
+      updateType: 'role-card',
+      subject,
+      field,
+      change: { mode: op, value: value === undefined ? null : value },
+      reasons: [{ trigger: `角色卡复核${rawOp}`, evidence: reason, confidence: 'confirmed' }],
+    };
+  },
+
   parseRoleCardJsonEntry(entry = {}, subject = null, participants = []) {
     if (!subject || !entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
     const field = String(entry.field ?? entry.字段 ?? entry.key ?? '').trim();
@@ -2749,6 +3078,8 @@ window.GameModules.realWorldAgentLoop = {
           let update = null;
           if (type === '关系') update = this.parseRelationshipJsonEntry(entry, subject, participants);
           else if (type === '操控体验') update = this.parseControlExperienceJsonEntry(entry, subject, participants);
+          else if (type === '角色卡物品') update = this.parseRoleCardItemJsonEntry(entry, subject, participants);
+          else if (type === '角色卡复核') update = this.parseRoleCardReviewJsonEntry(entry, subject, participants);
           else if (type === '组织能力') update = this.parseOrgOverviewPanelJsonEntry(entry, subject);
           else if (type === '人事安排') update = this.parseScheduleJsonEntry(entry, subject, participants);
           else if (type === '长期目标') update = this.parseGoalJsonEntry(entry, subject, participants);
@@ -2990,6 +3321,18 @@ window.GameModules.realWorldAgentLoop = {
         '禁止模糊占位：不得写某公司/普通职员、未知学校/初中生、相关机构/资格、某群体/称号等可由上下文补全的上位概念。',
         '求全优先于过严过滤，禁止因分类犹豫判成“都不是”；输出前逐项自检本轮变化是否遗漏、留空、简写或模糊化。',
       ].join(''),
+      '角色卡物品': [
+        '只编辑本回合参与者已有完整角色卡的 profile.items 与穿着/装备槽；空壳 stub 和仅介绍卡人物不编辑。',
+        'action 必须精确选择：add 新增，update 修改已有物品，remove 丢弃，consume 消耗数量，equip 从物品栏装备到 slot，unequip 从 slot 卸下，transfer 转给另一位本回合参与者，replace 仅在正文明确整体清点或整体替换时使用。',
+        '所有物品编辑途径都已开放，但每项都必须有正文中的明确证据；不要为了整理背包而凭空移动、增加或删除物品。',
+        'item 至少含 name、description、quantity；装备物品还应给 type=equipment 与 equipSlots。transfer 必须写 to，equip 必须写 slot；无变化输出 []。',
+      ].join(''),
+      '角色卡复核': [
+        '这是 Stage4-3 的最终复核，可编辑角色卡全部业务字段。field 可用标准中文字段名，或直接写 profile.* 完整路径；op 只能是 替换、增加、删除、合并。',
+        '必须结合正文、角色卡完整基线，以及 Stage4-1/Stage4-2 的待应用结果逐项检查；发现前两段遗漏、矛盾或需要修正时才输出。',
+        '可以更新身份、职业、技能、知识、外貌、性格、喜好、人物说明、社群、人事归属、证书、称号、关系、物品、穿着、职业资料和其他已有角色卡业务字段；不得写技术字段或无证据改写。',
+        '无遗漏或无变化时输出 []；不允许为了凑条目重复前两段已经正确的更新。',
+      ].join(''),
       '长期目标': '只更新本回合 participants 的角色卡长期目标系统。可写 short/medium/long（content、deadline YYYY-MM-DD、progress 0-100、detail）与 achievement/achievements。规则：①任一档完成（progress=100 或正文确认达成）必须追加阶段成果，并基于当前上下文生成同档下一条新目标，progress 重置为较低起点（通常 0-20）；禁止只写 100% 不换 content。②玩家目标表达特别明确（点名短/中/长期，或「近期完成」「几个月内达成」等）且旧目标未完成时，新 content 必须融合旧未完部分与新目标，progress 通常适当下调并在 detail 说明；模糊愿望不触发。③未点名档位时按难易/耗时判定 short≈数天~数周、medium≈数月、long≈数年或人生方向。④即时下一步仍写基础结算「当前目标」；弱推测不更新。',
       '地图': '字段只能是：当前位置、上级地点、地点事实、地图节点、路线事实；角色当前所在地优先写人事安排，不要把角色行动写成地图事实。地图节点最小颗粒度为建筑物（如锦苑小区3栋）或小区级POI（公园、商店）；走廊、楼梯间、单个房间只写当前位置，不要作为地图节点。禁止在本类型写 effectiveOrgId/控势，那属于领土控势。',
       '领土控势': '仅当正文确认已揭示地点的夺控、解放、移交、占领或争议状态时更新；字段：地点名、实控组织、宣称组织、控势状态；未 revealed 地点不得写；同轮同一地点最多一条；普通到达/看见不写本类型。',
@@ -3066,6 +3409,8 @@ window.GameModules.realWorldAgentLoop = {
     if (type === '性历史') return `"性历史":[{"subject":"${subject}","transition":"状态转移","partner":"对象","evidence":"正文明确证据"}]`;
     if (type === '关系') return `"关系":[{"subject":"${subject}","left":"${playerName}","right":"${subject}","dimension":"亲属关系","status":"稳定亲密","reason":"正文中能证明关系状态的具体证据","result":"维持稳定亲密关系"}]`;
     if (type === '角色卡') return `"角色卡":[{"subject":"${subject}","field":"社群角色","op":"增加","value":"刘家/长兄","reason":"本轮明确家庭身份证据","result":"写入社群角色"},{"subject":"${subject}","field":"人事归属","op":"增加","value":"成都悠云科技有限公司/程序工程师","reason":"本轮明确任职事实","result":"写入人事归属"},{"subject":"${subject}","field":"证书","op":"增加","value":"四川大学/计算机科学与技术/工学硕士学位","reason":"本轮确认学历学位","result":"写入证书"},{"subject":"${subject}","field":"称号","op":"增加","value":"成都程序员社区/开源贡献/年度贡献者","reason":"本轮确认稳定社会认可","result":"写入称号"}]`;
+    if (type === '角色卡物品') return `"角色卡物品":[{"subject":"${subject}","action":"add","itemName":"新物品","item":{"name":"新物品","description":"正文明确获得的物品","quantity":1,"type":"item"},"quantity":1,"reason":"正文明确获得该物品"}]`;
+    if (type === '角色卡复核') return `"角色卡复核":[{"subject":"${subject}","field":"profile.detail","op":"替换","value":"结合本轮正文确认后的完整人物说明","reason":"正文和前两段结算共同确认"}]`;
     if (type === '长期目标') return `"长期目标":[{"subject":"${subject}","short":{"content":"短期目标内容","deadline":"2026-08-01","progress":40,"detail":"进度说明"},"achievement":"已完成的阶段成果","reason":"正文明确证据"}]`;
     if (type === '物品') return `"物品":[{"subject":"${subject}","field":"持有物","value":"物品状态","reason":"正文明确物品变化证据"}]`;
     if (type === '地图') return '"地图":[{"subject":"地点名","field":"地点事实","value":"稳定地点事实","reason":"正文明确地点证据"}]';
@@ -3092,6 +3437,8 @@ window.GameModules.realWorldAgentLoop = {
       '性经历': '反例：把共处、拥抱、照顾写成性经历；正确：没有明确性相关行为就 []。',
       '关系': '反例：{"dimension":"好感","status":"+5"}、缺 right/result；正确：dimension 写亲属/朋友/恋人/敌对等稳定关系，status 写关系状态。',
       '角色卡': '反例：{"field":"当前地点","op":"替换","value":"…房间"}（地点属于人事安排）、{"op":"保持"}、{"field":"人事归属","value":"某公司/普通职员"}、{"field":"人事归属","value":"未知学校/初中生"}、证书或称号缺少三段结构；正确：op 只能替换/增加，四类身份按完整格式填写，且必须是本轮新确认或变化的长期稳定字段。',
+      '角色卡物品': '反例：{"action":"equip","itemName":"手机"}（装备缺 slot）、{"action":"transfer","itemName":"书","to":"场外人物"}（目标不是本回合参与者）；正确：操作、物品名、数量/槽位/目标和正文证据完整，或 []。',
+      '角色卡复核': '反例：{"field":"profile.roleCardUpdatedAt","op":"替换"}（技术字段）、{"field":"profile.__proto__","op":"合并"}（非法路径）；正确：只写角色卡业务字段，且有复核证据。',
       '系统记录': '反例：{"field":"事件","value":"刘悠进入房间并抱住对方"}（这是人事/感觉/正文复述）；正确：写微信消息、日历事项、世界线节点，或 []。',
       '操控体验': '反例：{"adaptation":"45"}（写成绝对值）、输出 onlineCount、needUpdate=true 却缺 updateFields/reason；正确：adaptation 写 +N/-N，文本字段覆盖，或 needUpdate=false。',
     };
@@ -3229,7 +3576,29 @@ window.GameModules.realWorldAgentLoop = {
     ].join('\n');
   },
 
-  async buildSettlementTypeWindowMessages({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig() }) {
+  roleCardInventorySettlementContext(store = {}, participants = []) {
+    const rows = (Array.isArray(participants) ? participants : []).filter((person) => ['character', 'player'].includes(person?.type)).map((person) => {
+      const id = person.id || person.idOrName || person.name;
+      const state = store?.itemSkillState?.(id) || store?.rpgStates?.[id] || (id === 'player-self' ? store?.playerIdentityState?.() : null);
+      const profile = state?.profile || {};
+      const items = Array.isArray(profile.items) ? profile.items : [];
+      const wearing = Array.isArray(profile.wearingItems) ? profile.wearingItems : (Array.isArray(profile.wearing) ? profile.wearing : []);
+      return `${person.name || id}(${id})\n随身物品：${JSON.stringify(items.slice(0, 40))}\n穿着/装备槽：${JSON.stringify(wearing.slice(0, 40))}`;
+    });
+    return `角色卡物品当前基线（Stage4-2 可编辑全部物品途径）：\n${rows.join('\n') || '无'}`;
+  },
+
+  roleCardReviewSettlementContext(store = {}, participants = [], priorStageSummary = null) {
+    const rows = (Array.isArray(participants) ? participants : []).filter((person) => ['character', 'player'].includes(person?.type)).map((person) => {
+      const id = person.id || person.idOrName || person.name;
+      const state = store?.itemSkillState?.(id) || store?.rpgStates?.[id] || (id === 'player-self' ? store?.playerIdentityState?.() : null);
+      return `${person.name || id}(${id})：${JSON.stringify(state?.profile || {})}`;
+    });
+    const pending = priorStageSummary ? JSON.stringify(priorStageSummary).slice(0, 12000) : '无';
+    return `角色卡完整复核基线（Stage4-3）：\n${rows.join('\n') || '无'}\n前两段待应用结果（必须结合上下文复核，不要机械重复）：${pending}`;
+  },
+
+  async buildSettlementTypeWindowMessages({ requestedTypes = [], completedTypes = [], incompleteTypes = [], partialByType = {}, store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], config = this.realConfig(), priorStageSummary = null }) {
     const contracts = this.settlementTypeContracts();
     const totalTypes = requestedTypes.length;
     const jsonContracts = requestedTypes.map((type) => {
@@ -3243,6 +3612,8 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '感觉') return '感觉：数组；每项 {"subject":"出场NPC姓名","field":"感觉指标名","value":"+N/-N","status":"变化后该感觉的具体表现","reason":"正文证据证明该NPC对玩家态度变化"}；无变化 []。status 写程度表现，不要写指标名+数值前缀；缺省时系统会按新数值补模板解释。';
       if (type === '关系') return '关系：数组；每项 {"subject":"姓名","left":"关系左方","right":"关系右方","dimension":"稳定关系维度","status":"关系状态","reason":"证据","result":"结算结果"}；无变化 []。';
       if (type === '角色卡') return '角色卡：数组；每项 {"subject":"姓名","field":"字段","op":"替换/增加","value":"内容","reason":"证据","result":"结果"}；四类格式：社群角色「完整社群名/具体角色」、人事归属「完整组织名/具体职位、学籍或成员身份」（也可改走人事归属类型）、证书「完整授予组织/具体领域/具体资格或等级」、称号「完整认可群体/具体领域/具体称号」；仅处理本轮新确认或变化的稳定事实；完全无依据或无变化时 []。';
+      if (type === '角色卡物品') return '角色卡物品：数组；每项 {"subject":"姓名","action":"add|update|remove|consume|equip|unequip|transfer|replace","itemName":"物品名","item":{"name":"物品名","description":"完整描述","quantity":1,"type":"item|equipment","equipSlots":["槽位"]},"quantity":1,"slot":"装备槽","to":"目标角色","reason":"正文证据"}；add 新增，update 修改字段，remove 丢弃，consume 消耗，equip 装备，unequip 卸下，transfer 转交，replace 整体替换；无变化 []。';
+      if (type === '角色卡复核') return '角色卡复核：数组；每项 {"subject":"姓名","field":"标准字段名或 profile.* 路径","op":"替换|增加|删除|合并","value":"完整新值或 JSON 值","reason":"正文与前两段结算后的复核证据"}；可编辑角色卡任意业务字段；无变化 []。';
       if (type === '长期目标') return '长期目标：数组；每项 {"subject":"姓名","short|medium|long":{"content":"目标","deadline":"YYYY-MM-DD","progress":0-100,"detail":"进度描述"},"achievement":"阶段成果","reason":"证据"}；完成某档必须换同档新 content 并重置较低 progress；玩家明确改目标且旧档未完成须融合改写；可只写变化字段；无变化 []。';
       if (type === '操控体验') return '操控体验：数组；每项先输出 needUpdate 与 updateFields。needUpdate=false 时可不填字段值；needUpdate=true 时必须含 subject、updateFields、reason，以及 updateFields 对应值。adaptation 只写 +N/-N 增量；feeling/summary/controllerAwarenessLevel/controllerAwareness 基于基线生成完整新文本直接覆盖；禁止输出 onlineCount。无变化 [{"subject":"被控角色名","needUpdate":false}] 或 []。';
       if (type === '人事归属') return '人事归属：数组；每项 {"subject":"姓名","orgName":"组织名","title":"职位","department":"部门或空","departmentFog":true/false,"state":"fog|sketch|established","reason":"证据"}；可带 orgId；无变化 []。';
@@ -3260,12 +3631,13 @@ window.GameModules.realWorldAgentLoop = {
       '明确事实：可直接结算。',
       '强暗示事实：可保守结算，但必须有明确行为、对话或连续动作支撑。',
       '弱氛围暗示：不得结算。',
+      '玩家输入可信度与可行性规则：玩家输入中的行动意图照常推演；夹带的既成结果、背景改写、状态突变或超出当前因果能力的宣称，只有在已加载上下文、角色设定、世界规则或可核验资料支持时，才可当作真实事实进入结算；若缺少支持，不得当真落库，只能结算正文中实际成立的可观察后果。',
     ].join('\n');
     const requiredKeyOrder = requestedTypes.join(' → ');
     const jsonExamples = `{${requestedTypes.map((type) => this.settlementTypeJsonExample(type, participants, store, config)).join(',')}}`;
     const antiExamples = requestedTypes.map((type) => this.settlementTypeAntiExample(type)).filter(Boolean).join('\n') || '无';
     const rulesText = [
-      '你正在执行 Stage4 状态结算。',
+      `你正在执行 ${config.settlementStageLabel || 'Stage4 状态结算'}。`,
       '只输出一个合法 JSON 对象；不要 Markdown；不要 ```json 代码块；不要换行；不要解释；不要内部分析。',
       '上一条 assistant 消息是本轮正文材料；只能依据该正文和本条要求中的材料结算。',
       'JSON 顶层 key 只能是“本次必须返回的类型”列出的类型；已完成类型不得重复输出；未列入类型不得输出。',
@@ -3278,7 +3650,7 @@ window.GameModules.realWorldAgentLoop = {
       '角色卡与人事归属仅处理本轮新确认或变化的稳定事实；有背景依据时必须完整补全四类身份格式，完全没有依据或本轮无变化时才输出 []；禁止模糊占位。',
     ].join('\n');
     const requestText = [
-      '任务：输出 Stage4 状态结算紧凑 JSON。',
+      `任务：输出 ${config.settlementStageLabel || 'Stage4 状态结算'}紧凑 JSON。`,
       `本次必须返回的类型：${requestedTypes.join('、')}`,
       `已完成类型：${completedTypes.join('、') || '无'}`,
       `未完成类型：${incompleteTypes.join('、') || '无'}`,
@@ -3292,6 +3664,8 @@ window.GameModules.realWorldAgentLoop = {
         this.settlementParticipantContextText(store, participants),
         this.settlementMetricBaselineText(store, participants),
         requestedTypes.includes('操控体验') ? this.settlementControlExperienceBaselineText(store, participants, config) : '',
+        requestedTypes.includes('角色卡物品') ? this.roleCardInventorySettlementContext(store, participants) : '',
+        requestedTypes.includes('角色卡复核') ? this.roleCardReviewSettlementContext(store, participants, priorStageSummary) : '',
         stableFactRules,
       ].filter(Boolean).join('\n'),
       '类型短规则：',
@@ -3326,18 +3700,19 @@ window.GameModules.realWorldAgentLoop = {
     ];
   },
 
-  async completeConfiguredSettlementKvWindow({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], logId = null, config = this.realConfig() }) {
-    const allTypes = this.settlementTypeQueue(config, store);
+  async completeConfiguredSettlementKvWindow({ store, action, base, loaded, materialSession = null, narration, trace = [], participants = [], logId = null, config = this.realConfig(), types = null, priorStageSummary = null }) {
+    const allTypes = Array.isArray(types) ? types.filter(Boolean) : this.settlementTypeQueue(config, store);
     const completedTypes = [];
     const partialByType = {};
     const patchesByType = {};
     let requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, []);
     let shortOutputRetries = 0;
-    const maxAttempts = Math.max(8, allTypes.length + 2);
+    const maxAttempts = 1;
     for (let attempt = 0; attempt < maxAttempts && requestedTypes.length; attempt += 1) {
-      this.patchConfiguredSettlementThinking(store, logId, `Stage4 状态结算：正在结算 ${requestedTypes.join('、')}。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      const messages = await this.buildSettlementTypeWindowMessages({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config });
-      const raw = await this.completeConfiguredStep(store, messages, logId, false, { ...config, sourceTitle: `${config.label}Stage4 状态结算`, promptId: 'inference-stage4-settlement-window', settlementAttempt: attempt });
+      const stageLabel = config.settlementStageLabel || 'Stage4 状态结算';
+      this.patchConfiguredSettlementThinking(store, logId, `${stageLabel}：正在结算 ${requestedTypes.join('、')}。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      const messages = await this.buildSettlementTypeWindowMessages({ requestedTypes, completedTypes, incompleteTypes: requestedTypes.filter((type) => partialByType[type]), partialByType, store, action, base, loaded, materialSession, narration, trace, participants, config, priorStageSummary });
+      const raw = await this.completeConfiguredStep(store, messages, logId, false, { ...config, sourceTitle: config.sourceTitle || `${config.label}${stageLabel}`, promptId: config.settlementPromptId || 'inference-stage4-settlement-window', settlementAttempt: attempt });
       const jsonParsed = this.parseSettlementJson(raw, { requestedTypes, participants, store, config });
       const parsed = jsonParsed && (jsonParsed.completeTypes.length || jsonParsed.incompleteTypes.length)
         ? jsonParsed
@@ -3348,11 +3723,13 @@ window.GameModules.realWorldAgentLoop = {
       const isShortPartial = shortOutputThreshold > 0 && !isFinalBatch && compactRawLength < shortOutputThreshold;
       const hasCompleteBlocksInShortOutput = isShortPartial && parsed.completeTypes.length > 0;
       if (isShortPartial && !hasCompleteBlocksInShortOutput) {
-        shortOutputRetries += 1;
-        partialByType.__shortOutputReason = `上轮返回过短：${compactRawLength}/${shortOutputThreshold}；整轮已丢弃，必须按本次必须返回的类型顺序完整重输全部类型。`;
-        if (shortOutputRetries > 1) throw new Error(`Stage4 状态结算返回过短且无完整类型：${compactRawLength}/${shortOutputThreshold}，未完成类型：${requestedTypes.join('、')}`);
-        requestedTypes.forEach((type) => { partialByType[type] = '上轮返回过短且无完整类型；本轮必须重新输出该 key 的完整 JSON 值。'; });
-        continue;
+        requestedTypes.forEach((type) => {
+          if (!completedTypes.includes(type)) completedTypes.push(type);
+          patchesByType[type] = patchesByType[type] || {};
+          delete partialByType[type];
+        });
+        requestedTypes = [];
+        break;
       }
       shortOutputRetries = 0;
       const acceptedShortReason = hasCompleteBlocksInShortOutput
@@ -3365,20 +3742,16 @@ window.GameModules.realWorldAgentLoop = {
         delete partialByType[type];
       });
       parsed.incompleteTypes.forEach((type) => {
-        const parsedLines = parsed.patchesByType[type]?.__lines || [];
-        const parsedCount = parsed.patchesByType[type]?.__parsedUpdates || 0;
-        const updateCount = parsed.patchesByType[type]?.__updateLines || 0;
-        const cause = updateCount && parsedCount !== updateCount
-          ? `字段未通过解析：${parsedCount}/${updateCount} 条有效；请检查 subject、field、value 与合约。`
-          : '上轮 JSON 缺失或字段未通过解析。';
-        partialByType[type] = parsedLines.length ? `${cause} 本轮必须重新输出该 key 的完整 JSON 值。` : `${cause} 本轮未返回该类型。`;
+        if (!completedTypes.includes(type)) completedTypes.push(type);
+        patchesByType[type] = patchesByType[type] || {};
+        delete partialByType[type];
       });
       if (acceptedShortReason && parsed.incompleteTypes.length) partialByType.__shortOutputReason = acceptedShortReason;
       requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, parsed.incompleteTypes);
     }
     requestedTypes = this.nextSettlementWindow(allTypes, completedTypes, []);
     if (requestedTypes.length) throw new Error(`Stage4 状态结算类型未完成：${requestedTypes.join('、')}`);
-    this.patchConfiguredSettlementThinking(store, logId, 'Stage4 状态结算：所有结算窗口已完成。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+    this.patchConfiguredSettlementThinking(store, logId, `${config.settlementStageLabel || 'Stage4 状态结算'}：结算窗口已完成。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
     return this.mergeGroupedUpdatePatches(Object.values(patchesByType), {});
   },
 
@@ -3438,10 +3811,6 @@ window.GameModules.realWorldAgentLoop = {
     };
   },
 
-  guidedStepFields() {
-    return ['查询规划', '资料状态', '地点查询理由', '因果查询理由', '冲突查询理由', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件候选', '随机事件闯入条件', '资料请求', '资料请求结束', '地点查询', '因果查询', '冲突查询'];
-  },
-
   sceneAnchorFields() {
     return ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
   },
@@ -3450,80 +3819,16 @@ window.GameModules.realWorldAgentLoop = {
     return ['基础结算', '结算状态', '经过时间', '当前状态', '当前目标', '场景标题', '地点名称', '备选行动1', '备选行动2', '备选行动3', '备选行动4', '结算结束'];
   },
 
-  kvFieldAliases() {
-    return {
-      '必须出场': '强制出场',
-      '当前参与者': '强制出场',
-      '不能出场': '禁止出场',
-      '禁止角色': '禁止出场',
-      '场外随机事件': '随机事件候选',
-      '随机主动事件': '随机事件候选',
-      '随机主动事件影响': '随机事件影响',
-      '写作重点': '正文写作重点',
-      '正文重点': '正文写作重点',
-      '结算限制': '当前场景影响对象',
-      '结算边界': '当前场景影响对象',
-      '资料是否足够': '资料状态',
-    };
-  },
-
-  normalizeKvKey(key = '', allowed = []) {
-    const clean = String(key || '').trim().replace(/[\s　]+/gu, '');
-    const numberedReason = clean.replace(/^(地点查询理由|因果查询理由|冲突查询理由)\d+$/u, '$1');
-    const direct = allowed.find((item) => item === clean || item === numberedReason);
-    if (direct) return direct;
-    const alias = this.kvFieldAliases()[clean];
-    return allowed.includes(alias) ? alias : '';
-  },
-
   splitKvLine(line = '') {
     const text = String(line || '').trim();
     const match = text.match(/^([^：:\n]{1,40})[：:]\s*([\s\S]*)$/u);
     return match ? { key: match[1].trim(), value: match[2].trim() } : null;
   },
 
-  requiredKvFields(allowed = []) {
-    const sceneAnchorRequired = ['场景锚定报告', '当前地点', '当前时间', '空间状态', '当前动作', '强制出场', '禁止出场', '随机事件影响', '正文写作重点', '当前场景影响对象'];
-    if (sceneAnchorRequired.every((key) => allowed.includes(key))) return sceneAnchorRequired;
-    const preferred = ['资料状态', '强制出场', '禁止出场', '随机事件闯入条件', '正文写作重点', '结算边界'];
-    const required = preferred.filter((key) => allowed.includes(key));
-    return required.length ? required : allowed.slice(0, Math.min(allowed.length, 6));
-  },
-
-  materialRequestPlaceholderReason(line = '') {
-    const placeholders = ['角色全称', '世界全称', '地点全称', '人物全称', '作品全称'];
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    const parts = body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean).slice(2);
-    const hit = parts.find((part) => placeholders.includes(part));
-    return hit ? `资料请求包含未替换占位词：${hit}` : '';
-  },
-
-  fallbackChineseMaterialRequest(line = '', options = {}) {
-    if (this.materialRequestPlaceholderReason(line)) return null;
+  parseJsonMaterialRequest(item = null, options = {}) {
     const ctx = options.config?.ctx || window.GameModules.realWorldAgentContext;
-    if (typeof ctx?.parseChineseMaterialRequest === 'function') return ctx.parseChineseMaterialRequest(line, { mode: options.config?.mode, store: options.store });
-    const body = String(line || '').replace(/^资料请求\d+\s*[：:]/u, '').trim();
-    const parts = body.split(/[，,、；;]/u).map((part) => part.trim()).filter(Boolean);
-    if (parts[0] === '角色查询' && parts[1] === '搜索角色卡' && parts[2]) {
-      return { skill: 'character.query', method: 'searchCharacterProfile', params: { name: parts[2], world: parts[3] || window.GameModules.realWorld2026?.label || '2026现代都市现实世界' }, sourceText: String(line || '').trim() };
-    }
+    if (typeof ctx?.parseJsonMaterialRequest === 'function') return ctx.parseJsonMaterialRequest(item, { mode: options.config?.mode, store: options.store });
     return null;
-  },
-
-  scoreChineseKvParse(values = {}, allowed = [], materialLines = [], materialRequests = []) {
-    const required = this.requiredKvFields(allowed);
-    const isGuidedStep = this.guidedStepFields().every((key) => allowed.includes(key));
-    const hasCoreGuidedValues = isGuidedStep && ['资料状态', '随机事件闯入条件'].every((key) => String(values[key] || '').trim());
-    const hasUsefulValue = (key) => {
-      const value = String(values[key] || '').trim();
-      if (value) return true;
-      return hasCoreGuidedValues && ['强制出场', '禁止出场'].includes(key) && Object.prototype.hasOwnProperty.call(values, key);
-    };
-    const criticalHits = required.filter((key) => Object.prototype.hasOwnProperty.call(values, key) && hasUsefulValue(key));
-    const uniqueValidRequests = [...new Set((materialRequests || []).map((item) => JSON.stringify([item.skill, item.method, item.params])))];
-    const maxScore = Math.max(1, required.length + uniqueValidRequests.length);
-    const score = criticalHits.length + uniqueValidRequests.length;
-    return { score, maxScore, successRate: score / maxScore, criticalHits };
   },
 
   summarizeDroppedMaterialRequests(lines = [], limit = 3) {
@@ -3531,79 +3836,6 @@ window.GameModules.realWorldAgentLoop = {
     if (!unique.length) return '无';
     const shown = unique.slice(0, limit).join('；');
     return unique.length > limit ? `${shown}；等${unique.length}条` : shown;
-  },
-
-  parseChineseKvBlock(raw, fields = [], options = {}) {
-    const allowed = fields.slice();
-    const values = {};
-    const keyHits = new Set();
-    const lines = String(raw || '').replace(/```[\s\S]*?```/gu, (block) => block.replace(/```(?:text|markdown|json)?|```/gu, '')).split(/\r?\n/u);
-    const materialLines = [];
-    const droppedMaterialRequests = [];
-    lines.forEach((line) => {
-      const parsed = this.splitKvLine(line);
-      if (!parsed) return;
-      if (/^资料请求\d+$/u.test(parsed.key)) {
-        materialLines.push(`${parsed.key}：${parsed.value}`);
-        return;
-      }
-      const key = this.normalizeKvKey(parsed.key, allowed);
-      if (!key) return;
-      const existing = String(values[key] || '').trim();
-      const next = String(parsed.value || '').trim();
-      values[key] = existing && next && existing !== '无' ? `${existing}；${next}` : parsed.value;
-      keyHits.add(key);
-    });
-    const materialRequestErrors = [];
-    const materialRequests = options.parseMaterialRequests ? materialLines.map((line) => {
-      const placeholderReason = this.materialRequestPlaceholderReason(line);
-      const req = this.fallbackChineseMaterialRequest(line, options);
-      if (!req) {
-        droppedMaterialRequests.push(line);
-        if (placeholderReason) materialRequestErrors.push(placeholderReason);
-      }
-      return req;
-    }).filter(Boolean) : [];
-    const scored = this.scoreChineseKvParse(values, allowed, materialLines, materialRequests);
-    return { values, lines, missing: allowed.filter((key) => !keyHits.has(key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, keyHits: [...keyHits], criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, droppedMaterialRequests, materialRequestErrors, materialRequests };
-  },
-
-  confirmedKvValuesText(parsed = {}) {
-    const values = parsed.values || {};
-    const keys = parsed.keyHits || Object.keys(values);
-    const lines = keys
-      .filter((key) => Object.prototype.hasOwnProperty.call(values, key))
-      .map((key) => `${key}：${String(values[key] ?? '').trim()}`)
-      .filter((line) => line.trim());
-    return lines.length ? lines.join('\n') : '无';
-  },
-
-  mergeGuidedParseResults(primary = {}, secondary = {}) {
-    const values = { ...(primary.values || {}) };
-    const mergeConflicts = [...(primary.mergeConflicts || [])];
-    Object.entries(secondary.values || {}).forEach(([key, value]) => {
-      const primaryValue = String(values[key] || '').trim();
-      const secondaryValue = String(value || '').trim();
-      if (!Object.prototype.hasOwnProperty.call(values, key) || !primaryValue || (primaryValue === '无' && secondaryValue && secondaryValue !== '无')) values[key] = value;
-      else if (value && values[key] !== value) mergeConflicts.push({ key, primary: values[key], secondary: value });
-    });
-    const requests = [...(primary.materialRequests || [])];
-    const seenRequests = new Set(requests.map((item) => JSON.stringify([item.skill, item.method, item.params])));
-    (secondary.materialRequests || []).forEach((item) => {
-      const key = JSON.stringify([item.skill, item.method, item.params]);
-      if (!seenRequests.has(key)) {
-        seenRequests.add(key);
-        requests.push(item);
-      }
-    });
-    const fields = [...new Set([...(primary.keyHits || []), ...(primary.missing || []), ...(secondary.keyHits || []), ...(secondary.missing || [])])];
-    const materialLines = [...(primary.lines || []), ...(secondary.lines || [])].filter((line) => /^资料请求\d+[：:]/u.test(String(line || '').trim()));
-    const scored = this.scoreChineseKvParse(values, fields, materialLines, requests);
-    return { ...primary, values, materialRequests: requests, droppedMaterialRequests: [...(primary.droppedMaterialRequests || []), ...(secondary.droppedMaterialRequests || [])], keyHits: fields.filter((key) => Object.prototype.hasOwnProperty.call(values, key)), missing: fields.filter((key) => !Object.prototype.hasOwnProperty.call(values, key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, mergeConflicts };
-  },
-
-  bestGuidedParseResult(results = []) {
-    return results.filter(Boolean).sort((a, b) => (b.successRate - a.successRate) || (b.score - a.score))[0] || null;
   },
 
   async completeParsedStep(store, prompt, logId, streamToUi = false, allowProseFinal = false) {
@@ -3614,7 +3846,6 @@ window.GameModules.realWorldAgentLoop = {
     let lastRaw = '';
     let bestRaw = '';
     let lastErr = null;
-    const parseResults = [];
     for (let i = 0; i < 2; i += 1) {
       const stageStep = Math.max(1, Number(config.guidedStep) || 1);
       lastRaw = await this.completeConfiguredStep(store, prompt, logId, streamToUi, {
@@ -3631,17 +3862,11 @@ window.GameModules.realWorldAgentLoop = {
       }
       try {
         const data = this.parseStep(lastRaw, config);
-        if (data) {
-          if (!parseResults.length) return { raw: lastRaw, data };
-          const current = this.parseChineseKvBlock(lastRaw, this.guidedStepFields(), { parseMaterialRequests: true, config });
-          const mergedParsed = [...parseResults.map((item) => item.parsed), current].reduce((merged, item) => this.mergeGuidedParseResults(merged, item));
-          return { raw: [...parseResults.map((item) => item.raw), lastRaw].join('\n\n'), data: this.guidedStepDataFromParsed(mergedParsed, [...parseResults.map((item) => item.raw), lastRaw].join('\n\n')) };
-        }
+        if (data) return { raw: lastRaw, data };
         if (i === 1) return { raw: lastRaw, data: allowProseFinal ? this.proseFinal(store, bestRaw || lastRaw) : null };
         console.warn(`${config.label}格式不完整，自动重试一次`);
       } catch (err) {
         lastErr = err;
-        if (err.parseResult && !err.skipMerge && !this.isGuidedStepSemanticSelfCheckError(err)) parseResults.push({ raw: lastRaw, parsed: err.parseResult });
         if (allowContextDoneOnProse && this.looksLikeProseInsteadOfStepJson(lastRaw)) {
           console.warn(`${config.label}资料阶段解析到正文内容，视为资料已足够并进入正文阶段。`);
           return { raw: lastRaw, data: this.contextDoneFromProse(lastRaw) };
@@ -3654,18 +3879,6 @@ window.GameModules.realWorldAgentLoop = {
         prompt = Array.isArray(prompt)
           ? [...prompt, { role: 'user', content: retryInstruction }]
           : [prompt, retryInstruction].join('\n\n');
-      }
-    }
-    const mergeableParseResults = lastErr?.parseResult && !lastErr?.skipMerge ? [...parseResults, { raw: lastRaw, parsed: lastErr.parseResult }] : parseResults;
-    if (mergeableParseResults.length >= 2) {
-      const merged = mergeableParseResults.map((item) => item.parsed).reduce((out, item) => this.mergeGuidedParseResults(out, item));
-      if (merged.successRate >= 0.8) {
-        const raw = mergeableParseResults.map((item) => item.raw).join('\n\n');
-        try {
-          return { raw, data: this.guidedStepDataFromParsed(merged, raw) };
-        } catch (_) {
-          // 合并后仍未通过语义自检，继续走原失败路径。
-        }
       }
     }
     if (allowProseFinal) return { raw: bestRaw || lastRaw, data: this.proseFinal(store, bestRaw || lastRaw) };
@@ -3991,8 +4204,8 @@ window.GameModules.realWorldAgentLoop = {
       promptId,
       sourceTitle: options.sourceTitle || options.source || promptId,
       reasoningPhase: options.reasoningPhase,
-      // 推演 KV 路径默认开深度思考；JSON 仍靠 prompt + parseLoose（DeepSeek 的 response_format 与 thinking 互斥）。
-      deepThinking: options.deepThinking !== false,
+      // JSON 阶段统一开启 API JSON mode，并默认关闭思考模式，避免与 DeepSeek JSON 返回互斥。
+      deepThinking: false,
       jsonMode: options.jsonMode !== false,
       responseFormat: options.responseFormat || (options.jsonMode === false ? undefined : { type: 'json_object' }),
       outputLimitKind: options.outputLimitKind || 'stage4',
@@ -4006,13 +4219,6 @@ window.GameModules.realWorldAgentLoop = {
     let config = session ? { ...baseConfig, kvCacheSession: session } : this.withDeepSeekKvCacheSession(store, baseConfig);
     const shouldPersist = !session && config.kvCacheSession && config.kvCacheSession.persist !== false && !config.kvCacheSession.fork;
     const logId = options.logId || null;
-    if (logId && this.isSettlementReasoning(config)) {
-      this.patchConfiguredSettlementThinking(store, logId, `${this.stagePhaseLabel(this.inferReasoningPhase(config))}：深度思考中…`, {
-        ...config,
-        settlementThinking: true,
-        livePatch: true,
-      });
-    }
     const output = await this.completeConfiguredStep(store, options.prompt || '', logId, false, config);
     if (shouldPersist) this.persistAgentConversation(store, config.kvCacheSession, 'real');
     return output;
@@ -4025,6 +4231,7 @@ window.GameModules.realWorldAgentLoop = {
     if (has('jsonMode')) overrides.jsonMode = config.jsonMode;
     if (has('responseFormat')) overrides.responseFormat = config.responseFormat;
     if (has('outputLimitKind')) overrides.outputLimitKind = config.outputLimitKind;
+    if (has('deepThinking')) overrides.deepThinking = config.deepThinking;
     if (promptId && window.GameModules.promptSkills?.completionOptions) {
       return window.GameModules.promptSkills.completionOptions(promptId, overrides);
     }
@@ -4051,13 +4258,18 @@ window.GameModules.realWorldAgentLoop = {
     try {
       const completionOptions = this.configuredCompletionOptions(config, streamToUi);
       const expectsJson = Boolean(completionOptions.jsonMode);
-      const providerId = window.GameModules.aiProvider?.currentProviderId?.() || '';
-      // 推演正文前/后思考面板都需要深度思考。DeepSeek 在 response_format=json_object 时会强制关闭 thinking，
-      // 因此开深度思考时不向 API 传 response_format；JSON 仍由 prompt 约束 + parseLoose 解析。同路径也利于前缀缓存。
-      const wantsDeepThinking = config.deepThinking !== false;
-      const apiJsonMode = expectsJson && !wantsDeepThinking;
-      const shouldStream = !apiJsonMode || providerId === 'deepseek' || wantsDeepThinking;
-      const defaultTimeoutMs = streamToUi ? 240000 : 90000;
+      // 仅 Stage3 正文启用思考模式；其余阶段无论是否 JSON 都明确关闭。
+      const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
+      const requestJsonMode = expectsJson;
+      const wantsDeepThinking = normalizedPhase === 'stage3'
+        && !requestJsonMode
+        && completionOptions.deepThinking !== false
+        && config.deepThinking !== false;
+      // JSON mode 与思考模式互斥，但不与流式响应互斥；Stage1/Stage2 等 JSON 阶段仍实时接收 JSON 文本。
+      const shouldStream = true;
+      const defaultTimeoutMs = normalizedPhase === 'stage3'
+        ? (streamToUi ? 480000 : 180000)
+        : (streamToUi ? 240000 : 90000);
       const requestOptions = {
         source: config.sourceTitle
           || (reasoningMeta.phase && reasoningMeta.phase !== 'unknown'
@@ -4066,9 +4278,9 @@ window.GameModules.realWorldAgentLoop = {
         model: config.model || store.modelId,
         ...(kvMessages ? { messages: kvMessages } : (currentMessages ? { messages: currentMessages } : { prompt })),
         deepThinking: wantsDeepThinking,
-        deepThinkingEffort: 'high',
-        jsonMode: apiJsonMode,
-        responseFormat: apiJsonMode ? (completionOptions.responseFormat || { type: 'json_object' }) : undefined,
+        deepThinkingEffort: config.deepThinkingEffort || (normalizedPhase === 'stage3' ? 'low' : 'high'),
+        jsonMode: requestJsonMode,
+        responseFormat: requestJsonMode ? (completionOptions.responseFormat || { type: 'json_object' }) : undefined,
         stream: shouldStream,
         timeoutMs: Number(config.timeoutMs) || defaultTimeoutMs,
         requireDone: true,
@@ -4109,6 +4321,25 @@ window.GameModules.realWorldAgentLoop = {
               this.patchConfiguredReasoning(store, logId, reasoningText, { ...config, ...reasoningMeta, reasoningKey, livePatch: true });
             }
           }
+          if (requestJsonMode && info.buffer && (done || now - lastPaint > 120)) {
+            const liveJson = `正在接收 JSON：\n${info.buffer}`;
+            if (this.isSettlementReasoning(config)) {
+              this.patchConfiguredSettlementThinking(store, logId, liveJson, {
+                ...config,
+                ...reasoningMeta,
+                settlementThinkingKey: `settlement-${reasoningKey}-json`,
+                livePatch: true,
+              });
+            } else {
+              this.patchConfiguredReasoning(store, logId, liveJson, {
+                ...config,
+                ...reasoningMeta,
+                reasoningKey: `${reasoningKey}-json`,
+                livePatch: true,
+              });
+            }
+            lastPaint = now;
+          }
           if (!streamToUi || !logId) return;
           if (!done && now - lastPaint <= 120) return;
           lastPaint = now;
@@ -4122,6 +4353,12 @@ window.GameModules.realWorldAgentLoop = {
       if (config.maxTokens !== undefined && config.maxTokens !== null) requestOptions.maxTokens = config.maxTokens;
       if (config.tokenMeta) requestOptions.tokenMeta = config.tokenMeta;
       const output = await window.GameModules.aiRequest.complete(requestOptions);
+      const latestRequestId = config.mode === 'story' ? window.GameModules.ai.latestRequestId : window.GameModules.realWorldAi.latestRequestId;
+      if (requestId !== latestRequestId) {
+        const err = new Error(`${config.label}推演请求已被停止`);
+        err.code = 'AI_REQUEST_SUPERSEDED';
+        throw err;
+      }
       if (streamToUi && logId && buffer) {
         if (config.mode === 'story') store.updateStoryAgentStream?.(logId, buffer);
         else store.updateRealWorldStream?.(logId, buffer, { live: true });
@@ -4237,40 +4474,45 @@ window.GameModules.realWorldAgentLoop = {
     return set;
   },
 
-  guidedStepDataFromParsed(parsed = {}, raw = '') {
-    const v = parsed.values || {};
-    const forcedParticipants = this.normalizeParticipantList(v['强制出场'], 'forced');
-    const priorityCandidates = this.normalizeParticipantList(v['高优先候选'], 'priority-candidate').map((item) => ({ ...item, canSettle: false }));
-    const dramaCandidates = this.normalizeParticipantList(v['戏剧候选'], 'drama-candidate').map((item) => ({ ...item, canSettle: false }));
-    const forbiddenParticipants = this.normalizeParticipantList(v['禁止出场'], 'forbidden').map((item) => ({ ...item, canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
+  guidedStepDataFromJson(data = {}, raw = '', config = this.realConfig()) {
+    const sceneQueriesRaw = data.sceneQueries || {};
+    const participantsRaw = data.participants || {};
+    const forcedParticipants = this.normalizeParticipantList(participantsRaw.forced || [], 'forced');
+    const priorityCandidates = this.normalizeParticipantList(participantsRaw.priority || [], 'priority-candidate').map((item) => ({ ...item, canSettle: false }));
+    const dramaCandidates = this.normalizeParticipantList(participantsRaw.drama || [], 'drama-candidate').map((item) => ({ ...item, canSettle: false }));
+    const forbiddenParticipants = this.normalizeParticipantList(participantsRaw.forbidden || [], 'forbidden').map((item) => ({ ...item, canLoadRoleCard: false, canEnterNarration: false, canSettle: false }));
+    const factions = this.normalizeFactionReferenceList(data.factions || []);
     this.assertParticipantIdTokens(forcedParticipants, 'forced');
     this.assertParticipantIdTokens(priorityCandidates, 'priority');
     this.assertParticipantIdTokens(dramaCandidates, 'drama');
     this.assertParticipantIdTokens(forbiddenParticipants, 'forbidden');
-    const blocked = this.participantNameSet(forcedParticipants, priorityCandidates, dramaCandidates, forbiddenParticipants);
-    const status = String(v['资料状态'] || '').trim();
-    const requestText = String(v['资料请求'] || '').trim();
-    const sceneQueries = {
-      location: this.splitQueryReasonList(v['地点查询理由'] || v['地点查询']),
-      causality: this.splitQueryReasonList(v['因果查询理由'] || v['因果查询']),
-      conflict: this.splitQueryReasonList(v['冲突查询理由'] || v['冲突查询']),
-    };
-    const hasActionableRequests = Array.isArray(parsed.materialRequests) && parsed.materialRequests.length > 0;
-    const hasRoleCardCandidates = forcedParticipants.length > 0 || priorityCandidates.length > 0 || dramaCandidates.length > 0;
-    const hasSceneQueryReasons = Object.values(sceneQueries).some((items) => items.length > 0);
-    const hasDeclaredRequests = Boolean(requestText && requestText !== '无' && !/^无(?:\s*\/\s*0)?$/u.test(requestText));
-    if (status === '继续请求资料' && hasDeclaredRequests && !hasActionableRequests && !hasRoleCardCandidates && !hasSceneQueryReasons) {
-      const err = new Error('解析错误请重试');
-      err.parseResult = parsed;
+    const materialRequestErrors = [];
+    const materialRequests = (data.materialRequests || []).slice(0, 3).map((item) => {
+      const req = this.parseJsonMaterialRequest(item, { config });
+      if (!req) materialRequestErrors.push(`Stage1 materialRequests 无法映射到可用资料目录：${JSON.stringify(item)}`);
+      return req;
+    }).filter(Boolean);
+    if (materialRequestErrors.length) {
+      const err = new Error(materialRequestErrors[0]);
       err.skipMerge = true;
       throw err;
     }
-    const isContextDone = status === '资料已足够' || (!hasRoleCardCandidates && !hasActionableRequests && !hasSceneQueryReasons && (!requestText || requestText === '无'));
+    const sceneQueries = {
+      location: Array.isArray(sceneQueriesRaw.location) ? sceneQueriesRaw.location.map((item) => String(item || '').trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12) : [],
+      causality: Array.isArray(sceneQueriesRaw.causality) ? sceneQueriesRaw.causality.map((item) => String(item || '').trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12) : [],
+      conflict: Array.isArray(sceneQueriesRaw.conflict) ? sceneQueriesRaw.conflict.map((item) => String(item || '').trim()).filter((item) => this.isUsefulQueryReason(item)).slice(0, 12) : [],
+    };
+    const blocked = this.participantNameSet(forcedParticipants, priorityCandidates, dramaCandidates, forbiddenParticipants);
+    const status = String(data.status || '').trim();
+    const hasActionableRequests = materialRequests.length > 0;
+    const hasRoleCardCandidates = forcedParticipants.length > 0 || priorityCandidates.length > 0 || dramaCandidates.length > 0;
+    const hasSceneQueryReasons = Object.values(sceneQueries).some((items) => items.length > 0);
+    const isContextDone = status === '资料已足够' || (!hasRoleCardCandidates && !hasActionableRequests && !hasSceneQueryReasons);
     return {
       type: isContextDone ? 'context_done' : 'request_context',
       guidanceText: String(raw || '').trim(),
-      reason: v['查询规划'] || '',
-      requests: parsed.materialRequests || [],
+      reason: String(data.plan || '').trim(),
+      requests: materialRequests,
       needed: [],
       characters: [],
       participants: forcedParticipants,
@@ -4278,156 +4520,68 @@ window.GameModules.realWorldAgentLoop = {
       priorityCandidates,
       dramaCandidates,
       forbiddenParticipants,
-      randomActiveEvents: this.normalizeRandomActiveEvents(v['随机事件候选'], blocked),
+      factions,
+      randomActiveEvents: this.normalizeRandomActiveEvents(data.randomEvents || [], blocked),
       sceneQueries,
       sceneQueriesAreReasons: true,
-      randomIntrusionCondition: v['随机事件闯入条件'] || '无明确条件则禁止闯入',
-      parseScore: { score: parsed.score, maxScore: parsed.maxScore, successRate: parsed.successRate },
-      parseDegraded: parsed.successRate < 1,
-      droppedMaterialRequests: parsed.droppedMaterialRequests || [],
-      mergeConflicts: parsed.mergeConflicts || [],
+      randomIntrusionCondition: String(data.randomIntrusionCondition || '').trim() || '无明确条件则禁止闯入',
+      parseScore: { score: 1, maxScore: 1, successRate: 1 },
+      parseDegraded: false,
+      droppedMaterialRequests: [],
+      mergeConflicts: [],
       missingContext: status === '继续请求资料' && (hasActionableRequests || hasRoleCardCandidates),
     };
   },
 
   parseGuidedStepJson(raw, config = this.realConfig()) {
-    const data = this.parseCompactSettlementJson(raw);
+    const data = this.parseStrictStage1Json(raw);
     if (!data || Array.isArray(data) || typeof data !== 'object') return null;
-    const sceneQueries = data.sceneQueries && typeof data.sceneQueries === 'object' ? data.sceneQueries : {};
-    const participants = data.participants && typeof data.participants === 'object' ? data.participants : {};
-    const arrayText = (value, sep = '；') => (Array.isArray(value) ? value : this.splitQueryReasonList(value)).map((item) => String(item || '').trim()).filter(Boolean).join(sep) || '无';
-    const nameText = (value) => (Array.isArray(value) ? value : this.splitNameList(value)).map((item) => {
-      if (typeof item === 'string') return String(item || '').trim();
-      const name = String(item?.name || item?.characterName || '').trim();
-      const id = String(item?.id || '').trim();
-      if (name && id) return `${name}(${id})`;
-      return name || String(item?.idOrName || item?.id || '').trim();
-    }).map((item) => String(item || '').trim()).filter(Boolean).join('、') || '无';
-    const rawMaterialRequestItems = (Array.isArray(data.materialRequests) ? data.materialRequests : []).slice(0, 3).filter((item) => typeof item === 'string');
-    const directMaterialRequests = rawMaterialRequestItems.map(() => null);
-    const requestRows = rawMaterialRequestItems.map((item, index) => {
-      const body = typeof item === 'string'
-        ? item
-        : directMaterialRequests[index]
-          ? [directMaterialRequests[index].skill, directMaterialRequests[index].method].filter(Boolean).join('，')
-          : [item?.type || item?.skill || item?.kind, item?.method, item?.name || item?.target || item?.keyword, item?.world || item?.scope].filter(Boolean).join('，');
-      return `资料请求${index + 1}：${String(body || '').trim()}`;
-    }).filter((line) => !/^资料请求\d+[：:]\s*$/u.test(line)).slice(0, 3);
-    const materialRequestErrors = [];
-    const droppedMaterialRequests = [];
-    const materialRequests = [];
-    requestRows.forEach((line, index) => {
-      if (directMaterialRequests[index]) {
-        materialRequests.push(directMaterialRequests[index]);
-        return;
-      }
-      const placeholderReason = this.materialRequestPlaceholderReason(line);
-      const req = this.fallbackChineseMaterialRequest(line, { config });
-      if (!req) {
-        droppedMaterialRequests.push(line);
-        if (placeholderReason) materialRequestErrors.push(placeholderReason);
-        return;
-      }
-      materialRequests.push(req);
-    });
-    const values = {
-      '查询规划': String(data.plan || data['查询规划'] || 'JSON资料路由').trim(),
-      '资料状态': String(data.status || data['资料状态'] || '').trim(),
-      '地点查询理由': arrayText(sceneQueries.location ?? data.locationReasons ?? data['地点查询理由']),
-      '因果查询理由': arrayText(sceneQueries.causality ?? data.causalityReasons ?? data['因果查询理由']),
-      '冲突查询理由': arrayText(sceneQueries.conflict ?? data.conflictReasons ?? data['冲突查询理由']),
-      '强制出场': nameText(participants.forced ?? data.forcedParticipants ?? data['强制出场']),
-      '高优先候选': nameText(participants.priority ?? data.priorityCandidates ?? data['高优先候选']),
-      '戏剧候选': nameText(participants.drama ?? data.dramaCandidates ?? data['戏剧候选']),
-      '禁止出场': nameText(participants.forbidden ?? data.forbiddenParticipants ?? data['禁止出场']),
-      '随机事件候选': arrayText(data.randomEvents ?? data.randomActiveEvents ?? data['随机事件候选']),
-      '随机事件闯入条件': String(data.randomIntrusionCondition || data['随机事件闯入条件'] || '无明确条件则禁止闯入').trim(),
-      '资料请求': requestRows.length ? `${requestRows.length}条` : '无',
-      '资料请求结束': '是',
-    };
-    if (!values['资料状态']) {
-      const hasQueryReason = ['地点查询理由', '因果查询理由', '冲突查询理由'].some((key) => this.isUsefulQueryReason(values[key]));
-      const hasParticipants = ['强制出场', '高优先候选', '戏剧候选'].some((key) => String(values[key] || '').trim() && values[key] !== '无');
-      values['资料状态'] = requestRows.length || hasQueryReason || hasParticipants ? '继续请求资料' : '资料已足够';
-    }
-    const keyHits = Object.keys(values).filter((key) => String(values[key] || '').trim());
-    const scored = this.scoreChineseKvParse(values, this.guidedStepFields(), requestRows, materialRequests);
-    const parsed = { values, lines: requestRows, missing: this.guidedStepFields().filter((key) => !keyHits.includes(key)), score: scored.score, maxScore: scored.maxScore, successRate: scored.successRate, keyHits, criticalHits: scored.criticalHits, parseDegraded: scored.successRate < 1, droppedMaterialRequests, materialRequestErrors, materialRequests };
-    if (materialRequestErrors.length) {
-      const err = new Error(materialRequestErrors[0]);
-      err.parseResult = parsed;
-      throw err;
-    }
-    return this.guidedStepDataFromParsed(parsed, JSON.stringify(data));
+    return this.guidedStepDataFromJson(data, JSON.stringify(data), config);
   },
 
-  normalizeGuidedStepText(raw = '') {
-    const text = String(raw || '').replace(this.invisibleCharsPattern(), '').replace(/```(?:text|markdown|json)?|```/giu, '').trim();
-    if (!text) return '';
-    const fields = this.guidedStepFields();
-    const allowed = fields.slice();
-    const values = {};
-    const lines = text.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
-    lines.forEach((line) => {
-      const parsed = this.splitKvLine(line);
-      const key = parsed ? this.normalizeKvKey(parsed.key, allowed) : '';
-      if (key && !Object.prototype.hasOwnProperty.call(values, key)) values[key] = parsed.value;
-    });
-    const hasGuidedField = fields.some((key) => Object.prototype.hasOwnProperty.call(values, key)) || lines.some((line) => /^资料请求\d+[：:]/u.test(line));
-    if (!hasGuidedField) return text;
-    const out = lines.slice();
-    const addIfMissing = (key, value) => {
-      if (!Object.prototype.hasOwnProperty.call(values, key)) {
-        values[key] = value;
-        out.push(`${key}：${value}`);
+  parseStrictStage1Json(raw = '') {
+    const text = String(raw || '').replace(this.invisibleCharsPattern(), '').trim();
+    if (!text || text[0] !== '{' || text[text.length - 1] !== '}') return null;
+    try {
+      const data = JSON.parse(text);
+      if (!data || Array.isArray(data) || typeof data !== 'object') return null;
+      const requiredKeys = ['plan', 'status', 'sceneQueries', 'participants', 'factions', 'randomEvents', 'randomIntrusionCondition', 'materialRequests'];
+      const missingKey = requiredKeys.find((key) => !Object.prototype.hasOwnProperty.call(data, key));
+      if (missingKey) throw new Error(`Stage1 JSON 缺少必要字段：${missingKey}`);
+      if (!data.sceneQueries || typeof data.sceneQueries !== 'object' || Array.isArray(data.sceneQueries)) throw new Error('Stage1 sceneQueries 必须是 JSON object');
+      if (!data.participants || typeof data.participants !== 'object' || Array.isArray(data.participants)) throw new Error('Stage1 participants 必须是 JSON object');
+      if (!Array.isArray(data.factions)) throw new Error('Stage1 factions 必须是标准 JSON 对象数组，禁止使用“势力名(ID)”字符串壳');
+      if (!Array.isArray(data.randomEvents)) throw new Error('Stage1 randomEvents 必须是字符串数组');
+      if (!Array.isArray(data.materialRequests)) throw new Error('Stage1 materialRequests 必须是标准 JSON 对象数组，禁止使用字符串壳');
+      if (data.factions.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+        throw new Error('Stage1 factions 必须是标准 JSON 对象数组，禁止使用“势力名(ID)”字符串壳');
       }
-    };
-    const isNone = (value) => !String(value || '').trim() || String(value || '').trim() === '无';
-    const numberedRequests = lines.filter((line) => /^资料请求\d+[：:]/u.test(line));
-    const hasExplicitRequestField = Object.prototype.hasOwnProperty.call(values, '资料请求') || numberedRequests.length > 0;
-    const requestText = String(values['资料请求'] || '').trim();
-    const hasQueryReason = ['地点查询理由', '因果查询理由', '冲突查询理由'].some((key) => this.isUsefulQueryReason(values[key]));
-    if (!hasExplicitRequestField) return out.join('\n');
-    addIfMissing('查询规划', requestText === '无' && !hasQueryReason ? '资料已足够，进入正文推演' : '补齐资料路由字段');
-    if (!Object.prototype.hasOwnProperty.call(values, '资料状态')) {
-      const shouldContinue = numberedRequests.length > 0 || hasQueryReason || (requestText && requestText !== '无' && !/^无(?:\s*\/\s*0)?$/u.test(requestText));
-      addIfMissing('资料状态', shouldContinue ? '继续请求资料' : '资料已足够');
+      if (data.materialRequests.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+        throw new Error('Stage1 materialRequests 必须是标准 JSON 对象数组，禁止使用字符串壳');
+      }
+      if (data.materialRequests.some((item) => typeof item.type !== 'string' || typeof item.action !== 'string' || !Array.isArray(item.params))) {
+        throw new Error('Stage1 materialRequests 每项必须包含 type/action/params，且 params 必须是数组');
+      }
+      return data;
+    } catch (err) {
+      const error = new Error(`Stage1 JSON 解析失败：${err?.message || '未知错误'}`);
+      error.skipMerge = true;
+      throw error;
     }
-    ['地点查询理由', '因果查询理由', '冲突查询理由', '强制出场', '高优先候选', '戏剧候选', '禁止出场', '随机事件候选'].forEach((key) => addIfMissing(key, '无'));
-    addIfMissing('随机事件闯入条件', '无明确条件则禁止闯入');
-    if (!Object.prototype.hasOwnProperty.call(values, '资料请求')) addIfMissing('资料请求', `${numberedRequests.length}条`);
-    addIfMissing('资料请求结束', '是');
-    return out.join('\n');
-  },
-
-  parseGuidedStepKv(raw, config = this.realConfig(), options = {}) {
-    const normalized = options.normalized ? String(raw || '').trim() : this.normalizeGuidedStepText(raw);
-    const parsed = this.parseChineseKvBlock(normalized, this.guidedStepFields(), { parseMaterialRequests: true, config });
-    if (parsed.materialRequestErrors?.length || parsed.successRate < 0.8) {
-      const detail = parsed.materialRequestErrors?.[0] || '解析错误请重试';
-      const err = new Error(detail);
-      err.parseResult = parsed;
-      throw err;
-    }
-    return this.guidedStepDataFromParsed(parsed, normalized);
   },
 
   parseStep(raw, config = this.realConfig()) {
     const jsonData = this.parseGuidedStepJson(raw, config);
     if (jsonData) return jsonData;
-    const text = this.normalizeGuidedStepText(raw);
-    if (!/查询规划[：:]|资料状态[：:]/u.test(text)) {
-      throw new Error(`${config.label}返回缺少 Stage1 JSON 或中文 K:V 查询规划字段`);
-    }
-    return this.parseGuidedStepKv(text, config, { normalized: true });
+    throw new Error(`${config.label}Stage1 必须返回标准 JSON 对象，禁止 JSON 外壳文本`);
   },
 
   isGuidedStepSemanticSelfCheckError(err) {
-    return String(err?.message || '').includes('资料状态为继续请求资料时，必须输出可执行的资料请求1、结构化查询或明确参与者候选');
+    return String(err?.message || '').includes('资料状态为继续请求资料时，必须输出可执行的 materialRequests 对象、结构化查询或明确参与者候选');
   },
 
   isRetryableParseError(err) {
-    return this.isGuidedStepSemanticSelfCheckError(err) || ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing', '解析错误请重试'].some((text) => String(err?.message || '').includes(text));
+    return this.isGuidedStepSemanticSelfCheckError(err) || ['截断', '分隔符后缺少 JSON', '缺少正文', 'JSON missing', '解析错误请重试', 'Stage1 JSON', '必须返回标准 JSON'].some((text) => String(err?.message || '').includes(text));
   },
   traceItem(step, data, raw, ctx = window.GameModules.realWorldAgentContext) {
     const limiter = typeof ctx?.limit === 'function' ? ctx.limit.bind(ctx) : (text, max = 1200) => String(text || '').slice(0, max);
@@ -4442,6 +4596,7 @@ window.GameModules.realWorldAgentLoop = {
       priorityCandidates: data?.priorityCandidates || [],
       dramaCandidates: data?.dramaCandidates || [],
       forbiddenParticipants: data?.forbiddenParticipants || [],
+      factions: data?.factions || [],
       randomActiveEvents: data?.randomActiveEvents || [],
       sceneQueries: data?.sceneQueries || { location: [], causality: [], conflict: [] },
       sceneQueriesAreReasons: data?.sceneQueriesAreReasons ?? false,
@@ -4481,6 +4636,8 @@ window.GameModules.realWorldAgentLoop = {
       return;
     }
     store.patchRealWorldLogEntry?.(logId, { narration: formatted, streaming: true, streamTrace: [] });
+    const entry = (store.realWorldLog || []).find((item) => item?.id === logId);
+    if (entry) store.persistRealWorldLogEntries?.([{ ...entry, narration: formatted, streaming: true, streamTrace: [] }]);
     store.scrollRealWorldLogBottom?.();
   },
   markStep(store, logId, text, options = {}) {
@@ -4507,7 +4664,7 @@ window.GameModules.realWorldAgentLoop = {
     if (!text) return true;
     if (text.length >= 200) return false;
     return /^(?:作者正在续写这一段剧情|操控剧情正在识别|操控剧情正在推演|已识别相关角色|已追加资料)/u.test(text)
-      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量建卡|正在推演|正在识别|正在结算/u.test(text);
+      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量分配ID|正在推演|正在识别|正在结算/u.test(text);
   },
 
   shouldUseStatusAsRealNarration(entry = {}) {
@@ -4516,7 +4673,7 @@ window.GameModules.realWorldAgentLoop = {
     // 真实正文通常很长；短进度文案应允许被后续状态覆盖（含“正在生成场景锚定报告”→“正在生成正文”）。
     if (text.length >= 200) return false;
     return /^(?:现实世界正在推演|现实正在识别|现实正在推演|已识别相关角色|已追加资料)/u.test(text)
-      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量建卡|正在推演|正在识别|正在结算|正在写入/u.test(text);
+      || /资料已载入|场景锚定|正在生成正文|正文已完成|批量分配ID|正在推演|正在识别|正在结算|正在写入/u.test(text);
   },
   loadedContextText(data = {}, loaded = [], step = 1, config = this.realConfig()) {
     const fallback = config.mode === 'story' ? '被操控角色' : '玩家本人';

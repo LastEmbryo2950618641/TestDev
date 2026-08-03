@@ -1,5 +1,5 @@
 window.GameScriptManifest = {
-  "version": "2026-08-03-map-space-clean-v56",
+  "version": "2026-08-03-real-world-stage3-log-v59",
   "chunks": {
     "core": [
       "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js",

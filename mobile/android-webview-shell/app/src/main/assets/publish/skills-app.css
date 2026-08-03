@@ -239,6 +239,13 @@
   color: #fff;
 }
 
+.prompt-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .prompt-markdown {
   min-height: 0;
   max-height: none;

@@ -7,7 +7,7 @@ window.GameModules.realWorldMap = {
   defaultState(profile = {}) {
     const home = this.inferHomeName(profile);
     const node = home ? this.makeNode(home, '', this.defaultDescription(home, profile)) : null;
-    return { current: home, currentId: node?.id || '', nodes: node ? [node] : [], edges: [], expanded: node ? { [node.id]: true } : {}, infoNodeId: '', positionInfoByPlace: {}, lastText: home };
+    return { current: home, currentId: node?.id || '', nodes: node ? [node] : [], edges: [], expanded: node ? { [node.id]: true } : {}, infoNodeId: '', lastText: home };
   },
 
   isAbstractName(name) {
@@ -56,7 +56,7 @@ window.GameModules.realWorldMap = {
     return false;
   },
 
-  /** 电子地图可见 POI：最小颗粒度为某一栋建筑物或小区级场所。 */
+  /** 电子地图可见 POI：建筑、场所、道路与步道均为可移动节点。 */
   isMapExteriorNode(name = '') {
     const text = this.cleanName(name);
     if (!text || this.isInteriorLocationName(text)) return false;
@@ -64,6 +64,7 @@ window.GameModules.realWorldMap = {
     if (exterior && exterior !== text) return false;
     if (/栋|座|号楼|幢/u.test(text) && !/单元|走廊|楼梯|房间/u.test(text)) return true;
     if (/小区|社区|公园|花园|超市|商店|店铺|广场|学校|公司|办公|车场|停车场|门岗|菜市|市场/u.test(text)) return true;
+    if (/路|街|巷|道|步道|通道|入口|出口|大门|门口|桥|隧道/u.test(text)) return true;
     if (/省|市|区|县|镇|街道/u.test(text) && /栋|楼/u.test(text) && !/单元/u.test(text)) return true;
     return false;
   },

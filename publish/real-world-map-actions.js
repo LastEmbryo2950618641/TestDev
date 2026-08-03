@@ -559,7 +559,8 @@ window.GameModules.realWorldMapActions = {
     const node = (map.nodes || []).find((item) => item.id === nodeId || item.graphNodeId === nodeId)
       || window.GameModules.realWorldLocationGraph?.getNode?.(this, nodeId)
       || null;
-    const source = map.positionInfoByPlace?.[node?.name] || null;
+    const graphNode = window.GameModules.realWorldLocationGraph?.getNode?.(this, node?.graphNodeId || node?.id || nodeId) || null;
+    const source = graphNode?.positionInfo || null;
     const chain = Array.isArray(source?.positionChain) ? source.positionChain.map((item) => String(item || '').trim()).filter(Boolean) : [];
     const baseId = String(node?.graphNodeId || node?.id || nodeId || 'space');
     const items = (Array.isArray(source?.items) ? source.items : []).map((item) => ({

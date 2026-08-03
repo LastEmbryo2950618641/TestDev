@@ -20,6 +20,7 @@ const alwaysSyncFiles = [
   'phone-desktop.css',
   'taobao-app.css',
   'prompts/taobao-product-generate.js',
+  'prompts/推演引擎/stage4-settlement-window.js',
   'skills-app.css',
   'ui-theme-overrides.css',
 ];

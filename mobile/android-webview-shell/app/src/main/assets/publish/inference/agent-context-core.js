@@ -124,34 +124,40 @@ window.GameModules.realWorldAgentContextParts.core = {
 
   stage1GuidanceSummary(guidance = null) {
     if (!guidance) return '无';
-    const names = (group = [], reasonLabel = '理由') => (Array.isArray(group) ? group : []).map((item) => {
-      const rawName = typeof item === 'string' ? item : (item.name || item.idOrName || item.id || item.characterName);
-      const id = typeof item === 'object' && item ? String(item.id || '').trim() : '';
-      const parsed = typeof rawName === 'string' && rawName.includes('(')
-        ? rawName
-        : (rawName && id ? `${rawName}(${id})` : rawName);
-      const reason = typeof item === 'object' && item ? item.reason : '';
-      return `${parsed || ''}${reason ? `（${reasonLabel}：${reason}）` : ''}`;
-    }).join('、') || '无';
-    const random = (Array.isArray(guidance.randomActiveEvents) ? guidance.randomActiveEvents : [])
-      .map((item) => `${item.characterName || item.name}：${item.eventType || item.actionMethod || '背景行动'}｜${item.motivation || item.reason || ''}`)
-      .join('；') || '无';
-    const queryReasons = (label, key) => {
-      const items = [...new Set(Array.isArray(guidance.sceneQueries?.[key]) ? guidance.sceneQueries[key] : [])];
-      return items.length ? items.map((item, index) => `${label}${index + 1}：${item}`).join('\n') : `${label}1：无`;
-    };
-    return [
-      `资料状态：${guidance.type === 'context_done' ? '资料已足够' : '继续请求资料'}`,
-      queryReasons('地点查询理由', 'location'),
-      queryReasons('因果查询理由', 'causality'),
-      queryReasons('冲突查询理由', 'conflict'),
-      `强制出场：${names(guidance.forcedParticipants, '出场理由')}`,
-      `高优先候选：${names(guidance.priorityCandidates, '候选理由')}`,
-      `戏剧候选：${names(guidance.dramaCandidates, '候选理由')}`,
-      `禁止出场：${names(guidance.forbiddenParticipants, '不在场理由')}`,
-      `随机主动事件：${random}`,
-      `随机事件闯入条件：${guidance.randomIntrusionCondition || '无明确条件则禁止闯入'}`,
-    ].join('\n');
+    const compactParticipant = (item = {}) => ({
+      name: String(item.name || item.idOrName || item.characterName || '').trim(),
+      id: String(item.id || '').trim(),
+      reason: String(item.reason || '').trim(),
+    });
+    const compactEvent = (item = {}) => ({
+      name: String(item.characterName || item.name || '').trim(),
+      type: String(item.eventType || item.actionMethod || '背景行动').trim(),
+      reason: String(item.motivation || item.reason || '').trim(),
+    });
+    const uniqueStrings = (items = []) => [...new Set((Array.isArray(items) ? items : [])
+      .map((item) => String(item || '').trim())
+      .filter(Boolean))];
+    return JSON.stringify({
+      status: guidance.type === 'context_done' ? '资料已足够' : '继续请求资料',
+      sceneQueries: {
+        location: uniqueStrings(guidance.sceneQueries?.location),
+        causality: uniqueStrings(guidance.sceneQueries?.causality),
+        conflict: uniqueStrings(guidance.sceneQueries?.conflict),
+      },
+      participants: {
+        forced: (guidance.forcedParticipants || []).map(compactParticipant).filter((item) => item.name || item.id),
+        priority: (guidance.priorityCandidates || []).map(compactParticipant).filter((item) => item.name || item.id),
+        drama: (guidance.dramaCandidates || []).map(compactParticipant).filter((item) => item.name || item.id),
+        forbidden: (guidance.forbiddenParticipants || []).map(compactParticipant).filter((item) => item.name || item.id),
+      },
+      factions: (guidance.factions || []).map((item) => ({
+        name: String(item.name || '').trim(),
+        id: String(item.id || '').trim(),
+        status: String(item.status || (item.pending ? '待创建' : '')).trim(),
+      })).filter((item) => item.name),
+      randomEvents: (guidance.randomActiveEvents || []).map(compactEvent).filter((item) => item.name || item.type),
+      randomIntrusionCondition: String(guidance.randomIntrusionCondition || '无明确条件则禁止闯入').trim(),
+    });
   },
 
 

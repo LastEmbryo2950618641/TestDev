@@ -218,11 +218,9 @@ window.GameModules.factionOrgForest = {
 
   resolveAffiliatedFaction(faction = {}, allFactions = []) {
     if (!faction?.id) return null;
-    if (faction.foundingType === 'independent') return null;
     const parent = allFactions.find((f) => f.id === faction.parentId);
-    if (!parent || parent.isDomainRoot || this.isDomainRootId(parent.id) || parent.orgDomain === 'country') return null;
-    if (faction.foundingType === 'subordinate') return parent;
-    return parent.isDomainRoot ? null : parent;
+    if (!parent || parent.isDomainRoot || this.isDomainRootId(parent.id)) return null;
+    return parent;
   },
 
   affiliatedFactionLabel(faction = {}, allFactions = []) {

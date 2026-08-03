@@ -9,8 +9,10 @@ window.GameModules.realWorldAi = {
   async generate(store, prompt, action, logId = null) {
     const requestId = ++this.latestRequestId;
     try {
+      store.patchRealWorldLogEntry?.(logId, { statusText: '正在加载现实推演引擎…', streaming: true });
       const agentLoop = await window.GameModules.realWorldAgentLoader?.ensure?.() || window.GameModules.realWorldAgentLoop;
       if (!agentLoop?.run) throw new Error('现实推演 Loop Agent 未加载');
+      store.patchRealWorldLogEntry?.(logId, { statusText: '正在准备现实世界资料…', streaming: true });
       const loop = await agentLoop.run(store, action, logId);
       if (requestId !== this.latestRequestId) throw new Error('现实推演请求已被新请求取代');
       const result = this.parse(loop.result, store, action);

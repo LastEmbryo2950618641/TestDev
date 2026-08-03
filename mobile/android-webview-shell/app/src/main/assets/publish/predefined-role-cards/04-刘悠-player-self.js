@@ -3654,7 +3654,7 @@ window.GameModules.predefinedRoleCardData['04-刘悠-player-self'] = {
       "custom": {},
       "_tagGender": "male"
     },
-    "currentLocation": "中华人民共和国·四川省·成都市武侯区·锦苑小区3栋·2单元601号",
+    "currentLocation": "2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号",
     "refinedCity": "成都市",
     "isPlayer": true,
     "goalSystem": {
@@ -4135,12 +4135,6 @@ window.GameModules.predefinedRoleCardData['04-刘悠-player-self'] = {
             "max": 100,
             "desc": "可执行行动的灵活度、协调性与主动性。",
             "grade": false
-          },
-          {
-            "key": "current_location",
-            "label": "当前位置",
-            "type": "text",
-            "desc": "玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。"
           }
         ]
       },

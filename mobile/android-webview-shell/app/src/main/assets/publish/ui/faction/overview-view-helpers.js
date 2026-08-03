@@ -155,20 +155,15 @@ window.GameModules.ui.faction.overviewViewHelpers = {
   },
 
   orgChartDescription() {
-    return this.factionOrgChartMode?.() === 'forest'
-      ? '按势力森林展示域根、归属链和已揭示组织节点。'
-      : '展示当前势力的内部结构、职位与下级势力。';
+    return '展示当前势力的内部结构、职位与下级势力。';
   },
 
   orgChartBreadcrumb() {
-    if (this.factionOrgChartMode?.() === 'forest') {
-      return this.factionState?.forestData?.breadcrumb || this.factionForestViewportTitle?.() || '';
-    }
     return this.factionState?.orgBreadcrumb || this.selectedFaction?.()?.name || '';
   },
 
   orgChartBackButtonText() {
-    return this.factionOrgChartMode?.() === 'detail' ? '返回势力森林' : '返回上一级';
+    return '返回上一级';
   },
 
   orgChartCloseDetailButtonText() {
@@ -226,39 +221,6 @@ window.GameModules.ui.faction.overviewViewHelpers = {
 
   structureEmptyText() {
     return '暂无结构，可点击初始化/全量检视势力生成。';
-  },
-
-  relationChipRows(faction = null) {
-    const current = faction || this.selectedFaction?.();
-    if (!current) return [];
-    const rows = [];
-    (current.rules || []).forEach((rule, index) => {
-      const text = String(rule || '').trim();
-      if (!text) return;
-      rows.push({ key: `rule-${index}-${text}`, text: `律令｜${text}` });
-    });
-    (current.resources || []).forEach((resource, index) => {
-      const text = String(resource || '').trim();
-      if (!text) return;
-      rows.push({ key: `resource-${index}-${text}`, text: `资源｜${text}` });
-    });
-    this.factionChildren(current.id).forEach((child, index) => {
-      const text = this.childFactionName(child);
-      rows.push({ key: `child-${index}-${child.id || text}`, text: `下级｜${text}` });
-    });
-    return rows;
-  },
-
-  relationChipEmptyText() {
-    return '暂无已揭示条目';
-  },
-
-  relationSectionView() {
-    return {
-      title: '规则 / 资源 / 下级势力',
-      rows: this.relationChipRows(),
-      emptyText: this.relationChipEmptyText(),
-    };
   },
 
   changeLogRows(faction = null) {
@@ -412,6 +374,4 @@ window.GameModules.ui.faction.overviewViewHelpers = {
     };
   },
 };
-
-
 

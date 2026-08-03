@@ -4,6 +4,51 @@
 window.GameModules = window.GameModules || {};
 
 window.GameModules.realWorldActions = {
+  persistRealWorldLogEntries(entries = []) {
+    const rows = entries.filter((entry) => entry?.id);
+    if (!rows.length) return;
+    const store = window.GameModules.realWorldLogStore;
+    const previous = this.realWorldLogPersistQueue || Promise.resolve();
+    const task = previous.catch(() => {}).then(() => (typeof store?.saveAll === 'function'
+      ? store.saveAll(rows)
+      : Promise.all(rows.map((entry) => store?.append?.(entry)))));
+    this.realWorldLogPersistQueue = task.catch((err) => {
+      console.warn('[现实日志] 后台批量写入失败:', err?.message || err);
+    });
+    return this.realWorldLogPersistQueue;
+  },
+
+  async flushRealWorldLogPersistence() {
+    await (this.realWorldLogPersistQueue || Promise.resolve());
+  },
+
+  realWorldActionTimeout() {
+    const configured = Number(
+      this.realWorldActionTimeoutMs
+      || window.GameModules.config?.realWorldActionTimeoutMs,
+    );
+    return Number.isFinite(configured) && configured > 0 ? Math.round(configured) : 720000;
+  },
+
+  async awaitRealWorldAiResult(request, requestId) {
+    const timeoutMs = this.realWorldActionTimeout();
+    let timer = null;
+    try {
+      return await new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+          const ai = window.GameModules.realWorldAi;
+          if (Number(ai?.latestRequestId) === requestId) ai.latestRequestId += 1;
+          const err = new Error(`现实世界推演超时（${Math.ceil(timeoutMs / 60000)}分钟），已停止等待，请重试`);
+          err.code = 'AI_TIMEOUT';
+          reject(err);
+        }, timeoutMs);
+        Promise.resolve(request).then(resolve, reject);
+      });
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  },
+
   realWorldActionText(value) {
     if (value && typeof value === 'object') return String(window.GameModules.ai?.choiceText?.(value) || '').trim();
     return String(value || '').trim();
@@ -37,24 +82,29 @@ window.GameModules.realWorldActions = {
     this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, window.GameModules.realWorldLogStore?.count?.() || 0) + 2;
     this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1;
     this.scrollRealWorldLogBottom?.();
+    let result = null;
+    let currentUserEntry = userEntry;
     try {
-      await window.GameModules.realWorldLogStore?.append?.(userEntry);
-      await window.GameModules.realWorldLogStore?.append?.(entry);
+      this.persistRealWorldLogEntries([userEntry, entry]);
       const savedTotal = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLogTotal;
-      this.realWorldLogTotal = savedTotal;
+      this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, savedTotal);
       this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1;
       this.scrollRealWorldLogBottom?.();
       this.prepareEventsForRealWorldAction?.(text, entry.id);
-      const result = await window.GameModules.realWorldAi.generate(this, '', text, entry.id);
+      const ai = window.GameModules.realWorldAi;
+      const requestId = (Number(ai?.latestRequestId) || 0) + 1;
+      result = await this.awaitRealWorldAiResult(ai.generate(this, '', text, entry.id), requestId);
       if (result.promptPack) entry.promptPack = result.promptPack;
-      const currentUserEntry = window.GameModules.realWorldLogStore?.get?.(userEntry.id) || userEntry;
+      currentUserEntry = window.GameModules.realWorldLogStore?.get?.(userEntry.id) || userEntry;
+      await this.persistGeneratedRealWorldResult(entry.id, result, currentUserEntry);
       await this.applyRealWorldResult(entry.id, { ...result, playerEntry: currentUserEntry });
       window.GameModules.factionArchive?.recordRealWorld?.(this, text, result);
       await this.recordPlayerRealWorldMemory(text, result);
       await this.save();
     } catch (err) {
       console.error('现实推演请求失败:', err.code, err.message, err.stack);
-      await this.markRealWorldActionFailed(entry.id, err);
+      if (result?.narration) await this.persistGeneratedRealWorldResult(entry.id, result, currentUserEntry, err);
+      else await this.markRealWorldActionFailed(entry.id, err);
     } finally {
       this.realWorldBusy = false;
     }
@@ -68,12 +118,37 @@ window.GameModules.realWorldActions = {
   },
 
   async markRealWorldActionFailed(id, err = null) {
-    await window.GameModules.realWorldLogStore?.remove?.(id);
     const userId = String(id || '').replace(/-ai$/u, '-user');
-    if (userId && userId !== id) await window.GameModules.realWorldLogStore?.remove?.(userId);
-    this.realWorldLogTotal = Math.max(0, (this.realWorldLogTotal || 2) - (userId && userId !== id ? 2 : 1));
     const narration = this.realWorldActionErrorText(err);
-    this.realWorldLog = (this.realWorldLog || []).map((entry) => (entry.id === id ? { ...entry, narration, thinking: '', thinkingSections: [], settlementThinking: '', settlementThinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] } : entry));
+    const savedUser = window.GameModules.realWorldLogStore?.get?.(userId) || (this.realWorldLog || []).find((entry) => entry.id === userId) || null;
+    const existing = window.GameModules.realWorldLogStore?.get?.(id) || (this.realWorldLog || []).find((entry) => entry.id === id) || { id, type: 'ai' };
+    const failed = { ...existing, narration, thinking: '', thinkingSections: [], settlementThinking: '', settlementThinkingSections: [], streamTrace: [], streaming: false, transientError: true, promptPack: null, characterCardChanges: [], agentTrace: [] };
+    await this.persistRealWorldLogEntries([...(savedUser ? [savedUser] : []), failed]);
+    this.realWorldLog = this.normalizeRealWorldLog([...(this.realWorldLog || []).filter((entry) => entry.id !== id && entry.id !== userId), ...(savedUser ? [savedUser] : []), failed]);
+    this.realWorldLogTotal = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLog.length;
+    this.scrollRealWorldLogBottom?.();
+  },
+
+  async persistGeneratedRealWorldResult(id, result, playerEntry, error = null) {
+    const existing = (this.realWorldLog || []).find((entry) => entry.id === id) || {};
+    const next = {
+      ...existing,
+      ...result,
+      id,
+      type: 'ai',
+      streaming: false,
+      transientError: false,
+      statusText: '',
+      settlementError: error ? `正文已生成，但状态结算失败：${String(error.message || '未知错误')}` : '',
+      time: existing.time || { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: this.phoneDate().toISOString() },
+    };
+    await this.persistRealWorldLogEntries([...(playerEntry?.id ? [playerEntry] : []), next]);
+    this.realWorldLog = this.normalizeRealWorldLog([
+      ...(this.realWorldLog || []).filter((entry) => entry.id !== playerEntry?.id && entry.id !== id),
+      ...(playerEntry?.id ? [playerEntry] : []),
+      next,
+    ]);
+    this.realWorldLogTotal = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLog.length;
     this.scrollRealWorldLogBottom?.();
   },
 
@@ -215,11 +290,9 @@ window.GameModules.realWorldActions = {
     const nextSettlementThinking = String(cleanResult.settlementThinking || '').trim() || String(existingEntry.settlementThinking || '').trim();
     const next = { ...existingEntry, ...cleanResult, thinking: nextThinking, thinkingSections: nextThinkingSections, thinkingOpen: false, settlementThinking: nextSettlementThinking, settlementThinkingSections: nextSettlementThinkingSections, settlementThinkingOpen: false, type: 'ai', streaming: false, statusText: '', streamTrace: [], time, agentTrace: result.agentTrace || [] };
     await this.assignRealWorldlineEntry(next);
-    if (playerEntry?.id) await window.GameModules.realWorldLogStore?.append?.(playerEntry);
-    await window.GameModules.realWorldLogStore?.append?.(next);
+    await this.persistRealWorldLogEntries([...(playerEntry?.id ? [playerEntry] : []), next]);
     this.realWorldLog = this.normalizeRealWorldLog([...this.realWorldLog.filter((entry) => entry.id !== playerEntry?.id && entry.id !== id), ...(playerEntry?.id ? [playerEntry] : []), next]);
     this.realWorldLogTotal = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLogTotal;
-    this.refreshRealWorldLogPage?.(this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1);
     this.scrollRealWorldLogBottom?.();
   },
 };

@@ -2432,12 +2432,6 @@ window.GameModules.predefinedRoleCardData['01-刘思琪-rel-ai-247528'] = {
             "max": 100,
             "desc": "可执行行动的灵活度、协调性与主动性。",
             "grade": false
-          },
-          {
-            "key": "current_location",
-            "label": "当前位置",
-            "type": "text",
-            "desc": "玩家位置字段同步；完整值为“势力·势力层级1·势力层级2·地点·地点内位置”。"
           }
         ]
       },

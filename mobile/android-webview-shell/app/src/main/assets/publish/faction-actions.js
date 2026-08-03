@@ -221,8 +221,6 @@ window.GameModules.factionActions = {
 
   openFactionOrgChart() {
     if (!this.factionState) this.initFactionSystem();
-    if (!this.factionState.orgChartMode) this.factionState.orgChartMode = 'forest';
-    if (!this.factionState.forestTab) this.factionState.forestTab = 'corp';
     this.refreshFactionOrgCache?.();
     this.factionState.orgChartOpen = true;
     document.querySelectorAll('.faction-org-backdrop[data-fallback-closed="true"], .faction-modal-backdrop[data-fallback-closed="true"]').forEach((backdrop) => {
@@ -238,10 +236,6 @@ window.GameModules.factionActions = {
 
   backFactionOrgChart() {
     if (!this.factionState) return;
-    if (this.factionOrgChartMode?.() === 'detail') {
-      this.setFactionOrgChartMode?.('forest');
-      return;
-    }
     this.closeFactionOrgChart();
   },
 
@@ -263,9 +257,6 @@ window.GameModules.factionActions = {
   selectedFactionTagList() { return window.GameModules.ui.faction.overviewViewHelpers.tagList.call(this); },
   factionStructureRoleRows(node) { return window.GameModules.ui.faction.overviewViewHelpers.structureRoleRows.call(this, node); },
   factionStructureEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.structureEmptyText.call(this); },
-  selectedFactionRelationChipRows() { return window.GameModules.ui.faction.overviewViewHelpers.relationChipRows.call(this); },
-  selectedFactionRelationChipEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.relationChipEmptyText.call(this); },
-  selectedFactionRelationSectionView() { return window.GameModules.ui.faction.overviewViewHelpers.relationSectionView.call(this); },
   selectedFactionChangeLogRows() { return window.GameModules.ui.faction.overviewViewHelpers.changeLogRows.call(this); },
   selectedFactionChangeLogEmptyText() { return window.GameModules.ui.faction.overviewViewHelpers.changeLogEmptyText.call(this); },
   selectedFactionArchiveCountLabel() { return window.GameModules.ui.faction.overviewViewHelpers.archiveCountLabel.call(this); },

@@ -543,6 +543,7 @@ window.GameModules.realWorldLocationGraph = {
         const node = graph.nodesById[id] || {};
         return {
           id,
+          graphNodeId: id,
           name: node.displayName || node.name || id,
           current: id === currentId,
           visited: Boolean(node.visited || id === currentId),
@@ -705,6 +706,7 @@ window.GameModules.realWorldLocationGraph = {
       usageContracts: Array.isArray(payload.usageContracts) ? payload.usageContracts : (graph.nodesById[id]?.usageContracts || []),
       effectiveAuthorityRef: payload.effectiveAuthorityRef || graph.nodesById[id]?.effectiveAuthorityRef || null,
       geopoliticalStub: Boolean(payload.geopoliticalStub || graph.nodesById[id]?.geopoliticalStub),
+      geopoliticalKind: payload.geopoliticalKind || graph.nodesById[id]?.geopoliticalKind || '',
       updatedAt: payload.time || new Date().toISOString(),
     };
     graph.nodesById[id] = node;
@@ -910,6 +912,8 @@ window.GameModules.realWorldLocationGraph = {
       mapNode.ownerRefs = Array.isArray(node.ownerRefs) ? node.ownerRefs : (mapNode.ownerRefs || []);
       mapNode.usageContracts = Array.isArray(node.usageContracts) ? node.usageContracts : (mapNode.usageContracts || []);
       mapNode.effectiveAuthorityRef = node.effectiveAuthorityRef || mapNode.effectiveAuthorityRef || null;
+      mapNode.geopoliticalStub = Boolean(node.geopoliticalStub);
+      mapNode.geopoliticalKind = node.geopoliticalKind || '';
       mapNode.graphNodeId = node.id;
       const interiorLayout = this.projectInteriorLayout(graph, node.id);
       if (interiorLayout.floors.length || interiorLayout.zones.length) mapNode.interiorLayout = interiorLayout;

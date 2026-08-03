@@ -13,8 +13,8 @@ window.GameModules.ui.company.fieldSectionViewHelpers = {
     }));
 
     return {
-      showEmpty: this.companyState?.employment?.active === false,
-      emptyText: '暂无在职公司信息',
+      showEmpty: !this.hasActiveCareerProfile?.(),
+      emptyText: '暂无职业生涯信息，等待现实推演 Stage13 同步。',
       rows,
     };
   },

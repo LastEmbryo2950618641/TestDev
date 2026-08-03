@@ -19,7 +19,7 @@ window.GameModules.app.orgTerritory.settlementActions = {
     store.initFactionSystem?.();
     const label = String(name || '').trim();
     if (!label) return null;
-    // Never invent factions from settlement stubs — Stage6 createFaction / generate path must create them.
+    // Never invent factions from settlement stubs — only the Stage9 createFaction path may create them.
     return (store.factionState?.factions || []).find((f) => f.name === label || f.id === label) || null;
   },
 
@@ -442,3 +442,4 @@ window.GameModules.app.orgTerritory.settlementActions = {
     }, item);
   },
 };
+

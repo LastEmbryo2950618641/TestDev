@@ -18,7 +18,14 @@ window.GameModules.realWorldMapGraph = {
   },
 
   displayNodes(map = {}) {
-    return (Array.isArray(map.nodes) ? map.nodes : []).filter((node) => node && node.name && node.mapVisible !== false);
+    return (Array.isArray(map.nodes) ? map.nodes : []).filter((node) => {
+      if (!node?.name || node.mapVisible === false) return false;
+      if (node.geopoliticalStub && node.geopoliticalKind === 'admin') return false;
+      if (node.geopoliticalStub && !node.geopoliticalKind
+        && !/(?:小区|社区|花园|苑|公寓|里)$/u.test(node.name)
+        && /(?:省|自治区|特别行政区|市|州|盟|地区|区|县|旗|街道|镇|乡)$/u.test(node.name)) return false;
+      return true;
+    });
   },
 
   edgeKey(from = '', to = '') {

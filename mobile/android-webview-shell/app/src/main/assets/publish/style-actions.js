@@ -20,7 +20,9 @@ window.GameModules.styleActions = {
     const availableIds = new Set(this.allWritingStyles().map((style) => style.id));
     const active = Array.isArray(saved?.active) ? saved.active.filter((id) => availableIds.has(id)) : [];
     const preferredDefault = availableIds.has('spring-heart') ? 'spring-heart' : (this.defaultWritingStyles[0]?.id || 'literary');
-    this.activeStyleIds = (!saved || (active.length === 1 && active[0] === 'literary')) ? [preferredDefault] : (active.length ? active : [preferredDefault]);
+    const defaultMigrated = saved?.defaultWritingStyleId === preferredDefault;
+    const legacyLiteraryDefault = active[0] === 'literary' && !defaultMigrated;
+    this.activeStyleIds = (!saved || !active.length || legacyLiteraryDefault) ? [preferredDefault] : active;
     this.customStyleName = '';
     this.customStylePrompt = '';
     if (options.readOnly !== true) await this.saveWritingStyles(options);
@@ -85,6 +87,7 @@ window.GameModules.styleActions = {
   async saveWritingStyles(options = {}) {
     await window.GameModules.metadataStore?.save?.('writing_styles', {
       active: this.activeStyleIds,
+      defaultWritingStyleId: this.allWritingStyles().some((style) => style.id === 'spring-heart') ? 'spring-heart' : (this.defaultWritingStyles[0]?.id || 'literary'),
       defaults: this.defaultWritingStyles,
       custom: this.customWritingStyles,
     }, options);

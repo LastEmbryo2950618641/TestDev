@@ -24,14 +24,17 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
       .map((item) => (typeof item === 'string' ? item : (item?.name || item?.idOrName || item?.characterName || '')).trim())
       .filter(Boolean);
     const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.characterStateStore?.list?.() || [])];
+    const playerState = store?.playerIdentityState?.() || store?.rpgStates?.['player-self'] || null;
     const seen = new Set();
     const worldOk = (state) => window.GameModules.characterQuery?.worldMatches?.(window.GameModules.realWorld2026?.label || '2026 现代都市现实世界', state.worldTag || state.profile?.work);
     const nameHit = (name) => actionText.includes(name) || priorParticipantNames.includes(name);
-    const hits = states.filter((state) => {
+    const candidates = playerState ? [playerState, ...states] : states;
+    const hits = candidates.filter((state) => {
       const name = String(state?.profile?.name || state?.name || '').trim();
       const id = String(state?.id || '').trim();
       const key = id || name;
-      if (!name || seen.has(key) || !nameHit(name) || !worldOk(state)) return false;
+      const isPlayer = id === 'player-self';
+      if (!name || seen.has(key) || (!isPlayer && !nameHit(name)) || !worldOk(state)) return false;
       seen.add(key);
       return true;
     }).slice(0, 3);
@@ -63,7 +66,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (policy === 'deny') {
       return [
         `资料请求未执行：${pair} 属于 Stage1 禁止的写库/结算/侧效应 skill。`,
-        '势力字段补丁请走正文后 Stage8（patchFactionField）；新势力可在 Stage1 用「势力查询，创建势力，势力名」创建。其它变更走 Stage4 结算。',
+        '势力字段补丁请走正文后 Stage9（patchFactionField）；势力首建请走正文后 Stage9-1，不要在 Stage1 请求 createFaction。其它变更走 Stage4 结算。',
       ].join('\n');
     }
     if (policy === 'deep') {
@@ -219,15 +222,28 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
   companySummary(store, company = {}) {
     const work = company.workMode || {};
     const salary = company.salary || {};
-    const org = (company.organization || []).slice(0, 4).map((d) => `${d.name}：${(d.jobs || []).map((j) => `${j.title}(${(j.people || []).join('、')})`).join('；')}`).join('\n');
-    return [`公司：${company.name}`, `类型/行业：${company.type || '未知'}｜${company.industry || '未知'}`, `地点：${company.location || '未知'}`, `规模：${company.scale || '未知'}`, `制度：${work.type || '员工'}｜${work.workDays || ''}｜${work.startTime || ''}-${work.endTime || ''}`, `薪资：${salary.monthlyBase || 0}${salary.currency || 'CNY'}｜绩效${salary.performanceMonths || 0}个月`, `组织：\n${org || '暂无组织架构。'}`, `规则：${(company.rules || []).join('；') || '暂无规则。'}`].join('\n');
+    const routes = (company.promotionRoutes || []).slice(0, 6).map((route) => `${route.name || '路线'}：下一级${route.nextPosition || '未设定'}；绩效${Number(route.currentPerformance || 0)}/${Number(route.requiredPerformance || 0)}；空缺${Number(route.vacancies || 0)}`).join('\n');
+    return [`职业主体：${company.name || '未生成职业生涯'}`, `参考势力：${company.sourceFactionName || '未绑定'}｜ID：${company.sourceFactionId || company.factionId || '无'}`, `职位/路线：${company.positionTitle || '未知'}｜${company.currentRoute || '未知'}`, `类型/行业：${company.type || '未知'}｜${company.industry || '未知'}`, `地点：${company.location || '未知'}`, `规模：${company.scale || '未知'}`, `制度：${work.type || '未设定'}｜${work.workDays || ''}｜${work.startTime || ''}-${work.endTime || ''}`, `薪资：${salary.monthlyBase || 0}${salary.currency || 'CNY'}｜绩效${salary.performanceMonths || 0}个月`, `晋级路线：\n${routes || '暂无职业晋级路线。'}`, `规则：${(company.rules || []).join('；') || '暂无规则。'}`].join('\n');
   },
 
 
   workContext(store, company = {}) {
-    const stats = store.companyState?.workStats || {};
+    const stats = typeof store.normalizeCompanyWorkStats === 'function' ? store.normalizeCompanyWorkStats() : (store.companyState?.workStats || {});
     const pay = store.monthlyPayPreview?.() || {};
-    return [this.companySummary(store, company), `本月状态：迟到${stats.lateCount || 0}次｜旷班${stats.absentCount || 0}次｜绩效${stats.performance ?? 100}/100`, `收入预估：底薪${pay.base || 0}｜日薪${pay.daily || 0}｜本月完整上班${pay.workDays || 0}天`].join('\n');
+    const attendance = stats.attendanceStatus || {};
+    const leader = stats.leaderReview || {};
+    const employee = stats.employeeReview || {};
+    const contributions = (Array.isArray(stats.contributionItems) ? stats.contributionItems : []).slice(0, 6).map((item, index) => `${index + 1}. ${(item.title || item.type || '贡献')}｜${item.valueText || item.detail || '未填写'}`).join('；') || '暂无贡献价值记录';
+    return [
+      this.companySummary(store, company),
+      `本月状态：迟到${stats.lateCount || 0}次｜旷班${stats.absentCount || 0}次｜绩效${stats.performance ?? 100}/100`,
+      `当前上班状态：${attendance.status || '未更新'}｜${attendance.detail || '无'}`,
+      `下一次评绩效日期：${stats.nextPerformanceReviewAt || '未设置'}`,
+      `领导评价：${leader.summary || '暂无'}｜评分${leader.score ?? 0}`,
+      `员工评价：${employee.summary || '暂无'}`,
+      `贡献价值：${contributions}`,
+      `收入预估：底薪${pay.base || 0}｜日薪${pay.daily || 0}｜本月完整上班${pay.workDays || 0}天`,
+    ].join('\n');
   },
 
 

@@ -58,21 +58,17 @@ window.GameModules.realWorldClockActions = {
     this.realWorldOpen = true;
     this.checkWorkReminder?.();
     this.runAfterRealWorldPaint?.(() => {
-      const map = window.GameModules.realWorldMap.ensure(this, window.GameModules.currentLocationField?.roleProfile?.(this) || {});
-      const total = window.GameModules.realWorldLogStore?.count?.() || 0;
-      if (total <= 0 && (this.realWorldLog || []).length) {
-        window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog).then(() => this.refreshRealWorldLogPage?.(999999)).catch((err) => console.warn('[现实日志] 分页刷新失败:', err.message, err.stack));
-      }
-      const pageSize = Math.max(1, Number(this.realWorldLogPageSize) || 12);
-      const maxPage = Math.max(1, Math.ceil(total / pageSize));
-      const loadedLatest = total > 0
-        && (this.realWorldLog || []).length > 0
-        && Number(this.realWorldLogTotal || 0) === total
-        && Number(this.realWorldLogPage || 1) === maxPage;
-      if (!loadedLatest) this.refreshRealWorldLogPage?.(999999);
-      if (!this.realWorldLog.length) {
-        if (map.current) this.seedRealWorldLog();
-      }
+      void (async () => {
+        await this.flushRealWorldLogPersistence?.();
+        const map = window.GameModules.realWorldMap.ensure(this, window.GameModules.currentLocationField?.roleProfile?.(this) || {});
+        let total = window.GameModules.realWorldLogStore?.count?.() || 0;
+        if (total <= 0 && (this.realWorldLog || []).length) {
+          await window.GameModules.realWorldLogStore?.saveAll?.(this.realWorldLog);
+          total = window.GameModules.realWorldLogStore?.count?.() || this.realWorldLog.length;
+        }
+        if (window.GameModules.realWorldLogStore?.count?.() > 0) this.refreshRealWorldLogPage?.(999999);
+        if (!this.realWorldLog.length && map.current) this.seedRealWorldLog();
+      })().catch((err) => console.warn('[现实日志] 打开面板刷新失败:', err?.message || err));
     });
   },
 

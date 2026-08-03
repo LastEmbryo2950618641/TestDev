@@ -171,6 +171,7 @@ Object.assign(window.GameModules.updateRegistry, {
     if (update.updateType === 'sexual-experience') return this.applySexualExperienceUpdate(store, update);
     if (update.updateType === 'sexual-history') return this.applySexualHistoryUpdate(store, update);
     if (update.updateType === 'control-experience') return this.applyControlExperienceUpdate(store, update);
+    if (update.updateType === 'inventory-operation') return this.applyInventoryOperation(store, update);
     if (update.updateType === 'wearing-state') return this.applyWearingStateUpdate(store, update);
     if (update.updateType === 'emotion' || update.updateType === 'feeling') return this.applyMetricUpdate(store, update);
     const direct = this.targetState(store, update), generic = direct ? null : this.genericTarget(store, update);
@@ -199,6 +200,7 @@ Object.assign(window.GameModules.updateRegistry, {
     this.set(root, path, next);
     const note = this.notePath(path), reason = this.reasonText(update, '现实推演确认了状态变化。');
     if (note) this.set(root, note, this.noteValue(path, next, reason));
+    if (field.startsWith('profile.') && state.profile) state.profile.roleCardUpdatedAt = new Date().toISOString();
     if (/^profile\.wearingItems$/u.test(field) && state.profile) {
       state.profile.wearingItems = next;
       state.profile.wearing = next;
@@ -253,6 +255,106 @@ Object.assign(window.GameModules.updateRegistry, {
     state.profile.wearing = next;
     state.profile.roleCardUpdatedAt = new Date().toISOString();
     window.GameModules.rpgState?.stripProfileOwnedValues?.(state);
+    return true;
+  },
+
+  inventoryOperationState(store, subject = {}) {
+    const id = this.normalizeSubjectId(store, subject.characterId || subject.playerId || subject.id || 'player-self', subject);
+    return store?.itemSkillState?.(id) || (id === 'player-self' ? store?.playerIdentityState?.() : null);
+  },
+
+  inventoryOperationItemName(item = {}) {
+    return String(item?.name || item || '').trim();
+  },
+
+  applyInventoryOperation(store, update = {}) {
+    const source = this.inventoryOperationState(store, update.subject || {});
+    if (!source?.profile) return false;
+    const payload = this.changeValue(update) || {};
+    const action = String(payload.action || '').trim();
+    const sourceItems = Array.isArray(source.profile.items) ? source.profile.items : (source.profile.items = []);
+    const wearing = Array.isArray(source.profile.wearingItems) ? source.profile.wearingItems : (source.profile.wearingItems = []);
+    const itemName = String(payload.itemName || payload.item?.name || '').trim();
+    const findItem = (list, name) => list.findIndex((item) => this.inventoryOperationItemName(item) === name);
+    const normalize = (raw = {}, fallbackName = '') => {
+      const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : { name: fallbackName };
+      value.name = String(value.name || fallbackName).trim();
+      value.quantity = Math.max(1, Math.floor(Number(value.quantity) || 1));
+      value.description = String(value.description || value.detail || '').trim();
+      value.reason = String(value.reason || payload.reason || '').trim();
+      value.changeMode = String(value.changeMode || `Stage4-2 ${action}`).trim();
+      value.type = value.type || value.kind || 'item';
+      value.kind = value.kind || value.type;
+      return value;
+    };
+    let changed = false;
+    const mark = (state) => {
+      if (!state?.id) return;
+      update._changedStateIds = [...new Set([...(update._changedStateIds || []), state.id])];
+      state.profile.roleCardUpdatedAt = new Date().toISOString();
+    };
+    if (action === 'replace') {
+      if (!Array.isArray(payload.replaceItems)) return false;
+      source.profile.items = payload.replaceItems.map((item) => normalize(item));
+      changed = true;
+    } else if (action === 'add') {
+      const item = normalize(payload.item, itemName);
+      if (!item.name) return false;
+      const index = findItem(sourceItems, item.name);
+      if (index >= 0) sourceItems[index] = { ...sourceItems[index], ...item, quantity: (Number(sourceItems[index].quantity) || 1) + (Number(payload.quantity) || item.quantity || 1) };
+      else sourceItems.push(item);
+      changed = true;
+    } else if (action === 'update') {
+      const index = findItem(sourceItems, itemName);
+      if (index < 0) return false;
+      sourceItems[index] = { ...sourceItems[index], ...normalize(payload.item, itemName), name: itemName };
+      changed = true;
+    } else if (action === 'remove' || action === 'consume') {
+      const index = findItem(sourceItems, itemName);
+      if (index < 0) return false;
+      const count = Math.max(1, Math.floor(Number(payload.quantity) || 1));
+      const current = Math.max(1, Math.floor(Number(sourceItems[index].quantity) || 1));
+      if (current > count) sourceItems[index] = { ...sourceItems[index], quantity: current - count };
+      else sourceItems.splice(index, 1);
+      changed = true;
+    } else if (action === 'equip') {
+      const index = findItem(sourceItems, itemName);
+      const slot = String(payload.slot || '').trim();
+      if (index < 0 || !slot) return false;
+      const old = wearing.findIndex((item) => String(item?.slot || '').trim() === slot);
+      if (old >= 0 && wearing[old]?.name && wearing[old].name !== 'empty-slot') sourceItems.push({ ...wearing[old], type: 'equipment', kind: 'equipment' });
+      const equipped = { ...sourceItems[index], slot, type: 'wearing', kind: 'wearing' };
+      sourceItems.splice(index, 1);
+      if (old >= 0) wearing[old] = equipped;
+      else wearing.push(equipped);
+      changed = true;
+    } else if (action === 'unequip') {
+      const slot = String(payload.slot || '').trim();
+      const index = wearing.findIndex((item) => String(item?.slot || '').trim() === slot && item?.name && item.name !== 'empty-slot');
+      if (index < 0 || !slot) return false;
+      sourceItems.push({ ...wearing[index], type: 'equipment', kind: 'equipment', slot: '' });
+      wearing[index] = { ...wearing[index], name: 'empty-slot', type: 'wearing', kind: 'wearing', description: '装备槽已空', quantity: 1, level: -1 };
+      changed = true;
+    } else if (action === 'transfer') {
+      const target = this.inventoryOperationState(store, payload.target || {});
+      const index = findItem(sourceItems, itemName);
+      if (!target?.profile || index < 0) return false;
+      const count = Math.max(1, Math.floor(Number(payload.quantity) || 1));
+      const sourceItem = sourceItems[index];
+      const current = Math.max(1, Math.floor(Number(sourceItem.quantity) || 1));
+      const moved = { ...sourceItem, quantity: Math.min(count, current) };
+      if (current > count) sourceItems[index] = { ...sourceItem, quantity: current - count };
+      else sourceItems.splice(index, 1);
+      const targetItems = Array.isArray(target.profile.items) ? target.profile.items : (target.profile.items = []);
+      const targetIndex = findItem(targetItems, itemName);
+      if (targetIndex >= 0) targetItems[targetIndex] = { ...targetItems[targetIndex], quantity: (Number(targetItems[targetIndex].quantity) || 1) + moved.quantity };
+      else targetItems.push(moved);
+      mark(target);
+      changed = true;
+    } else return false;
+    if (!changed) return false;
+    mark(source);
+    window.GameModules.rpgState?.stripProfileOwnedValues?.(source);
     return true;
   },
 
@@ -772,6 +874,7 @@ Object.assign(window.GameModules.updateRegistry, {
       if (update.updateType === 'system') continue;
       const state = this.targetState(store, update);
       if (state?.id) changed.add(state.id);
+      (update._changedStateIds || []).forEach((id) => { if (id) changed.add(id); });
     }
     for (const id of changed) {
       const state = store.rpgStates?.[id] || window.GameModules.characterStateStore?.get?.(id);

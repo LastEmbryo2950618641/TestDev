@@ -38,6 +38,18 @@ function loadOrgTerritory() {
   return context.window.GameModules.orgTerritory;
 }
 
+function loadFactionOrgForest() {
+  const context = vm.createContext({
+    console,
+    window: {
+      GameModules: {},
+    },
+  });
+  context.window.window = context.window;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/faction-org-forest.js'), 'utf8'), context, { filename: 'publish/faction-org-forest.js' });
+  return context.window.GameModules.factionOrgForest;
+}
+
 test('faction overview scores use scale-dependent ceilings and ratio stability', () => {
   const ot = loadOrgTerritory();
   const familyOverview = ot.normalizeFactionOverview({
@@ -63,6 +75,26 @@ test('faction overview scores use scale-dependent ceilings and ratio stability',
   assert.strictEqual(countryOverview.livelihood.max, 10000);
   assert.strictEqual(countryOverview.composite.max, 10425);
   assert.strictEqual(countryOverview.stability.value, 1);
+});
+
+test('composite score is always recalculated from the four metrics', () => {
+  const ot = loadOrgTerritory();
+  const overview = ot.normalizeFactionOverview({
+    livelihood: { value: 220, max: 10000 },
+    economy: { value: 280, max: 11500 },
+    military: { value: 280, max: 10500 },
+    reputation: { value: 180, max: 8500 },
+    composite: { value: 236, max: 10425 },
+  }, { name: '测试共和国', type: '国家', classification: 'country' });
+  assert.strictEqual(overview.composite.value, 249);
+  assert.strictEqual(overview.composite.max, 10425);
+});
+
+test('confirmed sovereign parent remains visible as faction affiliation', () => {
+  const forest = loadFactionOrgForest();
+  const country = { id: 'country-a', name: '上级法域', orgDomain: 'country', type: '国家' };
+  const child = { id: 'school-a', name: '本地学校', parentId: 'country-a', foundingType: 'independent' };
+  assert.strictEqual(forest.resolveAffiliatedFaction(child, [country, child]), country);
 });
 
 test('country ideology panel always reserves five fields and stays fogged when only legitimacy placeholder exists', () => {

@@ -32,6 +32,11 @@ function loadActions(storeRows = []) {
           parseReasoningLabel: (label) => ({ phase: 'stage1', step: 1, label }),
         },
         realWorldLogStore: {
+          append: async (entry) => {
+            const index = storeRows.findIndex((item) => item.id === entry.id);
+            if (index >= 0) storeRows[index] = { ...entry };
+            else storeRows.push({ ...entry });
+          },
           get: (id) => {
             calls.get.push(id);
             return storeRows.find((entry) => entry.id === id) || null;
@@ -44,6 +49,7 @@ function loadActions(storeRows = []) {
             calls.list.push([page, size]);
             return storeRows.slice((page - 1) * size, page * size);
           },
+          listRecent: () => storeRows.slice(),
         },
       },
     },
@@ -57,7 +63,7 @@ function json(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function run() {
+async function run() {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'publish', 'boot', 'scripts.json'), 'utf8'));
   assert.ok(manifest.includes(relativeScriptPath), 'real-world thinking actions must load at runtime');
 
@@ -118,7 +124,18 @@ function run() {
   );
   assert.ok(runtime.realWorldLogSortKey({ id: 'x', type: 'ai', time: { label: '2026年7月14日 12:30:45' } }).startsWith('1000-'));
 
-  console.log('PASS real-world thinking runtime preserves grouping, log-store paging, sorting, and trace text');
+  stored.push({ id: 'real-200-a-ai', type: 'ai', narration: '正在等待 AI 返回…', streaming: true, createdAt: '2026-07-14T12:00:00.000Z' });
+  runtime.realWorldLog = [{ id: 'real-200-a-ai', type: 'ai', narration: '正在等待 AI 返回…', streaming: true }];
+  runtime.realWorldBusy = true;
+  assert.strictEqual(await runtime.recoverInterruptedRealWorldActions(), 1);
+  assert.strictEqual(runtime.realWorldBusy, false);
+  assert.strictEqual(stored.find((entry) => entry.id === 'real-200-a-ai').streaming, false);
+  assert.strictEqual(runtime.realWorldLog[0].transientError, true);
+
+  console.log('PASS real-world thinking runtime preserves grouping, interrupted-action recovery, paging, sorting, and trace text');
 }
 
-run();
+run().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

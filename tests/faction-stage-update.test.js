@@ -242,8 +242,11 @@ test('Stage9 prompts use direct JSON arrays with official example marker', () =>
   assert.ok(createMd.includes('JSON 容器最多四层'));
   assert.ok(updateMd.includes('JSON 容器最多四层'));
   assert.ok(createMd.includes('一次补全每个势力的完整信息'));
+  assert.ok(createMd.includes('住宅地址、房间、楼栋、门牌号、家庭住址不是独立势力'));
+  assert.ok(createMd.includes('不得写死任何国家或地区名称'));
   assert.ok(updateMd.includes('明显不合理、空白、占位、壳化'));
   assert.ok(updateMd.includes('当前字段已经具体、合理、成型'));
+  assert.ok(updateMd.includes('每轮都要审计已有卡片'));
   assert.ok(!createMd.includes('createFactionDraft'));
   assert.ok(!updateMd.includes('patchFactionDraft'));
   const runtime = fs.readFileSync(path.join(root, 'publish/inference/faction-stage-update.js'), 'utf8');
@@ -757,6 +760,97 @@ test('Stage9 runs create phase before update phase', async () => {
   assert.strictEqual(result.ops[0].method, 'createFaction');
   assert.strictEqual(result.ops[1].method, 'createFaction');
   assert.strictEqual(result.ops[2].method, 'patchFactionField');
+});
+
+test('Stage9-1 continues later candidates after one malformed batch response', async () => {
+  const context = vm.createContext({
+    console, Set, Map, Date, JSON,
+    window: {
+      GameModules: {
+        realWorldAgentContext: {
+          factionList: () => '暂无势力。',
+          faction: (store, method, params) => {
+            if (method === 'createFaction') store.factionState.factions.push({ id: params.id, name: params.name });
+            return method;
+          },
+        },
+        realWorldMaterials: {
+          pendingFactionCandidates: () => ([
+            { id: 'force-a', name: '势力甲', status: '待创建' },
+            { id: 'force-b', name: '势力乙', status: '待创建' },
+            { id: 'force-c', name: '势力丙', status: '待创建' },
+          ]),
+        },
+      },
+    },
+  });
+  context.window.window = context.window;
+  installStage9Prompts(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
+  const stage = context.window.GameModules.inferenceFactionStageUpdate;
+  const requests = [];
+  const loop = {
+    completeCachedJsonPrompt: async (_store, options) => {
+      requests.push(options.sourceTitle);
+      if (requests.length === 2) return '[{"id":"force-b",bad-json}]';
+      if (requests.length === 4) return '[]';
+      const id = requests.length === 1 ? 'force-a' : 'force-c';
+      const name = id === 'force-a' ? '势力甲' : '势力丙';
+      return JSON.stringify([{ id, candidate: name, name, type: '组织', world: '测试世界' }]);
+    },
+    markConfiguredStep() {},
+    patchConfiguredSettlementThinking() {},
+  };
+  const result = await stage.runAfterSettlement({
+    store: { factionState: { factions: [] }, initFactionSystem() {} }, action: '', narration: '', updates: {}, participants: [], logId: 'test-log',
+    config: { label: '现实', mode: 'real' }, loop, materialSession: {}, contextReview: '',
+  });
+  assert.strictEqual(requests.length, 4);
+  assert.ok(requests[2].includes('势力丙 3/3'));
+  assert.ok(requests[3].includes('Stage9-2'));
+  assert.strictEqual(result.ops.filter((item) => item.method === 'createFaction').length, 2);
+  assert.ok(result.lines.some((line) => line.includes('势力乙 2/3失败')));
+});
+
+test('Stage9 keeps every item returned by AI for a target', async () => {
+  const context = vm.createContext({
+    console, Set, Map, Date, JSON,
+    window: {
+      GameModules: {
+        realWorldAgentContext: {
+          factionList: () => '暂无势力。',
+          faction: (store, method, params) => {
+            if (method === 'createFaction') store.factionState.factions.push({ id: params.id, name: params.name });
+            return method;
+          },
+        },
+        realWorldMaterials: {
+          pendingFactionCandidates: () => ([{ id: 'force-target', name: '目标候选', status: '待创建' }]),
+        },
+      },
+    },
+  });
+  context.window.window = context.window;
+  installStage9Prompts(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'publish/inference/faction-stage-update.js'), 'utf8'), context, { filename: 'publish/inference/faction-stage-update.js' });
+  const stage = context.window.GameModules.inferenceFactionStageUpdate;
+  const loop = {
+    completeCachedJsonPrompt: async (_store, options) => options.sourceTitle.includes('Stage9-1')
+      ? JSON.stringify([
+        { id: 'force-target', name: '目标候选' },
+        { id: 'force-extra', name: 'AI额外返回势力' },
+      ])
+      : '[]',
+    markConfiguredStep() {},
+    patchConfiguredSettlementThinking() {},
+  };
+  const store = { factionState: { factions: [] }, initFactionSystem() {} };
+  const result = await stage.runAfterSettlement({
+    store, action: '', narration: '', updates: {}, participants: [], logId: 'test-log',
+    config: { label: '现实', mode: 'real' }, loop, materialSession: {}, contextReview: '',
+  });
+  assert.strictEqual(result.ops.filter((item) => item.method === 'createFaction').length, 2);
+  assert.deepStrictEqual(store.factionState.factions.map((item) => item.id), ['force-target', 'force-extra']);
 });
 
 (async () => {

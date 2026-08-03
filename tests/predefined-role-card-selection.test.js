@@ -422,6 +422,40 @@ test('existing account confirmation finishes activation instead of returning to 
   assert.strictEqual(finished, true);
 });
 
+test('existing account remains playable when final snapshot save fails', async () => {
+  const modules = loadPlayerSetupDefaultsModule();
+  modules.predefinedRoleCards = { saveSelectedRoleCardStates: async () => [] };
+  modules.characterStateStore = { save: async () => {} };
+  const location = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号';
+  let finished = false;
+  const store = {
+    playerProfile: { name: '刘悠', birthday: '1998-11-19', currentLocation: location },
+    playerName: '刘悠',
+    phoneActivationChoice: 'existing',
+    phoneSetupDone: false,
+    profileSetupBusy: false,
+    roleCardSetup: { usePredefinedPlayerCard: true },
+    rpgStates: { 'player-self': { id: 'player-self', name: '刘悠', profile: { currentLocation: location }, values: {} } },
+    selectedPlayerRoleCard: () => ({ id: 'player-self', name: '刘悠', currentLocation: location }),
+    playerAgeFromBirthday: modules.playerSetupActions.playerAgeFromBirthday || (() => 27),
+    syncRelationshipTextFromEntries() {},
+    refreshPhoneClockLabels() {},
+    syncPlayerProfileLexicon: async () => {},
+    syncKnownProfessionsFromProfile: async () => {},
+    save: async () => { throw new Error('存档空间不足'); },
+    finishActivationFlow: async () => { finished = true; },
+  };
+  Object.assign(store, modules.playerSetupActions);
+
+  await store.confirmPhoneActivationSetup();
+
+  assert.strictEqual(store.phoneSetupDone, true);
+  assert.strictEqual(store.phoneActivationChoice, '');
+  assert.strictEqual(store.homeScreenView, 'playing');
+  assert.match(store.setupError, /已进入游戏，但当前进度尚未保存/u);
+  assert.strictEqual(finished, true);
+});
+
 test('predefined player current location is synced into identity state', async () => {
   const modules = loadPlayerSetupDefaultsModule();
   const location = '2026 现代都市现实世界·中华人民共和国·四川省·成都市·武侯区·锦苑小区3栋|2单元·601号';

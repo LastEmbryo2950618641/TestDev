@@ -130,15 +130,13 @@ window.GameModules.ui.realWorld.mapInfoViewHelpers = {
   infoSpacePresentation() {
     const node = this.realWorldMapInfoNode();
     const graphApi = window.GameModules.realWorldLocationGraph;
-    const stored = this.realWorldMap?.nodes?.find((item) => item.id === node?.id || item.graphNodeId === node?.graphNodeId || item.name === node?.name)?.positionInfo;
-    const positionFallback = window.GameModules.ui.realWorld.mapInfoViewHelpers.positionInfoPresentation({ ...node, positionInfo: node?.positionInfo || stored });
-    if (!node?.id || !graphApi?.ensureGraphState) {
-      return positionFallback || { title: '未选择地点', tree: [], selectedId: '', emptyText: '点击地图节点查看空间。' };
-    }
+    if (!node?.id || !graphApi?.ensureGraphState) return { title: '未选择地点', tree: [], selectedId: '', emptyText: '点击地图节点查看空间。' };
     const graph = graphApi.ensureGraphState(this);
     const graphNode = graphApi.getNode?.(this, node.graphNodeId || node.id || node.name)
       || Object.values(graph.nodesById || {}).find((item) => item.name === node.name)
       || node;
+    const positionInfo = graphNode?.positionInfo || null;
+    const positionFallback = window.GameModules.ui.realWorld.mapInfoViewHelpers.positionInfoPresentation({ ...node, positionInfo });
     const nodes = Object.values(graph.nodesById || {});
     const childMap = nodes.reduce((map, item) => {
       if (!item?.parentId) return map;

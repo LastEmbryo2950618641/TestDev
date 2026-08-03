@@ -53,8 +53,8 @@ window.GameModules.inferenceNewsDriverStageUpdate = {
     if (!store?.newsDriverState?.enabled && store?.newsDriverState) return { ops: [], lines: [], skipped: true };
     store?.initNewsDriver?.();
     const prompt = this.buildPrompt({ store, action, narration });
-    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage11 世界新闻热榜结算…`, config, { keepNarration: true });
-    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage11：根据正文与时间推进调整新闻排名、替换或升格少量新闻。', {
+    loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage12 世界新闻热榜结算…`, config, { keepNarration: true });
+    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage12：根据正文与时间推进调整新闻排名、替换或升格少量新闻。', {
       ...config,
       settlementThinking: true,
       settlementThinkingKey: 'settlement-status',
@@ -63,18 +63,18 @@ window.GameModules.inferenceNewsDriverStageUpdate = {
     });
     let raw = '';
     try {
-      raw = await loop.completeConfiguredStep(store, prompt, logId, false, {
+      raw = await loop.completeCachedJsonPrompt(store, {
+        prompt,
+        logId,
         ...config,
-        sourceTitle: `${config?.label || ''}Stage11 世界新闻热榜`,
+        sourceTitle: `${config?.label || ''}Stage12 世界新闻热榜`,
         promptId: 'inference-stage11-world-news-update',
-        reasoningPhase: 'stage11',
-        streamToUi: false,
+        reasoningPhase: 'stage12',
         jsonMode: true,
-        responseFormat: { type: 'json_object' },
         outputLimitKind: 'stage4',
       });
     } catch (err) {
-      console.warn('[Stage11新闻] 生成失败:', err?.message || err);
+      console.warn('[Stage12新闻] 生成失败:', err?.message || err);
       return { ops: [], lines: [`新闻热榜失败：${err?.message || '未知错误'}`], skipped: true, error: err?.message };
     }
     const parsed = this.parseOpsPayload(raw);
@@ -85,3 +85,4 @@ window.GameModules.inferenceNewsDriverStageUpdate = {
     return { ops: parsed.ops, lines, applied, raw };
   },
 };
+

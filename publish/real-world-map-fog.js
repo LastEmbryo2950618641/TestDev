@@ -346,8 +346,8 @@ window.GameModules.realWorldMapFog = {
   },
 
   shouldBackfillPositionInfo(state = {}, anchor = {}) {
-    const map = state?.realWorldMap && typeof state.realWorldMap === 'object' ? state.realWorldMap : {};
-    const stored = map.positionInfoByPlace?.[anchor?.name];
+    const graphApi = window.GameModules.realWorldLocationGraph;
+    const stored = graphApi?.getNode?.(state, anchor?.graphNodeId || anchor?.id)?.positionInfo;
     return !(Array.isArray(stored?.positionChain) && stored.positionChain.length);
   },
 
@@ -468,6 +468,7 @@ window.GameModules.realWorldMapFog = {
     try {
 
       const payload = await this.generateSurroundUnlock(state, map, node, anchor, result, needUnlock ? 'full' : 'patch');
+      this.includeCurrentPlayerLocation(state, payload);
       // Write character locations FIRST — map neighbor apply must not gate identity persistence.
       const earlyApplied = await this.applyCharacterLocations(state, payload.characterLocations || []);
 
@@ -1304,6 +1305,24 @@ window.GameModules.realWorldMapFog = {
     return applied;
   },
 
+  includeCurrentPlayerLocation(state = {}, payload = {}) {
+    if (!payload || typeof payload !== 'object') return payload;
+    const locField = window.GameModules.currentLocationField;
+    const location = locField?.normalize?.(payload.currentFullLocation || '')
+      || String(payload.currentFullLocation || '').trim();
+    if (!location || locField?.isRecordedLocation?.(location) === false) return payload;
+    const player = state?.playerIdentityState?.() || state?.rpgStates?.['player-self'] || null;
+    const name = String(player?.profile?.name || player?.name || state?.playerProfile?.name || state?.playerName || '玩家').trim();
+    const existing = locField?.normalize?.(player?.profile?.currentLocation || '') || '';
+    if (existing === location) return payload;
+    const rows = Array.isArray(payload.characterLocations) ? payload.characterLocations : [];
+    payload.characterLocations = [
+      ...rows.filter((item) => String(item?.id || item?.characterId || '').trim() !== 'player-self'),
+      { id: 'player-self', name, location },
+    ];
+    return payload;
+  },
+
   /**
    * Persist appearingLocationById / schedule profileCurrentLocation onto character_state.
    * Repairs older saves where Stage4 stamped schedules but never wrote SQLite cards.
@@ -2134,12 +2153,6 @@ window.GameModules.realWorldMapFog = {
 
     if (mapMod.isInteriorLocationName(name)) throw new Error(`周围地点不能是室内场景：${name}`);
 
-    if (!mapMod.isMapExteriorNode(name) && !mapMod.isCommunityLevelNode(name)) {
-
-      throw new Error(`周围地点必须是建筑物或小区级 POI：${name}`);
-
-    }
-
     const directNeighbor = raw.directNeighbor !== false && raw.isDirectNeighbor !== false && raw.adjacent !== false;
 
     const noIntermediate = raw.noIntermediateLocations !== false && raw.noIntermediate !== false && raw.intermediateFree !== false;
@@ -2156,7 +2169,9 @@ window.GameModules.realWorldMapFog = {
 
     const parentNode = (map.nodes || []).find((item) => item.id === anchor.parentId);
 
-    const parentFallback = parentNode?.name || anchor.name;
+    // Surrounding places are route neighbors, not child spaces of the current POI.
+    // They only inherit a real shared parent when the anchor has one.
+    const parentFallback = parentNode?.name || '';
 
     const parentName = mapMod.cleanName(raw.parentName || raw.parentLocationName || parentFallback);
 
@@ -2206,6 +2221,8 @@ window.GameModules.realWorldMapFog = {
 
   async applySurroundUnlock(state, map, anchor, sceneNode, payload = {}) {
 
+    this.includeCurrentPlayerLocation(state, payload);
+
     const graphApi = window.GameModules.realWorldLocationGraph;
     const mapMod = this.mapApi();
     const time = mapMod.factTime(state);
@@ -2253,31 +2270,32 @@ window.GameModules.realWorldMapFog = {
       });
       const created = graphApi?.ensurePoiFromPayload?.(state, {
         name: item.name,
-        parentName: item.parentName,
+        parentName: anchorGraphParentId ? item.parentName : '',
         parentId: anchorGraphParentId,
         descriptionFacts: item.descriptionFacts,
         effectiveAuthorityRef: item.effectiveAuthorityRef || (item.faction ? { type: 'faction-chain', name: item.faction } : null),
         time,
       }, { source: 'real-world-map-surround-neighbor', skipProject: true });
 
-      if (created) {
+      const createdNode = created ? (graphApi?.getNode?.(state, created.id) || created) : null;
+      if (createdNode) {
         if (item.faction) {
-          const existingFacts = Array.isArray(created.descriptionFacts) ? created.descriptionFacts : [];
+          const existingFacts = Array.isArray(createdNode.descriptionFacts) ? createdNode.descriptionFacts : [];
           const fact = `势力：${item.faction}`;
           if (!existingFacts.includes(fact)) {
-            created.descriptionFacts = [...existingFacts, fact].slice(-30);
+            createdNode.descriptionFacts = [...existingFacts, fact].slice(-30);
           }
-          if (!created.effectiveAuthorityRef) {
-            created.effectiveAuthorityRef = { type: 'faction-chain', name: item.faction };
+          if (!createdNode.effectiveAuthorityRef) {
+            createdNode.effectiveAuthorityRef = { type: 'faction-chain', name: item.faction };
           }
         }
         this.surroundUnlockDebug(state, 'apply-neighbor-merged', {
           itemName: item?.name || '',
-          createdId: created?.id || '',
-          createdName: created?.name || '',
+          createdId: createdNode.id || '',
+          createdName: createdNode.name || '',
           faction: item?.faction || '',
         });
-        graphApi?.ensureRouteEdge?.(state, anchorGraphNode?.id || anchor?.graphNodeId || anchor?.id, created.id, {
+        graphApi?.ensureRouteEdge?.(state, anchorGraphNode?.id || anchor?.graphNodeId || anchor?.id, createdNode.id, {
           relation: 'direct-neighbor',
           directNeighbor: true,
           noIntermediateLocations: true,
@@ -2287,8 +2305,8 @@ window.GameModules.realWorldMapFog = {
           source: 'real-world-map-surround-unlock',
           time,
         });
-        touchedNodeIds.push(created.id);
-        unlocked.push(created.name);
+        touchedNodeIds.push(createdNode.id);
+        unlocked.push(createdNode.name);
       }
     }
 
@@ -2304,9 +2322,13 @@ window.GameModules.realWorldMapFog = {
           place: String(item?.place || '').trim(),
         })).filter((item) => item.name),
       };
-      map.positionInfoByPlace = map.positionInfoByPlace && typeof map.positionInfoByPlace === 'object' ? map.positionInfoByPlace : {};
-      const placeName = String(finalAnchor?.name || anchor?.name || '').trim();
-      if (placeName) map.positionInfoByPlace[placeName] = storedPositionInfo;
+      const persistedAnchorNode = graphApi?.getNode?.(state, anchorGraphNode?.id)
+        || state?.locationGraph?.nodesById?.[anchorGraphNode?.id]
+        || anchorGraphNode;
+      if (persistedAnchorNode) {
+        persistedAnchorNode.positionInfo = storedPositionInfo;
+        anchorGraphNode = persistedAnchorNode;
+      }
     }
     const locationInfo = Array.isArray(payload.locationInfo) ? payload.locationInfo : [];
     const factionInfo = Array.isArray(payload.factionInfo) ? payload.factionInfo : [];
@@ -2368,6 +2390,9 @@ window.GameModules.realWorldMapFog = {
     }
     state.realWorldMap = map;
     state.locationGraph = graphApi?.ensureGraphState?.(state) || state.locationGraph;
+    // The canvas graph is derived from the location graph. Its cached layout must
+    // be discarded whenever route neighbors are written.
+    if (window.GameModules.realWorldMapRuntime) window.GameModules.realWorldMapRuntime.graphCache = null;
     this.syncRevealed(map);
 
     window.GameModules.orgTerritory?.ensureMapControls?.(map, state);
@@ -2377,7 +2402,7 @@ window.GameModules.realWorldMapFog = {
       anchorName: anchor?.name || '',
       unlocked,
       touchedNodeIds,
-      storedPositionPlaceNames: Object.keys(map.positionInfoByPlace || {}).filter((name) => map.positionInfoByPlace[name]?.positionChain?.length).slice(0, 16),
+      storedPositionPlaceNames: anchorGraphNode?.positionInfo?.positionChain?.length ? [anchorGraphNode.name || anchor.name || ''] : [],
       characterLocationApplied,
       afterInteriorSummary: this.summarizeInteriorLayout(anchor?.interiorLayout || {}),
       mapNodeCount: Array.isArray(map?.nodes) ? map.nodes.length : 0,

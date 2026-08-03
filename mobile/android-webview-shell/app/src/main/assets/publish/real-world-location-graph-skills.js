@@ -221,7 +221,7 @@ window.GameModules.realWorldLocationGraphSkills = {
         needsExplicitPatch: true,
         hiddenAuditSkipped: true,
         auditCacheSignature: signature,
-        reason: '地点图查询未命中；Stage1 不补地图。等待 Stage4 地图更新 / Stage9 电子地图周围解锁根据正文提交显式补全 patch；系统不发起隐藏 AI 审计。',
+        reason: '地点图查询未命中；Stage1 不补地图。等待 Stage4 地图更新 / Stage10 电子地图周围解锁根据正文提交显式补全 patch；系统不发起隐藏 AI 审计。',
       };
       this.auditDebug(store, 'explicit-patch-required', {
         stage: input.stage,
@@ -503,3 +503,4 @@ window.GameModules.realWorldLocationGraphSkills = {
     });
   },
 };
+
