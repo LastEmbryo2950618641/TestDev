@@ -383,6 +383,7 @@ window.GameModules.solidifyActions = {
       lastContactChannel: social.lastContactChannel,
       reach: social.reach,
       agenda: card.agenda,
+      ideas: card.ideas,
     }, { name: card.name }) || null;
     const existingStubId = card.roleState?.id && window.GameModules.characterIntroCard?.isIncompleteRoleStub?.(card.roleState)
       ? card.roleState.id

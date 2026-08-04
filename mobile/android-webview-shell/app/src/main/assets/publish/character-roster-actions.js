@@ -48,13 +48,24 @@ window.GameModules.characterRosterActions = {
     return `${String(worldTag || '').trim()}::${String(name || '').trim()}`;
   },
 
+  characterRosterRelation(profile = {}) {
+    const direct = String(profile?.socialDrive?.relationToPlayer || '').trim();
+    if (direct) return direct;
+    const playerName = String(this.rpgStates?.['player-self']?.profile?.name || this.character?.name || '').trim();
+    const relationships = String(profile?.relationships || '').trim();
+    if (!relationships || !playerName) return '';
+    const escaped = playerName.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+    const match = relationships.match(new RegExp(`(?:^|[；;，,])\\s*([^：:；;,]+)[：:]\\s*${escaped}(?=$|[；;，,])`, 'u'));
+    return String(match?.[1] || '').trim();
+  },
+
   /** 合并角色卡 + 介绍卡为一人一条（两边都保留引用；同 ID 合并） */
   characterRosterPeople() {
     this.initCharacterRosterApp();
     const q = String(this.characterRosterState.query || '').trim().toLowerCase();
     const map = new Map();
     const upsert = (row) => {
-      const sharedId = row.roleState?.id || row.introCard?.id || row.introCard?.links?.roleCardId || '';
+      const sharedId = row.roleState?.id || row.introCard?.links?.roleCardId || row.introCard?.id || '';
       const key = this.characterRosterPersonKey(row.name, row.worldTag, sharedId);
       const prev = map.get(key) || {
         key,
@@ -76,7 +87,7 @@ window.GameModules.characterRosterActions = {
         const complete = !window.GameModules.characterIntroCard?.isIncompleteRoleStub?.(row.roleState);
         prev.hasRole = complete;
         const drive = row.roleState.profile?.socialDrive || {};
-        prev.relation = drive.relationToPlayer || prev.relation;
+        prev.relation = drive.relationToPlayer || this.characterRosterRelation(row.roleState.profile) || prev.relation;
         prev.agendaShort = drive.agenda?.short || prev.agendaShort;
         prev.presenceKind = row.roleState.profile?.presenceKind || prev.presenceKind || '';
       }
@@ -107,6 +118,18 @@ window.GameModules.characterRosterActions = {
     const intros = window.GameModules.characterIntroStore?.list?.() || [];
     intros.forEach((card) => {
       if (!card?.name) return;
+      const duplicateRole = [...map.values()].some((item) => (
+        item.hasRole
+        && item.name === card.name
+        && (
+          !item.worldTag
+          || !card.worldTag && !card.work
+          || item.worldTag === card.worldTag
+          || item.worldTag === card.work
+          || window.GameModules.characterQuery?.worldMatches?.(item.worldTag, card.worldTag || card.work)
+        )
+      ));
+      if (duplicateRole) return;
       upsert({
         name: card.name,
         worldTag: card.worldTag || card.work || '原创世界',
@@ -157,6 +180,7 @@ window.GameModules.characterRosterActions = {
     const persona = card.persona || {};
     const social = card.social || {};
     const agenda = card.agenda || {};
+    const ideas = Array.isArray(card.ideas) ? card.ideas : [];
     const meta = card.meta || {};
     const links = card.links || {};
     const row = (label, value) => ({ label, value: value || '未记录' });
@@ -186,6 +210,7 @@ window.GameModules.characterRosterActions = {
       row('紧迫度', agenda.urgency != null ? String(agenda.urgency) : ''),
       row('期限', agenda.deadline),
       row('冷却至', agenda.cooldownUntil),
+      row('想法', ideas.map((idea, index) => `${index + 1}. ${idea.title || idea.detail || '未命名'}${idea.detail && idea.title ? `：${idea.detail}` : ''}`).join('\n')),
       row('已升格角色卡', links.roleCardId || (meta.solidifyStatus === 'solidified' ? '已升格（ID 待回写）' : '尚未升格')),
       row('固化状态', meta.solidifyStatus || 'none'),
       row('来源', meta.source || card.source || ''),

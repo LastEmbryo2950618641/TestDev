@@ -11,16 +11,8 @@ window.GameModules.ui.event.labelViewHelpers = {
     return '状态：';
   },
 
-  eventTriggeredCountFieldLabel() {
-    return '触发：';
-  },
-
   eventHeaderDescription() {
     return '熟人入队 · 场外事件 · 推进节奏';
-  },
-
-  eventProbabilityFieldLabel() {
-    return '随机事件发生概率';
   },
 
   eventBackButtonText() {

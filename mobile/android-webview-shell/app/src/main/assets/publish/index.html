@@ -1314,7 +1314,6 @@
             <button class="desktop-app-icon prompt-icon" type="button" @click="$store.game.openPromptApp()" aria-label="打开提示词管理"><span class="app-glyph-emoji" aria-hidden="true">📝</span><b>提示词</b></button>
             <button class="desktop-app-icon control-experience-icon" type="button" @click="$store.game.openControlExperienceConfigApp()" aria-label="打开上线体验"><span class="app-glyph-emoji" aria-hidden="true">🧠</span><b>上线体验</b></button>
             <button class="desktop-app-icon token-icon" type="button" @click="$store.game.openTokenStatsApp()" aria-label="打开Token统计"><span class="app-glyph-emoji" aria-hidden="true">📊</span><b>Token统计</b></button>
-            <button class="desktop-app-icon profession-icon" type="button" @click="$store.game.openKnownProfessionApp()" aria-label="打开已知职业"><span class="app-glyph-emoji" aria-hidden="true">🎖️</span><b>已知职业</b></button>
             <button class="desktop-app-icon taobao-icon" type="button" @click="$store.game.openTaobaoApp()" aria-label="打开淘宝"><span class="app-glyph-emoji" aria-hidden="true">🛒</span><b>淘宝</b></button>
           </div>
           <div class="desktop-apps" aria-label="桌面第2页">
@@ -2314,7 +2313,6 @@
                 <p x-text="$store.game.selectedEvent().content"></p>
                 <div class="event-chip-row"><template x-for="tag in ($store.game.selectedEvent().tags || [])" :key="tag"><span x-text="tag"></span></template></div>
                 <p><b>状态：</b><span x-text="$store.game.eventStatusLabel($store.game.selectedEvent())"></span></p>
-                <p x-show="$store.game.selectedEvent().type === 'random'"><b>触发：</b><span x-text="`${$store.game.selectedEvent().triggeredCount || 0} 次`"></span></p>
               </article>
             </template>
             <p class="empty-lore" x-show="!$store.game.selectedEvent()">选择左侧事件查看详情。</p>
@@ -2323,6 +2321,19 @@
       </main>
 
       <main class="drive-pane drive-tempo-pane scroll-area" x-show="$store.game.eventState.primaryTab === 'tempo'" role="tabpanel">
+        <section class="drive-tempo-block">
+          <h3>场外随机</h3>
+          <label class="event-setting drive-tempo-setting">
+            <span>角色候选概率</span>
+            <input type="range" min="0" max="100" step="1" :value="$store.game.randomRoleCandidateProbability()" @input="$store.game.setRandomRoleCandidateProbability($event.target.value)">
+            <b x-text="`${$store.game.randomRoleCandidateProbability()}%`"></b>
+          </label>
+          <label class="event-setting drive-tempo-setting">
+            <span>场景临时事件概率</span>
+            <input type="range" min="0" max="100" step="1" :value="$store.game.randomContextEventProbability()" @input="$store.game.setRandomContextEventProbability($event.target.value)">
+            <b x-text="`${$store.game.randomContextEventProbability()}%`"></b>
+          </label>
+        </section>
         <section class="drive-tempo-block">
           <h3>推进时长 → 熟人入队人数</h3>
           <p class="drive-tempo-note">按本次时间跨度决定最多几人进入日常队列（期望 / 硬顶）。</p>
@@ -2341,14 +2352,6 @@
             </template>
           </div>
           <button class="small-btn" type="button" @click="$store.game.resetInboxBudgetTiers()">恢复默认阶梯</button>
-        </section>
-        <section class="drive-tempo-block">
-          <h3>场外随机</h3>
-          <label class="event-setting drive-tempo-setting">
-            <span>随机事件发生概率</span>
-            <input type="number" min="0" max="100" step="1" :value="$store.game.eventRandomProbability()" @change="$store.game.setEventRandomProbability($event.target.value)">
-            <b>%</b>
-          </label>
         </section>
         <section class="drive-tempo-block drive-tempo-reserve">
           <h3>更多开关</h3>
@@ -2727,7 +2730,7 @@
         <div>
           <p class="eyebrow">CHARACTERS</p>
           <h2>角色管理</h2>
-          <small>角色卡与介绍卡独立存放；升格后介绍卡仍保留，查询优先角色卡</small>
+          <small>角色卡与介绍卡独立存放；同名完整角色卡优先展示，不重复显示旧介绍卡</small>
         </div>
         <button class="small-btn" type="button" @click="$store.game.closeCharacterRosterApp()">回到桌面</button>
       </header>
@@ -2809,7 +2812,7 @@
               <template x-if="!$store.game.selectedCharacterRosterPerson()?.hasRole">
                 <div class="roster-role-pane empty">
                   <div class="roster-pane-card">
-                    <p class="skills-note">尚未生成角色卡。可在「介绍卡」页手动升格；升格后介绍卡仍保留。</p>
+                    <p class="skills-note">尚未生成角色卡。可在「介绍卡」页手动升格；生成后角色管理不再重复显示同名旧介绍卡。</p>
                   </div>
                   <button class="primary-btn" type="button" x-show="$store.game.selectedCharacterRosterPerson()?.hasIntro" @click="$store.game.setCharacterRosterTab('intro')">前往介绍卡升格</button>
                 </div>

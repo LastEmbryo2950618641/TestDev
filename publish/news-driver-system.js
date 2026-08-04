@@ -285,6 +285,25 @@ window.GameModules.newsDriverSystem = {
     return ['浏览新闻'];
   },
 
+  replacementSlot(list = [], channelId = '') {
+    const rows = (Array.isArray(list) ? list : [])
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => item?.channelId === channelId);
+    const vacancy = rows.find(({ item }) => item.placeholder || item.title === '未知');
+    if (vacancy) return { ...vacancy, kind: 'placeholder' };
+    const expired = rows
+      .filter(({ item }) => item.status === 'expired')
+      .sort((left, right) => (Number(left.item.heat) || 0) - (Number(right.item.heat) || 0))[0];
+    if (expired) return { ...expired, kind: 'expired' };
+    const active = rows.filter(({ item }) => item.status !== 'expired');
+    if (active.length < this.MAX_ITEMS_PER_CHANNEL) return { index: -1, item: null, kind: 'empty' };
+    const lowest = active.sort((left, right) => (
+      (Number(left.item.heat) || 0) - (Number(right.item.heat) || 0)
+      || String(left.item.updatedAt || '').localeCompare(String(right.item.updatedAt || ''))
+    ))[0];
+    return lowest ? { ...lowest, kind: 'lowest-heat' } : { index: -1, item: null, kind: 'empty' };
+  },
+
   applyOps(state = {}, ops = [], options = {}) {
     const nowIso = options.nowIso || new Date().toISOString();
     const next = this.normalizeState(state);
@@ -317,18 +336,15 @@ window.GameModules.newsDriverSystem = {
         if (!this.channelById(channelId)) return;
         const item = this.normalizeNewsItem({ ...opRaw.item, channelId, source: 'ai' }, { nowIso, source: 'ai', sourceLogId: options.logId || '' });
         if (!item) return;
-        const targetId = String(opRaw.targetId || opRaw.id || '').trim();
-        let index = targetId ? list.findIndex((entry) => entry.id === targetId) : -1;
-        if (index < 0) {
-          const rank = Math.max(1, Math.round(Number(opRaw.rank) || 1));
-          const channelItems = this.rankItems(list).filter((entry) => entry.channelId === channelId && entry.status !== 'expired');
-          const target = channelItems[rank - 1] || channelItems[channelItems.length - 1];
-          index = target ? list.findIndex((entry) => entry.id === target.id) : -1;
-        }
         const replacement = { ...item, id: this.makeId('news'), rank: 1, createdAt: nowIso, updatedAt: nowIso };
-        if (index >= 0) list[index] = replacement;
+        const slot = this.replacementSlot(list, channelId);
+        if (slot.index >= 0) list[slot.index] = replacement;
         else list.push(replacement);
-        applied.push(this.opRecord('replace', opRaw, nowIso));
+        applied.push({
+          ...this.opRecord('replace', opRaw, nowIso),
+          replacedId: slot.item?.id || '',
+          placement: slot.kind,
+        });
         return;
       }
       if (op === 'promoteToEvent') {

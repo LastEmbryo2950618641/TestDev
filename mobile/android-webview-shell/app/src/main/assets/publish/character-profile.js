@@ -334,13 +334,14 @@ window.GameModules.characterProfile = {
         lastContactChannel: 'none',
         reach: this.isPlayerSelfTarget(base) ? [] : ['scene'],
         agenda: {
-          short: String(part1?.detail || part1?.role || base.detail || '').slice(0, 160),
+          short: '',
           deadline: '',
           needPlayer: false,
           needPlayerWhy: '',
           urgency: 0.15,
           cooldownUntil: '',
         },
+        ideas: [],
       }, base) || tool?.empty?.() || {},
     });
     try {
@@ -357,8 +358,28 @@ window.GameModules.characterProfile = {
         prompt,
       });
       const parsed = typeof raw === 'string' ? this.parse(raw) : raw;
-      const drive = tool?.normalizeForRoleCard?.(parsed?.socialDrive || parsed, base);
+      let drive = tool?.normalizeForRoleCard?.(parsed?.socialDrive || parsed, base);
       if (!drive) return fallback();
+      if ((drive.ideas || []).filter((idea) => idea.status === 'active').length < 3) {
+        const ideasRaw = await window.GameModules.jsonUtils.generateJsonWithRetry({
+          source: 'character-profile-part8-social-drive-ideas-fill',
+          promptId: 'character-profile-part8-social-drive',
+          model: window.GameModules.aiRequest?.selectedTextModel?.(),
+          timeoutMs: 60000,
+          prompt: [
+            prompt,
+            '',
+            '## 补足要求',
+            '只补足 socialDrive.ideas，使其最终恰好有三条 active 的非必做个人想法。结合角色性格、情绪、感觉、背景、职业、时间、地点和关系生成，不得修改 agenda 或其他字段。',
+            '只输出 JSON：{ "ideas": [{ "id": "", "title": "", "detail": "", "status": "active", "reason": "" }] }。',
+          ].join('\n'),
+        });
+        const ideasParsed = typeof ideasRaw === 'string' ? this.parse(ideasRaw) : ideasRaw;
+        const ideas = ideasParsed?.socialDrive?.ideas || ideasParsed?.ideas;
+        if (Array.isArray(ideas) && ideas.length) {
+          drive = tool.normalizeForRoleCard({ ...drive, ideas }, base);
+        }
+      }
       return { name: parsed?.name || base.name || part1?.name, socialDrive: drive };
     } catch (err) {
       console.warn('[角色卡] Part8 社交驱动生成失败，使用回退:', err?.message || err);

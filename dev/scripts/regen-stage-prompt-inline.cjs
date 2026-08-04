@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Regenerate Stage1–4 prompt inline .js from matching .md files.
+ * Regenerate Stage prompt inline .js snapshots from matching .md files.
  * Usage: node dev/scripts/regen-stage-prompt-inline.cjs
  */
 const fs = require('fs');
@@ -13,6 +13,7 @@ const ids = [
   ['stage2-scene-anchor', 'inference-stage2-scene-anchor'],
   ['stage3-narration', 'inference-stage3-narration'],
   ['stage4-settlement-window', 'inference-stage4-settlement-window'],
+  ['stage11-world-news-update', 'inference-stage11-world-news-update'],
 ];
 
 function escapeJsString(text) {

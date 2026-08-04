@@ -57,6 +57,13 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(passes[11].types)), ['角色卡
 assert.ok(passes[11].label.includes('角色卡补充更新'));
 assert.strictEqual(loop.stagePhaseLabel('stage4-12'), 'Stage4-12 角色卡补充更新');
 assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-12 角色卡补充更新' }), 'stage4-12');
+assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-13 社交驱动' }), 'stage4-13');
+assert.strictEqual(loop.inferReasoningPhase({ sourceTitle: '现实Stage4-14 角色想法补足' }), 'stage4-14');
+assert.strictEqual(loop.isSettlementReasoning({ reasoningPhase: 'stage4' }), true);
+for (let stage = 1; stage <= 14; stage += 1) {
+  assert.strictEqual(loop.isSettlementReasoning({ reasoningPhase: `stage4-${stage}` }), true, `Stage4-${stage} must use settlement thinking`);
+}
+assert.strictEqual(loop.isSettlementReasoning({ reasoningPhase: 'stage3' }), false);
 
 const possessedPasses = loop.stage4SettlementPasses(loop.realConfig(), { sharedControlState: () => ({ id: 'shared' }) });
 assert.deepStrictEqual(JSON.parse(JSON.stringify(possessedPasses[10].types)), ['操控体验']);

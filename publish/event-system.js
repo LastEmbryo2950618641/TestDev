@@ -2,8 +2,8 @@ window.GameModules = window.GameModules || {};
 
 window.GameModules.eventSystem = {
   // inference = 大地图/活动类事件（非人员日常驱动）；人员找主角走 Social Inbox。
-  EVENT_TYPES: ['random', 'inference', 'periodic'],
-  TYPE_LABELS: { random: '随机事件', inference: '大地图事件', periodic: '周期事件' },
+  EVENT_TYPES: ['inference', 'periodic'],
+  TYPE_LABELS: { inference: '大地图事件', periodic: '周期事件' },
 
   defaultState() {
     const inboxBudgetTiers = window.GameModules.socialInbox?.defaultBudgetTiers?.()
@@ -20,17 +20,17 @@ window.GameModules.eventSystem = {
       inboxFilter: 'pending', // pending | prepared | consumed | all
       inboxSelectedId: '',
       inboxBudgetTiers,
-      tab: 'random',
+      tab: 'inference',
       selectedId: '',
       message: '',
-      currentContext: null,
-      randomProbability: 10,
+      randomRoleCandidateProbability: 30,
+      randomContextEventProbability: 20,
       events: [],
-      draft: this.defaultDraft('random'),
+      draft: this.defaultDraft('inference'),
     };
   },
 
-  defaultDraft(type = 'random') {
+  defaultDraft(type = 'inference') {
     return {
       type: this.normalizeWritableType(type),
       title: '',
@@ -40,23 +40,21 @@ window.GameModules.eventSystem = {
       content: '',
       peopleText: '',
       tagsText: '',
-      probability: 10,
     };
   },
 
   normalizeType(type = '') {
     const value = String(type || '').trim().toLowerCase();
-    if (['random', '随机事件', 'random-event'].includes(value)) return 'random';
     if (['inference', '推演事件', '大地图事件', '地图事件', '活动事件', 'story', 'derived', 'map-event', 'world-event'].includes(value)) {
       return 'inference';
     }
     if (['periodic', '周期事件', 'cycle', 'recurring'].includes(value)) return 'periodic';
-    return 'random';
+    return '';
   },
 
   normalizeWritableType(type = '') {
     const normalized = this.normalizeType(type);
-    return this.EVENT_TYPES.includes(normalized) ? normalized : 'random';
+    return this.EVENT_TYPES.includes(normalized) ? normalized : 'inference';
   },
 
   isWritableType(type = '') {
@@ -65,7 +63,7 @@ window.GameModules.eventSystem = {
 
   typeLabel(type = '') {
     const key = this.normalizeType(type);
-    return this.TYPE_LABELS[key] || this.TYPE_LABELS.random;
+    return this.TYPE_LABELS[key] || this.TYPE_LABELS.inference;
   },
 
   splitList(value = '') {
@@ -108,14 +106,11 @@ window.GameModules.eventSystem = {
       content: String(raw.content || raw.detail || raw.summary || raw['事件内容'] || '').trim(),
       people: people.length ? people : ((type === 'periodic' || type === 'inference') ? ['所有人'] : []),
       tags,
-      probability: type === 'random' ? Math.max(0, Math.min(100, Math.round(Number(raw.probability ?? raw.chance ?? raw['发生概率'] ?? store?.eventState?.randomProbability ?? 10)))) : 100,
       source: String(raw.source || raw.origin || '').trim(),
       sourceLogId: raw.sourceLogId || raw.logId || '',
       memoryIds: Array.isArray(raw.memoryIds) ? raw.memoryIds.slice(0, 8) : [],
       status: String(raw.status || '').trim(),
       recurrence: type === 'periodic' ? (raw.recurrence || 'yearly') : '',
-      triggeredCount: Math.max(0, Math.round(Number(raw.triggeredCount) || 0)),
-      lastTriggeredAt: raw.lastTriggeredAt || '',
       createdAt: raw.createdAt || new Date().toISOString(),
       updatedAt: raw.updatedAt || new Date().toISOString(),
     };

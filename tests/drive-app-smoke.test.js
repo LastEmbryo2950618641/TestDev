@@ -25,7 +25,7 @@ assert.ok(html.includes('setInboxBudgetTier(index'), 'html calls setInboxBudgetT
 assert.ok(html.includes('resetInboxBudgetTiers()'), 'html calls resetInboxBudgetTiers');
 assert.ok(html.includes('inboxListEmptyText'), 'filter-aware empty lore');
 assert.ok(css.includes('.drive-budget-table'), 'drive css present');
-assert.ok(!html.includes('event-setting"><span>随机事件发生概率'), 'probability removed from header');
+assert.ok(!html.includes('随机事件发生概率'), 'event library probability setting removed');
 
 const androidActions = path.join(root, 'mobile/android-webview-shell/app/src/main/assets/publish/event-actions.js');
 const androidHtml = path.join(root, 'mobile/android-webview-shell/app/src/main/assets/publish/index.html');
@@ -165,13 +165,20 @@ store.eventState = {
   tab: 'random',
   selectedId: '',
   message: '',
-  currentContext: null,
   randomProbability: 10,
   events: [],
   draft: {},
 };
 store.initEventSystem();
 assert.strictEqual(store.eventState.primaryTab, 'events');
+assert.strictEqual(store.eventState.tab, 'inference');
+assert.strictEqual(Object.hasOwn(store.eventState, 'randomProbability'), false);
+assert.strictEqual(store.randomRoleCandidateProbability(), 30);
+assert.strictEqual(store.randomContextEventProbability(), 20);
+store.setRandomRoleCandidateProbability(65);
+store.setRandomContextEventProbability(35);
+assert.strictEqual(store.randomRoleCandidateProbability(), 65);
+assert.strictEqual(store.randomContextEventProbability(), 35);
 assert.strictEqual(store.eventState.inboxFilter, 'pending');
 assert.strictEqual(store.eventState.inboxBudgetTiers.length, 5);
 

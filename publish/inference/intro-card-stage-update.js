@@ -1,8 +1,8 @@
 window.GameModules = window.GameModules || {};
 
 /**
- * Stage5：介绍卡更新入口。
- * Stage5-0 负责判定待建介绍卡候选；Stage5-1 负责真正建介绍卡；Stage5-2 负责已有介绍卡的增量更新。
+ * 人物资料更新入口。
+ * Stage4-13 负责完整角色卡社交驱动，Stage4-14 补足角色想法；Stage5-0/5-1/5-2 只负责介绍卡。
  */
 window.GameModules.inferenceIntroCardStageUpdate = {
   scalarFields: new Set([
@@ -26,6 +26,18 @@ window.GameModules.inferenceIntroCardStageUpdate = {
 
   deltaFields: new Set(['social.affection', 'social.familiarity']),
   listFields: new Set(['persona.preferences', 'persona.attraction', 'routine.tags', 'memory.facts']),
+  introIdeasField: 'ideas',
+  roleDriveScalarFields: new Set([
+    'socialDrive.relationToPlayer',
+    'socialDrive.relationDetail',
+    'socialDrive.agenda.short',
+    'socialDrive.agenda.deadline',
+    'socialDrive.agenda.needPlayer',
+    'socialDrive.agenda.needPlayerWhy',
+    'socialDrive.agenda.urgency',
+  ]),
+  roleDriveIdeasField: 'socialDrive.ideas',
+  roleDriveDeltaFields: new Set(['socialDrive.familiarity']),
 
   parseOpsPayload(raw = '') {
     const source = String(raw || '').replace(/```(?:json)?|```/gi, '').trim();
@@ -92,8 +104,8 @@ window.GameModules.inferenceIntroCardStageUpdate = {
   },
 
   normalizeScalar(field = '', value = '') {
-    if (field === 'agenda.needPlayer') return Boolean(value);
-    if (field === 'agenda.urgency') {
+    if (field === 'agenda.needPlayer' || field === 'socialDrive.agenda.needPlayer') return Boolean(value);
+    if (field === 'agenda.urgency' || field === 'socialDrive.agenda.urgency') {
       const num = Number(value);
       return Number.isFinite(num) ? Math.max(0, Math.min(1, num)) : 0;
     }
@@ -112,6 +124,11 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       'agenda.short': 160,
       'agenda.deadline': 32,
       'agenda.needPlayerWhy': 120,
+      'socialDrive.relationToPlayer': 40,
+      'socialDrive.relationDetail': 80,
+      'socialDrive.agenda.short': 160,
+      'socialDrive.agenda.deadline': 32,
+      'socialDrive.agenda.needPlayerWhy': 120,
     };
     return String(value ?? '').trim().slice(0, limits[field] || 120);
   },
@@ -157,6 +174,21 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     return rows.length ? rows.slice(0, 16).join('\n') : '无';
   },
 
+  narrationParticipants(narration = '') {
+    const rows = [];
+    const seen = new Set();
+    const pattern = /<role\b[^>]*\bid\s*=\s*["']([^"']+)["'][^>]*>([^<]+)<\/role>/giu;
+    for (const match of String(narration || '').matchAll(pattern)) {
+      const id = String(match[1] || '').trim();
+      const name = String(match[2] || '').trim();
+      const key = id || name;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ id, name });
+    }
+    return rows;
+  },
+
   cardsText(cards = []) {
     const slim = (cards || []).map((card) => ({
       id: card.id,
@@ -167,9 +199,23 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       persona: card.persona || {},
       social: card.social || {},
       agenda: card.agenda || {},
+      ideas: card.ideas || [],
       routine: card.routine || {},
       memory: card.memory || {},
     }));
+    return JSON.stringify(slim, null, 2).slice(0, 8000);
+  },
+
+  roleCardsText(states = []) {
+    const slim = (states || []).map((state) => {
+      const profile = state?.profile || {};
+      return {
+        id: state?.id,
+        name: profile.name || state?.name || '',
+        worldTag: profile.work || state?.worldTag || '',
+        socialDrive: profile.socialDrive || {},
+      };
+    });
     return JSON.stringify(slim, null, 2).slice(0, 8000);
   },
 
@@ -277,6 +323,9 @@ window.GameModules.inferenceIntroCardStageUpdate = {
         needPlayerWhy: String(agenda.needPlayerWhy || card.agenda?.needPlayerWhy || '').trim().slice(0, 120),
         urgency: Math.max(0, Math.min(1, Number(agenda.urgency ?? card.agenda?.urgency ?? 0) || 0)),
       },
+      ideas: window.GameModules.characterSocialDrive?.normalizeIdeas?.(
+        socialDrive.ideas ?? card.ideas ?? [],
+      ) || [],
     };
     next.role = next.identity.role || next.role || '';
     next.intro = next.persona.background || next.intro || '';
@@ -321,7 +370,7 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       this.stage4Summary(updates),
       '',
       '## 输出 JSON Schema',
-      '{ "cards": [ { "id": "介绍卡ID", "name": "姓名", "worldTag": "世界", "presenceKind": "individual|group", "identity": {}, "persona": {}, "social": {}, "agenda": {}, "routine": { "tags": [] }, "memory": { "facts": [] } } ], "done": true }',
+      '{ "cards": [ { "id": "介绍卡ID", "name": "姓名", "worldTag": "世界", "presenceKind": "individual|group", "identity": {}, "persona": {}, "social": {}, "agenda": {}, "ideas": [{ "id": "idea-1", "title": "", "detail": "", "status": "active", "reason": "" }], "routine": { "tags": [] }, "memory": { "facts": [] } } ], "done": true }',
     ]);
   },
 
@@ -339,9 +388,33 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       '## Stage4 结算摘要',
       this.stage4Summary(updates),
       '',
+      '## 想法驱动规则',
+      '- agenda 是单条正式事务，只有正文或既有资料明确证明创建、推进、完成、取消或替代时才能修改。',
+      '- ideas 是三条非必做的个人想法/想要做的事情；须根据人物性格、情绪、对主角感觉、背景、时间、地点和正文调整，不是正式事务。',
+      '- 使用 field="ideas"、op="replace"、value 为完整三条 active 想法数组；每条包含 id、title、detail、status、reason。',
+      '- 若卡片 ideas 少于三条，必须补足；不得把固定事件清单或玩家主线当成想法。',
+      '',
       '## 输出 JSON Schema',
       '{ "ops": [ { "id": "介绍卡ID", "field": "identity.role", "op": "set", "value": "完整新值", "reason": "正文或资料依据" } ], "done": true }',
     ]);
+  },
+
+  buildIntroIdeaFillPrompt({ introCards = [], narration = '', updates = {} } = {}) {
+    return [
+      '# Stage5-2 介绍卡想法补足',
+      '只为没有完整角色卡的介绍卡补足非必做个人想法。不得修改 agenda、social、identity、persona 或其他字段。',
+      '每张卡必须最终有三条 active 想法；必须结合卡片中的性格、关系、当前情境和正文生成，不能套用固定事件列表。',
+      '只输出 JSON：{ "ops": [], "done": true }。每张卡使用 field="ideas"、op="replace"，value 为完整三条想法数组；每条包含 id、title、detail、status、reason。',
+      '',
+      '## 介绍卡',
+      this.cardsText(introCards),
+      '',
+      '## 本轮正文',
+      String(narration || '').slice(0, 5000),
+      '',
+      '## Stage4 结算摘要',
+      this.stage4Summary(updates),
+    ].join('\n');
   },
 
   async saveCard(card = null) {
@@ -384,6 +457,70 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     });
   },
 
+  buildRoleDrivePrompt({ participants = [], roleCards = [], narration = '', updates = {} } = {}) {
+    return [
+      '# Stage4-13 社交驱动',
+      '角色：完整角色卡社交驱动结算器。只更新本轮正文中实际出场角色的社交驱动，不创建介绍卡，不修改其他角色卡字段。',
+      '',
+      '## 本回合参与者',
+      this.participantsText(participants),
+      '',
+      '## 完整角色卡社交驱动基线',
+      this.roleCardsText(roleCards),
+      '',
+      '## 本轮正文',
+      String(narration || '').slice(0, 5000),
+      '',
+      '## Stage4-1 至 Stage4-12 结算摘要',
+      this.stage4Summary(updates),
+      '',
+      '## 输出规则',
+      '- 只输出 JSON：{ "ops": [], "done": true }。',
+      '- 每条 op 必须使用完整角色卡 id。正式事务字段只允许 socialDrive.relationToPlayer、socialDrive.relationDetail、socialDrive.familiarity、socialDrive.agenda.short、socialDrive.agenda.deadline、socialDrive.agenda.needPlayer、socialDrive.agenda.needPlayerWhy、socialDrive.agenda.urgency；想法使用 socialDrive.ideas。',
+      '- relationToPlayer 是稳定关系描述；好感、信任、依赖、警惕等临时态度属于感觉，不得写入关系。',
+      '- agenda 是正式事务：角色当前需要且必须完成的一件事，例如准备考试、准备约会。没有正文事实或既有资料依据时不得凭空创建、替换、推进或结束；事务变化必须有明确证据。',
+      '- ideas 是三条非必做的个人想法/想做的事，例如想洗澡、想玩游戏、想出去玩。它们不是任务、不是承诺，也不是关系或情绪字段；必须结合角色性格、当前情绪、对玩家感觉、背景、职业、时间、地点和正文生成，且始终保持三条 active 想法。',
+      '- 想法可使用 op=replace 且 value 为完整数组，也可使用 op=add/update/complete/cancel；完成、取消或明显不再符合当前处境时要调整，并由新的上下文想法补足。不要把固定事件清单写进提示词。',
+      '- 若基线正式事务为空，只有既有资料和本轮上下文足以确认时才补全；若 ideas 少于三条，必须生成缺少的想法。',
+      '- 标量字段 op 只能是 set；socialDrive.familiarity 的 op 只能是 delta，value 为非零数字。',
+      '- 每条均须包含 reason；无变化输出空数组。',
+    ].join('\n');
+  },
+
+  buildRoleIdeaFillPrompt({ roleCards = [], narration = '', updates = {} } = {}) {
+    return [
+      '# Stage4-14 角色想法补足',
+      '只为已有完整角色卡补足非必做的个人想法。正式事务、关系、熟识度和其他字段不得修改。',
+      '每个角色必须最终拥有三条 active 想法；想法是基于角色性格、情绪、感觉、背景、职业、地点、时间和本轮正文的可变意向，不是必须完成的正式事务。',
+      '只输出 JSON：{ "ops": [], "done": true }。每个缺口角色使用一条 field 为 socialDrive.ideas、op 为 replace 的操作，value 必须是完整的三条想法数组；每条包含 id、title、detail、status、reason。',
+      '不要复制其他角色的想法，不要枚举固定事件库，不要把想法写成玩家主线。',
+      '',
+      '## 角色卡',
+      this.roleCardsText(roleCards),
+      '',
+      '## 本轮正文',
+      String(narration || '').slice(0, 5000),
+      '',
+      '## 前序结算摘要',
+      this.stage4Summary(updates),
+    ].join('\n');
+  },
+
+  async requestRoleDrive(loop, store, prompt, logId, config = {}, sourceTitle = '', reasoningPhase = 'stage4-13') {
+    const options = {
+      prompt,
+      logId,
+      ...config,
+      sourceTitle,
+      promptId: 'inference-stage4-social-drive',
+      reasoningPhase,
+      jsonMode: true,
+      outputLimitKind: 'stage4',
+    };
+    if (loop?.completeCachedJsonPrompt) return await loop.completeCachedJsonPrompt(store, options);
+    return await loop?.completeConfiguredStep?.(store, prompt, logId, false, options);
+  },
+
   existingIntroCard(card = {}, store = null) {
     const introStore = window.GameModules.characterIntroStore;
     const id = String(card?.id || '').trim();
@@ -416,6 +553,7 @@ window.GameModules.inferenceIntroCardStageUpdate = {
         ...(candidate.agenda || {}),
         ...(raw.agenda || {}),
       },
+      ideas: raw.ideas ?? candidate.ideas ?? [],
       routine: {
         ...(candidate.routine || {}),
         ...(raw.routine || {}),
@@ -479,8 +617,9 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     const rejected = [];
     const changed = new Map();
     for (const op of (Array.isArray(ops) ? ops : []).slice(0, 40)) {
-      const card = this.findCard(cards, op);
       const field = String(op?.field || op?.path || '').trim();
+      if (field.startsWith('socialDrive.')) continue;
+      const card = this.findCard(cards, op);
       const action = String(op?.op || op?.action || '').trim().toLowerCase();
       const reason = String(op?.reason || op?.evidence || '').trim();
       if (!card) {
@@ -493,6 +632,16 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       }
       if (window.GameModules.characterIntroCard?.roleCardExists?.(card)) {
         rejected.push({ op, reason: '已有完整角色卡，Stage5-2 不独立推演' });
+        continue;
+      }
+      if (field === this.introIdeasField) {
+        const result = this.applyRoleIdeaOp(card, op);
+        if (!result.changed) {
+          rejected.push({ op, reason: result.reason || '想法操作未产生变化' });
+          continue;
+        }
+        applied.push({ id: card.id, name: card.name, field, op: action, reason });
+        changed.set(card.id, card);
         continue;
       }
       if (this.scalarFields.has(field)) {
@@ -573,6 +722,246 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     if (applied.length) lines.push(`介绍卡Stage5-2：AI 更新 ${applied.length} 条`);
     if (rejected.length) lines.push(`介绍卡Stage5-2：拒绝 ${rejected.length} 条非法操作`);
     return { lines, applied, rejected, saved };
+  },
+
+  findRoleCard(states = [], op = {}) {
+    const id = String(op?.id || op?.cardId || '').trim();
+    const name = String(op?.name || op?.targetName || '').trim();
+    return (states || []).find((state) => {
+      const profile = state?.profile || {};
+      return (id && state?.id === id) || (name && (profile.name === name || state?.name === name));
+    }) || null;
+  },
+
+  normalizeRoleIdeas(raw = []) {
+    return window.GameModules.characterSocialDrive?.normalizeIdeas?.(raw) || [];
+  },
+
+  ideaTargetIndex(ideas = [], op = {}) {
+    const target = String(op.ideaId || op.targetId || op.target || op.name || '').trim();
+    if (!target) return -1;
+    return ideas.findIndex((idea) => idea.id === target || idea.title === target);
+  },
+
+  applyRoleIdeaOp(drive = {}, op = {}) {
+    const action = String(op?.op || op?.action || '').trim().toLowerCase();
+    const current = this.normalizeRoleIdeas(drive.ideas);
+    if (['replace', 'set'].includes(action)) {
+      drive.ideas = this.normalizeRoleIdeas(op.value);
+      return { changed: true, value: drive.ideas };
+    }
+    if (action === 'add') {
+      const item = window.GameModules.characterSocialDrive?.normalizeIdea?.(op.value || op.idea || {}, current.length);
+      if (!item?.title && !item?.detail) return { changed: false, reason: '新增想法缺少内容' };
+      drive.ideas = [...current, item];
+      return { changed: true, value: drive.ideas };
+    }
+    const index = this.ideaTargetIndex(current, op);
+    if (index < 0) return { changed: false, reason: '找不到目标想法' };
+    if (['complete', 'cancel', 'replace'].includes(action)) {
+      const status = action === 'complete' ? 'completed' : action === 'cancel' ? 'cancelled' : 'replaced';
+      drive.ideas = current.map((idea, itemIndex) => itemIndex === index ? { ...idea, status } : idea);
+      return { changed: true, value: drive.ideas };
+    }
+    if (['update', 'merge'].includes(action)) {
+      const merged = { ...current[index], ...(op.value || op.idea || {}) };
+      const normalized = window.GameModules.characterSocialDrive?.normalizeIdea?.(merged, index);
+      drive.ideas = current.map((idea, itemIndex) => itemIndex === index ? normalized : idea);
+      return { changed: true, value: drive.ideas };
+    }
+    return { changed: false, reason: '想法操作必须是 replace/add/update/complete/cancel' };
+  },
+
+  async applyRoleDriveOps(store, states = [], ops = []) {
+    const lines = [];
+    const applied = [];
+    const rejected = [];
+    const changed = new Map();
+    for (const op of (Array.isArray(ops) ? ops : []).slice(0, 40)) {
+      const field = String(op?.field || op?.path || '').trim();
+      if (!field.startsWith('socialDrive.')) continue;
+      const action = String(op?.op || op?.action || '').trim().toLowerCase();
+      const reason = String(op?.reason || op?.evidence || '').trim();
+      const state = this.findRoleCard(states, op);
+      if (!state) {
+        rejected.push({ op, reason: '找不到候选完整角色卡' });
+        continue;
+      }
+      state.profile = state.profile || {};
+      state.profile.socialDrive = state.profile.socialDrive || {};
+      if (field === this.roleDriveIdeasField) {
+        const result = this.applyRoleIdeaOp(state.profile.socialDrive, op);
+        if (!result.changed) {
+          rejected.push({ op, reason: result.reason || '想法操作未产生变化' });
+          continue;
+        }
+        applied.push({ id: state.id, name: state.profile.name || state.name, field, op: action, reason });
+        changed.set(state.id, state);
+        continue;
+      }
+      if (this.roleDriveScalarFields.has(field)) {
+        if (!['set', 'replace'].includes(action)) {
+          rejected.push({ op, reason: '社交驱动标量字段只允许 set' });
+          continue;
+        }
+        this.pathSet(state.profile, field, this.normalizeScalar(field, op.value));
+        applied.push({ id: state.id, name: state.profile.name || state.name, field, op: 'set', reason });
+        changed.set(state.id, state);
+        continue;
+      }
+      if (this.roleDriveDeltaFields.has(field)) {
+        if (!['delta', 'add'].includes(action)) {
+          rejected.push({ op, reason: '熟识度只允许 delta' });
+          continue;
+        }
+        const delta = Number(op.delta ?? op.value);
+        if (!Number.isFinite(delta) || delta === 0) {
+          rejected.push({ op, reason: 'delta 必须是非零数字' });
+          continue;
+        }
+        const current = Number(this.pathGet(state.profile, field)) || 0;
+        this.pathSet(state.profile, field, this.clamp100(current + delta));
+        applied.push({ id: state.id, name: state.profile.name || state.name, field, op: 'delta', value: delta, reason });
+        changed.set(state.id, state);
+        continue;
+      }
+      rejected.push({ op, reason: '字段不属于完整角色卡社交驱动可维护范围' });
+    }
+    const stateStore = window.GameModules.characterStateStore;
+    for (const state of changed.values()) {
+      state.profile.socialDrive = window.GameModules.characterSocialDrive?.normalizeForRoleCard?.(
+        state.profile.socialDrive,
+        { id: state.id, name: state.profile.name || state.name, isPlayer: false },
+      ) || state.profile.socialDrive;
+      await stateStore?.save?.(state, store);
+    }
+    if (applied.length) lines.push(`完整角色卡社交驱动：AI 更新 ${applied.length} 条`);
+    if (rejected.length) lines.push(`完整角色卡社交驱动：拒绝 ${rejected.length} 条非法操作`);
+    return { lines, applied, rejected };
+  },
+
+  roleDriveContactTime(store = {}) {
+    const value = store?.phoneDate?.();
+    const iso = value?.toISOString?.();
+    return iso && !Number.isNaN(Date.parse(iso)) ? iso : new Date().toISOString();
+  },
+
+  async touchRoleDriveSceneContacts(store, states = []) {
+    const stateStore = window.GameModules.characterStateStore;
+    const social = window.GameModules.characterSocialDrive;
+    const now = this.roleDriveContactTime(store);
+    let changed = 0;
+    for (const state of states) {
+      if (!state?.profile || state.id === 'player-self') continue;
+      const current = social?.normalizeForRoleCard?.(state.profile.socialDrive || {}, {
+        id: state.id,
+        name: state.profile.name || state.name,
+        isPlayer: false,
+      }) || state.profile.socialDrive || {};
+      const reach = [...new Set([...(Array.isArray(current.reach) ? current.reach : []), 'scene'])];
+      if (current.lastContactAt === now && current.lastContactChannel === 'scene' && reach.length === (current.reach || []).length) continue;
+      state.profile.socialDrive = social?.normalizeForRoleCard?.({
+        ...current,
+        lastContactAt: now,
+        lastContactChannel: 'scene',
+        reach,
+      }, {
+        id: state.id,
+        name: state.profile.name || state.name,
+        isPlayer: false,
+      }) || { ...current, lastContactAt: now, lastContactChannel: 'scene', reach };
+      await stateStore?.save?.(state, store);
+      changed += 1;
+    }
+    return changed;
+  },
+
+  async runRoleDriveAfterStage4({ store, updates = {}, logId, config = {}, loop = null, participants = [], narration = '' } = {}) {
+    if (!loop) return { lines: [], applied: [], rejected: [], skipped: true };
+    const introApi = window.GameModules.characterIntroCard;
+    const effectiveParticipants = [
+      ...(Array.isArray(participants) ? participants : []),
+      ...this.narrationParticipants(narration),
+    ];
+    const roleCards = [];
+    for (const item of effectiveParticipants) {
+      const id = String(item?.id || item?.idOrName || '').trim();
+      const name = String(item?.name || item?.rawName || '').trim();
+      const state = id
+        ? window.GameModules.characterStateStore?.get?.(id, store) || store?.rpgStates?.[id]
+        : window.GameModules.characterStateStore?.getByName?.(name, store?.currentWorldTag?.(), store);
+      if (!state || state.id === 'player-self' || introApi?.isIncompleteRoleStub?.(state)) continue;
+      if (!roleCards.some((candidate) => candidate.id === state.id)) roleCards.push(state);
+    }
+    const missingIdeaCards = Object.values(store?.rpgStates || {}).filter((state) => {
+      if (!state || state.id === 'player-self' || introApi?.isIncompleteRoleStub?.(state)) return false;
+      const ideas = this.normalizeRoleIdeas(state.profile?.socialDrive?.ideas);
+      return ideas.filter((idea) => idea.status === 'active').length < 3;
+    });
+    const fillCandidates = [
+      ...roleCards,
+      ...missingIdeaCards.filter((state) => !roleCards.some((candidate) => candidate.id === state.id)),
+    ];
+    if (!roleCards.length && !fillCandidates.length) return { lines: [], applied: [], rejected: [], skipped: true };
+
+    const sceneContacts = await this.touchRoleDriveSceneContacts(store, roleCards);
+    const contactLines = sceneContacts ? [`完整角色卡社交驱动：已记录 ${sceneContacts} 人本轮当面沟通。`] : [];
+
+    loop.markConfiguredStep?.(store, logId, `${config.label || ''}正在进行 Stage4-13 社交驱动…`, config, { keepNarration: true });
+    loop.patchConfiguredSettlementThinking?.(store, logId, 'Stage4-13：根据正文事实更新完整角色卡的稳定关系、熟识度与当前事务。', {
+      ...config,
+      settlementThinking: true,
+      settlementThinkingKey: 'settlement-status',
+      settlementThinkingLabel: '结算状态',
+      livePatch: true,
+    });
+    try {
+      let parsed = { ops: [] };
+      let first = { lines: [], applied: [], rejected: [] };
+      if (roleCards.length) {
+        const raw = await this.requestRoleDrive(loop, store, this.buildRoleDrivePrompt({
+          participants: effectiveParticipants,
+          roleCards,
+          narration,
+          updates,
+        }), logId, config, `${config.label || ''}Stage4-13 社交驱动`, 'stage4-13');
+        parsed = this.parseOpsPayload(raw);
+        first = await this.applyRoleDriveOps(store, roleCards, parsed.ops);
+      }
+      const needsIdeaFill = fillCandidates.filter((state) => {
+        const ideas = this.normalizeRoleIdeas(state.profile?.socialDrive?.ideas);
+        return ideas.filter((idea) => idea.status === 'active').length < 3;
+      });
+      let fill = { lines: [], applied: [], rejected: [], ops: [] };
+      if (needsIdeaFill.length) {
+        loop.markConfiguredStep?.(store, logId, `${config.label || ''}正在进行 Stage4-14 角色想法补足…`, config, { keepNarration: true });
+        loop.patchConfiguredSettlementThinking?.(store, logId, 'Stage4-14：为完整角色卡补足至三条有效想法，不修改正式事务或关系。', {
+          ...config,
+          settlementThinking: true,
+          settlementThinkingKey: 'settlement-status',
+          settlementThinkingLabel: '结算状态',
+          livePatch: true,
+        });
+        const fillRaw = await this.requestRoleDrive(loop, store, this.buildRoleIdeaFillPrompt({
+          roleCards: needsIdeaFill,
+          narration,
+          updates,
+        }), logId, config, `${config.label || ''}Stage4-14 角色想法补足`, 'stage4-14');
+        const fillParsed = this.parseOpsPayload(fillRaw);
+        fill = await this.applyRoleDriveOps(store, needsIdeaFill, fillParsed.ops);
+        fill.ops = fillParsed.ops;
+      }
+      return {
+        lines: [...contactLines, ...first.lines, ...fill.lines],
+        applied: [...first.applied, ...fill.applied],
+        rejected: [...first.rejected, ...fill.rejected],
+        ops: [...parsed.ops, ...fill.ops],
+        skipped: false,
+      };
+    } catch (err) {
+      console.warn('[Stage4-13社交驱动] 生成失败:', err?.message || err);
+      return { lines: [...contactLines, `Stage4-13社交驱动失败：${err?.message || '未知错误'}`], applied: [], rejected: [], skipped: false, error: err?.message };
+    }
   },
 
   isPendingParticipant(item = {}) {
@@ -692,8 +1081,12 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     const missingCreateCandidates = [];
 
     const pendingParticipants = this.pendingParticipantsFromLayers(effectiveSceneLayers);
+    const effectiveParticipants = [
+      ...(Array.isArray(participants) ? participants : []),
+      ...this.narrationParticipants(narration),
+    ];
     const participantExisting = [];
-    for (const item of (Array.isArray(participants) ? participants : [])) {
+    for (const item of effectiveParticipants) {
       const id = String(item?.id || item?.idOrName || '').trim();
       const name = String(item?.name || item?.rawName || '').trim();
       const worldTag = store?.currentWorldTag?.() || window.GameModules.realWorld2026?.label || '';
@@ -717,7 +1110,7 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       });
       try {
         candidateRaw = await this.requestStage5(loop, store, this.buildCandidatePrompt({
-          participants,
+          participants: effectiveParticipants,
           pendingParticipants,
           existingCards: this.existingCardsSummary(store),
           narration,
@@ -746,7 +1139,7 @@ window.GameModules.inferenceIntroCardStageUpdate = {
         livePatch: true,
       });
       try {
-        createRaw = await this.requestStage5(loop, store, this.buildCreatePrompt({ participants, candidateCards: missingCreateCandidates, narration, updates }), logId, config, `${config?.label || ''}Stage5-1 介绍卡建卡`);
+        createRaw = await this.requestStage5(loop, store, this.buildCreatePrompt({ participants: effectiveParticipants, candidateCards: missingCreateCandidates, narration, updates }), logId, config, `${config?.label || ''}Stage5-1 介绍卡建卡`);
         const parsedCreate = this.parseCreatePayload(createRaw);
         const appliedCreate = await this.applyCreateCards(store, missingCreateCandidates, parsedCreate.cards);
         lines.push(...appliedCreate.lines);
@@ -757,7 +1150,12 @@ window.GameModules.inferenceIntroCardStageUpdate = {
       }
     }
 
-    const updateCards = [...existingIntroCards, ...createdCards].filter((card, index, arr) => {
+    const missingIdeaCards = (introStore?.list?.() || []).filter((card) => {
+      if (!card || introApi.roleCardExists?.(card)) return false;
+      const ideas = this.normalizeRoleIdeas(card.ideas);
+      return ideas.filter((idea) => idea.status === 'active').length < 3;
+    });
+    const updateCards = [...existingIntroCards, ...createdCards, ...missingIdeaCards].filter((card, index, arr) => {
       if (!card || card.displayType === 'role' || introApi.roleCardExists?.(card)) return false;
       return arr.findIndex((item) => item && item.id === card.id) === index;
     });
@@ -774,7 +1172,7 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     }
 
     loop?.markConfiguredStep?.(store, logId, `${config?.label || ''}正在进行 Stage5-2 介绍卡更新…`, config, { keepNarration: true });
-    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage5-2：只根据正文事实变化更新已有介绍卡字段。', {
+    loop?.patchConfiguredSettlementThinking?.(store, logId, 'Stage5-2：只根据正文事实更新已有介绍卡字段。', {
       ...config,
       settlementThinking: true,
       settlementThinkingKey: 'settlement-status',
@@ -785,7 +1183,12 @@ window.GameModules.inferenceIntroCardStageUpdate = {
     let updateRaw = '';
     let parsedUpdate = { ops: [] };
     try {
-      updateRaw = await this.requestStage5(loop, store, this.buildUpdatePrompt({ participants, introCards: updateCards, narration, updates }), logId, config, `${config?.label || ''}Stage5-2 介绍卡更新`);
+      updateRaw = await this.requestStage5(loop, store, this.buildUpdatePrompt({
+        participants: effectiveParticipants,
+        introCards: updateCards,
+        narration,
+        updates,
+      }), logId, config, `${config?.label || ''}Stage5-2 介绍卡更新`);
       parsedUpdate = this.parseOpsPayload(updateRaw);
     } catch (err) {
       console.warn('[Stage5-2介绍卡更新] 生成失败:', err?.message || err);
@@ -800,13 +1203,33 @@ window.GameModules.inferenceIntroCardStageUpdate = {
         error: err?.message,
       };
     }
-    const applied = await this.applyOps(store, updateCards, parsedUpdate.ops);
+    const introApplied = await this.applyOps(store, updateCards, parsedUpdate.ops);
+    const needsIdeaFill = updateCards.filter((card) => {
+      const ideas = this.normalizeRoleIdeas(card.ideas);
+      return ideas.filter((idea) => idea.status === 'active').length < 3;
+    });
+    let ideaFill = { lines: [], applied: [], rejected: [], ops: [] };
+    if (needsIdeaFill.length) {
+      try {
+        const fillRaw = await this.requestStage5(loop, store, this.buildIntroIdeaFillPrompt({
+          introCards: needsIdeaFill,
+          narration,
+          updates,
+        }), logId, config, `${config?.label || ''}Stage5-2 介绍卡想法补足`);
+        const fillParsed = this.parseOpsPayload(fillRaw);
+        ideaFill = await this.applyOps(store, needsIdeaFill, fillParsed.ops);
+        ideaFill.ops = fillParsed.ops;
+      } catch (err) {
+        console.warn('[Stage5-2介绍卡想法补足] 生成失败:', err?.message || err);
+        ideaFill.lines.push(`介绍卡Stage5-2想法补足失败：${err?.message || '未知错误'}`);
+      }
+    }
     return {
-        lines: [...lines, ...applied.lines],
+        lines: [...lines, ...introApplied.lines, ...ideaFill.lines],
         cards: [...roleSyncedCards, ...existingIntroCards, ...createdCards],
-        ops: parsedUpdate.ops,
-        applied: applied.applied,
-        rejected: applied.rejected,
+        ops: [...parsedUpdate.ops, ...ideaFill.ops],
+        applied: [...introApplied.applied, ...ideaFill.applied],
+        rejected: [...introApplied.rejected, ...ideaFill.rejected],
         candidateRaw,
         createRaw,
         updateRaw,

@@ -123,11 +123,35 @@ window.GameModules.realWorldAgentContextParts.sceneBoundary = {
         if (name) blocked.add(name);
       });
     });
+    const rng = typeof options.rng === 'function' ? options.rng : Math.random;
+    const cooldowns = { ...(store?.realWorldActiveEventCooldowns || {}) };
+    Object.keys(cooldowns).forEach((key) => {
+      const remaining = Math.max(0, Math.floor(Number(cooldowns[key]) || 0) - 1);
+      if (remaining) cooldowns[key] = remaining;
+      else delete cooldowns[key];
+    });
+    if (store) store.realWorldActiveEventCooldowns = cooldowns;
+
     const states = [...Object.values(store?.rpgStates || {}), ...(window.GameModules.characterStateStore?.list?.() || [])];
     const seen = new Set();
-    return states.map((state) => ({ id: state.id || state.profile?.name || state.name, name: state.profile?.name || state.name }))
-      .filter((item) => item.name && !blocked.has(item.name) && !seen.has(item.name) && seen.add(item.name))
-      .slice(0, 3);
+    const roleProbability = Math.max(0, Math.min(100, Number(options.roleCandidateProbability ?? store?.eventState?.randomRoleCandidateProbability ?? 30) || 0));
+    const contextProbability = Math.max(0, Math.min(100, Number(options.contextEventProbability ?? store?.eventState?.randomContextEventProbability ?? 20) || 0));
+    const roleTriggered = rng() * 100 < roleProbability;
+    const contextTriggered = rng() * 100 < contextProbability;
+    const candidates = states
+      .map((state) => ({ id: String(state?.id || state?.profile?.id || state?.profile?.name || state?.name || '').trim(), name: String(state?.profile?.name || state?.name || '').trim(), kind: 'role' }))
+      .filter((item) => item.name && item.id !== 'player-self' && !blocked.has(item.name) && !blocked.has(item.id) && !String(action || '').includes(item.name) && !cooldowns[item.id || item.name] && !seen.has(item.name) && seen.add(item.name));
+    const countRoll = Math.max(0, Math.min(0.999999, Number(rng()) || 0));
+    const count = countRoll < 0.75 ? 1 : (countRoll < 0.95 ? 2 : 3);
+    const selected = [];
+    while (roleTriggered && selected.length < count && candidates.length) {
+      const index = Math.min(candidates.length - 1, Math.floor(Math.max(0, Math.min(0.999999, Number(rng()) || 0)) * candidates.length));
+      const candidate = candidates.splice(index, 1)[0];
+      selected.push(candidate);
+      cooldowns[candidate.id || candidate.name] = 3 + Math.floor(Math.max(0, Math.min(0.999999, Number(rng()) || 0)) * 3);
+    }
+    if (contextTriggered) selected.push({ id: 'context-random-event', name: '场景临时扰动', kind: 'context-event' });
+    return selected;
   },
 
 };

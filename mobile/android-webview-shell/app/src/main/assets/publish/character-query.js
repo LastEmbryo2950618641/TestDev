@@ -101,11 +101,19 @@ window.GameModules.characterQuery = {
     const completeIds = new Set(
       states.filter((state) => !introApi?.isIncompleteRoleStub?.(state)).map((state) => state.id),
     );
+    const completeNames = new Set(
+      states
+        .filter((state) => !introApi?.isIncompleteRoleStub?.(state))
+        .map((state) => `${this.normalizeWorldTag(state.profile?.work || state.worldTag || worldTag)}::${state.profile?.name || state.name || ''}`),
+    );
     const rows = [
       ...states.filter((state) => !introApi?.isIncompleteRoleStub?.(state)).slice(0, 12).map((state) => (
         `角色卡｜${state.name || state.profile?.name || state.id}｜ID:${state.id}｜${state.worldTag || worldTag}｜${state.profile?.role || state.profile?.detail || '完整资料已固化'}`
       )),
-      ...intros.filter((card) => !completeIds.has(card.id) && !completeIds.has(card.links?.roleCardId)).slice(0, 12).map((card) => (
+      ...intros.filter((card) => {
+        const key = `${this.normalizeWorldTag(card.worldTag || card.work || worldTag)}::${card.name || ''}`;
+        return !completeIds.has(card.id) && !completeIds.has(card.links?.roleCardId) && !completeNames.has(key);
+      }).slice(0, 12).map((card) => (
         `介绍卡｜${card.name}｜ID:${card.id || ''}｜${card.worldTag || worldTag}｜${card.role || ''}｜${card.intro || ''}`
       )),
     ];
@@ -257,6 +265,7 @@ window.GameModules.characterQuery = {
   socialDriveLines(drive = null) {
     if (!drive || typeof drive !== 'object') return [];
     const agenda = drive.agenda || {};
+    const ideas = Array.isArray(drive.ideas) ? drive.ideas : [];
     const reach = Array.isArray(drive.reach) ? drive.reach.join('、') : '';
     return [
       this.line('与主角关系', drive.relationToPlayer),
@@ -268,6 +277,7 @@ window.GameModules.characterQuery = {
       this.line('当前事务', agenda.short),
       this.line('找主角理由', agenda.needPlayer ? (agenda.needPlayerWhy || '需要主角') : ''),
       agenda.urgency != null && agenda.needPlayer ? `紧迫度：${agenda.urgency}` : '',
+      ideas.length ? `想法：${ideas.map((idea) => idea.title || idea.detail).filter(Boolean).join('、')}` : '',
     ].filter(Boolean);
   },
 
@@ -276,6 +286,7 @@ window.GameModules.characterQuery = {
     const persona = card.persona || {};
     const social = card.social || {};
     const agenda = card.agenda || {};
+    const ideas = Array.isArray(card.ideas) ? card.ideas : [];
     const role = identity.role || card.role || '出场人物';
     const background = persona.background || card.intro || card.detail || '暂无介绍。';
     const prefs = Array.isArray(persona.preferences) ? persona.preferences.join('、') : '';
@@ -304,6 +315,7 @@ window.GameModules.characterQuery = {
       this.line('当前事务', agenda.short),
       this.line('找主角理由', agenda.needPlayer ? (agenda.needPlayerWhy || '需要主角') : ''),
       agenda.urgency != null && agenda.needPlayer ? `紧迫度：${agenda.urgency}` : '',
+      ideas.length ? `想法：${ideas.map((idea) => idea.title || idea.detail).filter(Boolean).join('、')}` : '',
     ].filter(Boolean).join('\n'), maxChars);
   },
 };

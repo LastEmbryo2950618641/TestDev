@@ -33,9 +33,6 @@ window.GameModules.ui.event.panelViewHelpers = {
       hasTags: tags.length > 0,
       statusFieldLabel: this.eventStatusFieldLabel(),
       statusLabel: this.eventStatusLabel(event),
-      showTriggeredCount: event.type === 'random',
-      triggeredCountFieldLabel: this.eventTriggeredCountFieldLabel(),
-      triggeredCountText: `${event.triggeredCount || 0} 次`,
     };
   },
 
@@ -43,8 +40,6 @@ window.GameModules.ui.event.panelViewHelpers = {
     return {
       title: '日常驱动与事件系统',
       description: this.eventHeaderDescription(),
-      probabilityFieldLabel: this.eventProbabilityFieldLabel(),
-      probabilityValue: this.eventRandomProbability(),
       backButtonText: this.eventBackButtonText(),
       tabs: this.eventTypeTabs(),
       listEmptyText: this.eventListEmptyText(),

@@ -21,6 +21,10 @@ window.GameModules.characterSocialDrive = {
     };
   },
 
+  emptyIdeas() {
+    return [];
+  },
+
   empty() {
     return {
       relationToPlayer: '',
@@ -30,6 +34,7 @@ window.GameModules.characterSocialDrive = {
       lastContactChannel: 'none',
       reach: [],
       agenda: this.emptyAgenda(),
+      ideas: this.emptyIdeas(),
     };
   },
 
@@ -124,6 +129,32 @@ window.GameModules.characterSocialDrive = {
     };
   },
 
+  normalizeIdea(raw = {}, index = 0) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const title = String(src.title || src.name || src.short || src.content || src.text || '').trim().slice(0, 80);
+    const detail = String(src.detail || src.description || src.reason || '').trim().slice(0, 160);
+    const status = ['active', 'completed', 'cancelled', 'replaced'].includes(String(src.status || '').trim())
+      ? String(src.status).trim()
+      : 'active';
+    const id = String(src.id || `idea-${index + 1}`).trim().slice(0, 64) || `idea-${index + 1}`;
+    return {
+      id,
+      title,
+      detail,
+      status,
+      reason: String(src.reason || src.why || '').trim().slice(0, 160),
+      createdAt: String(src.createdAt || '').trim().slice(0, 40),
+      updatedAt: String(src.updatedAt || '').trim().slice(0, 40),
+    };
+  },
+
+  normalizeIdeas(raw = []) {
+    const list = Array.isArray(raw) ? raw : [];
+    return list
+      .map((item, index) => this.normalizeIdea(item, index))
+      .filter((item) => item.title || item.detail);
+  },
+
   normalize(raw = {}, options = {}) {
     const src = raw && typeof raw === 'object' ? raw : {};
     const agendaSrc = src.agenda && typeof src.agenda === 'object' ? src.agenda : src;
@@ -140,6 +171,7 @@ window.GameModules.characterSocialDrive = {
       lastContactChannel: this.normalizeChannel(src.lastContactChannel || src.last_contact_channel, 'none'),
       reach: reach.length ? reach : (relationToPlayer && relationToPlayer !== '本人' ? ['scene'] : []),
       agenda: this.normalizeAgenda(agendaSrc),
+      ideas: this.normalizeIdeas(src.ideas || src.想法 || []),
     };
   },
 
@@ -153,6 +185,7 @@ window.GameModules.characterSocialDrive = {
       drive.relationToPlayer = drive.relationToPlayer || '本人';
       drive.agenda.needPlayer = false;
       drive.agenda.needPlayerWhy = '';
+      drive.ideas = this.normalizeIdeas(drive.ideas);
       if (!drive.reach.length) drive.reach = [];
     }
     return drive;
@@ -231,6 +264,7 @@ window.GameModules.characterSocialDrive = {
       0,
     );
     const agenda = this.normalizeAgenda(raw.agenda || raw.social?.agenda || raw);
+    const ideas = this.normalizeIdeas(raw.ideas || raw.social?.ideas || []);
     const now = new Date().toISOString();
     const id = this.resolveSharedCardId(raw, name, worldTag);
     const sharedLink = this.isSharedCharacterId(id) ? id : String(raw.links?.roleCardId || raw.roleCardId || '').slice(0, 64);
@@ -267,6 +301,7 @@ window.GameModules.characterSocialDrive = {
         reach: social.reach,
       },
       agenda,
+      ideas,
       routine: { tags: routineTags },
       memory: {
         facts: this.normalizeTagList(raw.memory?.facts ?? raw.facts, 5, 40),

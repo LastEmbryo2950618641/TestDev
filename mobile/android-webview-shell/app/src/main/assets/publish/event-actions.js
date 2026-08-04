@@ -8,9 +8,7 @@ const eventViewHelperForwarders = {
   eventStatusLabel: 'eventStatusLabel',
   eventListEmptyText: 'eventListEmptyText',
   eventStatusFieldLabel: 'eventStatusFieldLabel',
-  eventTriggeredCountFieldLabel: 'eventTriggeredCountFieldLabel',
   eventHeaderDescription: 'eventHeaderDescription',
-  eventProbabilityFieldLabel: 'eventProbabilityFieldLabel',
   eventBackButtonText: 'eventBackButtonText',
   selectedEventEmptyText: 'selectedEventEmptyText',
   selectedEventDetailView: 'selectedEventDetailView',
@@ -23,12 +21,14 @@ function callEventViewHelper(name, context, ...args) {
 window.GameModules.eventActions = {
   initEventSystem() {
     const base = window.GameModules.eventSystem.defaultState();
-    this.eventState = { ...base, ...(this.eventState || {}) };
-    this.eventState.randomProbability = Math.max(0, Math.min(100, Math.round(Number(this.eventState.randomProbability ?? 10) || 0)));
+    const { randomProbability, currentContext, ...saved } = this.eventState || {};
+    this.eventState = { ...base, ...saved };
     this.eventState.events = Array.isArray(this.eventState.events)
-      ? this.eventState.events.map((item) => window.GameModules.eventSystem.normalizeEvent(item, this))
+      ? this.eventState.events
+        .map((item) => window.GameModules.eventSystem.normalizeEvent(item, this))
+        .filter((item) => window.GameModules.eventSystem.isWritableType(item?.type))
       : [];
-    this.eventState.tab = window.GameModules.eventSystem.normalizeWritableType(this.eventState.tab || 'random');
+    this.eventState.tab = window.GameModules.eventSystem.normalizeWritableType(this.eventState.tab || 'inference');
     this.eventState.draft = { ...window.GameModules.eventSystem.defaultDraft(this.eventState.tab), ...(this.eventState.draft || {}) };
     const primary = String(this.eventState.primaryTab || 'events');
     this.eventState.primaryTab = ['inbox', 'events', 'tempo'].includes(primary) ? primary : 'events';
@@ -37,6 +37,9 @@ window.GameModules.eventActions = {
     this.eventState.inboxSelectedId = String(this.eventState.inboxSelectedId || '');
     this.eventState.inboxBudgetTiers = window.GameModules.socialInbox?.normalizeBudgetTiers?.(this.eventState.inboxBudgetTiers)
       || base.inboxBudgetTiers;
+    ['randomRoleCandidateProbability', 'randomContextEventProbability'].forEach((key) => {
+      this.eventState[key] = Math.max(0, Math.min(100, Math.round(Number(this.eventState[key] ?? base[key]) || 0)));
+    });
     // 去掉旧档里已持久化的 event-system 副本，避免与读时投影重复
     this.syncEventCalendarEntries?.();
   },
@@ -184,27 +187,41 @@ window.GameModules.eventActions = {
     this.save?.();
   },
 
-  setEventTab(type = 'random') {
+  randomRoleCandidateProbability() {
+    this.initEventSystem();
+    return this.eventState.randomRoleCandidateProbability;
+  },
+
+  randomContextEventProbability() {
+    this.initEventSystem();
+    return this.eventState.randomContextEventProbability;
+  },
+
+  setRandomRoleCandidateProbability(value = 30) {
+    this.initEventSystem();
+    this.eventState.randomRoleCandidateProbability = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+    this.save?.();
+  },
+
+  setRandomContextEventProbability(value = 20) {
+    this.initEventSystem();
+    this.eventState.randomContextEventProbability = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+    this.save?.();
+  },
+
+  setEventTab(type = 'inference') {
     this.initEventSystem();
     this.eventState.tab = window.GameModules.eventSystem.normalizeWritableType(type);
     this.eventState.draft = { ...window.GameModules.eventSystem.defaultDraft(this.eventState.tab), type: this.eventState.tab };
   },
 
-  eventsByType(type = this.eventState?.tab || 'random') {
+  eventsByType(type = this.eventState?.tab || 'inference') {
     return callEventViewHelper('eventsByType', this, type);
   },
 
 
   eventName(event = {}) {
     return callEventViewHelper('eventName', this, event);
-  },
-
-
-  setEventRandomProbability(value = 10) {
-    this.initEventSystem();
-    this.eventState.randomProbability = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
-    this.eventState.message = `随机事件发生概率已设置为 ${this.eventState.randomProbability}%`;
-    this.save?.();
   },
 
   eventDraftValue(key = '') {
@@ -240,6 +257,7 @@ window.GameModules.eventActions = {
   upsertEvent(raw = {}, options = {}) {
     this.initEventSystem();
     const event = window.GameModules.eventSystem.normalizeEvent(raw, this);
+    if (!window.GameModules.eventSystem.isWritableType(event?.type)) return null;
     const list = this.eventState.events || [];
     const index = list.findIndex((item) => item.id === event.id);
     if (index >= 0) list[index] = { ...list[index], ...event, updatedAt: new Date().toISOString() };
@@ -255,14 +273,6 @@ window.GameModules.eventActions = {
     this.eventState.events = (this.eventState.events || []).filter((event) => event.id !== id);
     if (this.eventState.selectedId === id) this.eventState.selectedId = '';
     this.syncEventCalendarEntries();
-    this.save?.();
-  },
-
-  setRandomEventProbability(event = {}, value = 0) {
-    if (!event?.id) return;
-    event.probability = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
-    event.updatedAt = new Date().toISOString();
-    this.eventState.events = [...(this.eventState.events || [])];
     this.save?.();
   },
 
@@ -282,35 +292,6 @@ window.GameModules.eventActions = {
     };
   },
 
-  prepareEventsForRealWorldAction(action = '', logId = '') {
-    this.initEventSystem();
-    const now = this.phoneDate?.() || new Date();
-    const context = this.eventPromptContextBase(action);
-    const triggered = [];
-    const probability = Math.max(0, Math.min(100, Number(this.eventState.randomProbability ?? 10) || 0));
-    (this.eventState.events || []).forEach((event) => {
-      if (event.type !== 'random') return;
-      if (!window.GameModules.eventSystem.dateInRange(now, event)) return;
-      if (window.GameModules.eventSystem.isExpired(event, now)) return;
-      const score = window.GameModules.eventSystem.scoreEvent(event, context);
-      const effective = Math.max(0, Math.min(100, probability + Math.min(25, score * 2)));
-      if (Math.random() * 100 > effective) return;
-      event.triggeredCount = Math.max(0, Number(event.triggeredCount) || 0) + 1;
-      event.lastTriggeredAt = now.toISOString();
-      triggered.push(event.id);
-    });
-    this.eventState.currentContext = { logId, action, at: now.toISOString(), triggeredRandomEventIds: triggered };
-    this.eventState.events = [...(this.eventState.events || [])];
-    if (triggered.length) this.save?.();
-    return triggered;
-  },
-
-  activeTriggeredRandomEvents() {
-    this.initEventSystem();
-    const ids = new Set(this.eventState.currentContext?.triggeredRandomEventIds || []);
-    return (this.eventState.events || []).filter((event) => ids.has(event.id));
-  },
-
   relevantEvents(type = 'inference', action = '', limit = 20) {
     this.initEventSystem();
     const normalized = window.GameModules.eventSystem.normalizeType(type);
@@ -326,27 +307,14 @@ window.GameModules.eventActions = {
       .map((item) => item.event);
   },
 
-  eventStage1PromptContext(action = '') {
-    const randomEvents = this.activeTriggeredRandomEvents();
-    const candidateText = randomEvents.length ? randomEvents.map((event, index) => `${index + 1}. ${window.GameModules.eventSystem.promptLine(event)}`).join('\n') : '无';
-    const lead = window.GameModules.socialEventBoundary?.eventStage1Lead?.()
-      || '【事件机制 - Stage1】\n随机事件只在推演前以概率触发；禁止无依据强行入场。';
-    return [
-      lead,
-      `本轮已触发随机事件：\n${candidateText}`,
-    ].join('\n');
-  },
-
   eventNarrationPromptContext(action = '') {
-    const randomEvents = this.activeTriggeredRandomEvents();
     const mapEvents = this.relevantEvents('inference', action, 20);
     const periodicEvents = this.relevantEvents('periodic', action, 20);
     const block = (title, list) => list.length ? `${title}\n${list.map((event, index) => `${index + 1}. ${window.GameModules.eventSystem.promptLine(event)}`).join('\n')}` : `${title}\n无`;
     const lead = window.GameModules.socialEventBoundary?.eventNarrationLead?.()
-      || '【事件上下文】\n大地图/周期/随机与 Social Inbox 互补，禁止重复。';
+      || '【事件上下文】\n大地图/周期事件与 Social Inbox 互补，禁止重复。';
     return [
       lead,
-      block('随机事件（本轮已概率触发，需由场景锚定决定是否进入正文）', randomEvents),
       block('大地图事件（最多20条：活动/比赛/市政/限运等，按地点与标签匹配）', mapEvents),
       block('周期事件（最多20条，影响范围为所有人，按标签匹配注入）', periodicEvents),
     ].join('\n');

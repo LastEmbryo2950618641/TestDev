@@ -13,7 +13,7 @@ const work = fs.readFileSync(path.join(root, 'publish/inference/work-performance
 
 assert.ok(loop.includes("if (config.reasoningPhase) return this.normalizeReasoningPhase(config.reasoningPhase);"));
 assert.ok(loop.includes("if (/^stage(?:[2-9]|1[0-3])$/u.test(phase)) {"));
-assert.ok(loop.includes("return /^(stage(?:[4-9]|1[0-3]))$/u.test(phase);"));
+assert.ok(loop.includes("return /^stage4(?:-(?:[1-9]|1[0-4]))?$|^stage(?:[5-9]|1[0-3])$/u.test(phase);"));
 assert.ok(loop.includes("match(/^Stage\\s*(1[0-3]|[1-9])"));
 assert.ok(!loop.includes('深度思考中…'));
 

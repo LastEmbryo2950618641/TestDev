@@ -30,6 +30,7 @@ window.GameModules.characterIntroCard = {
         },
         social: { relationToPlayer: '', relationDetail: '', affection: 0, familiarity: 0, lastContactAt: '', lastContactChannel: 'none', reach: [] },
         agenda: { short: '', deadline: '', needPlayer: false, needPlayerWhy: '', urgency: 0, cooldownUntil: '' },
+        ideas: [],
         routine: { tags: [] },
         memory: { facts: [] },
         links: { scheduleId: id, wechatContactId: '', roleCardId: shared },

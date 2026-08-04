@@ -296,6 +296,84 @@ window.GameModules.predefinedRoleCards = {
     return profile;
   },
 
+  socialDrivePlayerName(store = {}) {
+    return String(
+      store?.rpgStates?.['player-self']?.profile?.name
+      || store?.playerProfile?.name
+      || store?.roleCardSetup?.selectedPlayerName
+      || '',
+    ).trim();
+  },
+
+  socialDriveRelationToPlayer(profile = {}, store = {}) {
+    const playerName = this.socialDrivePlayerName(store);
+    if (!playerName) return '';
+    const pairs = String(profile.relationships || '').split(/[；;\n]/u);
+    for (const pair of pairs) {
+      const match = pair.match(/^\s*([^：:；;,]+)\s*[：:]\s*(.+?)\s*$/u);
+      if (!match) continue;
+      if (String(match[2] || '').trim() === playerName) return String(match[1] || '').trim().slice(0, 40);
+    }
+    return '';
+  },
+
+  socialDriveSeedIdeas(profile = {}) {
+    const context = `${profile.role || ''} ${profile.job || ''} ${profile.detail || ''}`;
+    const preference = String(profile.preferences || '').split(/[、,，;；]/u).map((item) => item.trim()).find(Boolean) || '';
+    const isStudent = /学生|初中|高中|中学|小学|大学|学院|备考|作业/u.test(context);
+    const isWorking = /工作|员工|工程师|职员|教师|医生|店员|经理|岗位/u.test(context);
+    const first = isStudent
+      ? { id: 'seed-study', title: '整理学习安排', detail: '按当前课程与作息安排今天要完成的学习内容', reason: '角色身份与日常节奏' }
+      : (isWorking
+        ? { id: 'seed-work', title: '处理日常安排', detail: '确认接下来需要处理的工作或生活事项', reason: '角色职业与当前处境' }
+        : { id: 'seed-routine', title: '安排自己的时间', detail: '按当前生活节奏决定接下来要做的事', reason: '角色当前日常处境' });
+    return [
+      first,
+      { id: 'seed-rest', title: '找时间放松', detail: '在当前安排之间留出休息和调整状态的时间', reason: '角色的日常需求' },
+      {
+        id: 'seed-interest',
+        title: preference ? `关注${preference.slice(0, 24)}` : '做一件感兴趣的事',
+        detail: preference ? `结合自己的偏好看看与${preference.slice(0, 24)}有关的内容或安排` : '按个人喜好选择一件轻松的事',
+        reason: '角色的既有偏好',
+      },
+    ].map((idea) => ({ ...idea, status: 'active' }));
+  },
+
+  hydrateSocialDrive(profile = {}, store = null) {
+    const tool = window.GameModules.characterSocialDrive;
+    if (!profile || !tool?.normalizeForRoleCard) return profile;
+    const raw = profile.socialDrive && typeof profile.socialDrive === 'object' ? profile.socialDrive : {};
+    const isPlayer = profile.id === 'player-self' || profile.isPlayer === true;
+    const inferredRelation = isPlayer ? '本人' : this.socialDriveRelationToPlayer(profile, store);
+    const hasFamiliarity = Number.isFinite(Number(raw.familiarity));
+    const relation = String(raw.relationToPlayer || inferredRelation || '').trim();
+    const baseFamiliarity = isPlayer ? 100 : (relation ? 70 : 0);
+    const ideas = Array.isArray(raw.ideas) && raw.ideas.length ? raw.ideas : this.socialDriveSeedIdeas(profile);
+    profile.socialDrive = tool.normalizeForRoleCard({
+      ...raw,
+      relationToPlayer: relation,
+      relationDetail: raw.relationDetail || (relation && !isPlayer ? `与${this.socialDrivePlayerName(store) || '主角'}的既有${relation}关系。` : ''),
+      familiarity: hasFamiliarity ? raw.familiarity : baseFamiliarity,
+      reach: Array.isArray(raw.reach) && raw.reach.length ? raw.reach : (relation && !isPlayer ? ['scene'] : []),
+      ideas,
+    }, { id: profile.id, name: profile.name, isPlayer });
+    return profile;
+  },
+
+  async upgradeAllSavedSocialDriveProfiles(store = {}) {
+    const states = Object.values(store?.rpgStates || {});
+    let upgraded = 0;
+    for (const state of states) {
+      if (!state?.profile || !this.cardKeyFor(state.profile)) continue;
+      const before = JSON.stringify(state.profile.socialDrive || {});
+      this.hydrateSocialDrive(state.profile, store);
+      if (before === JSON.stringify(state.profile.socialDrive || {})) continue;
+      await this.saveState(state, store);
+      upgraded += 1;
+    }
+    return upgraded;
+  },
+
   refreshDerivedIdentityFields(profile = {}) {
     if (!profile) return profile;
     const factions = Array.isArray(profile.factions) ? profile.factions : [];
@@ -334,6 +412,7 @@ window.GameModules.predefinedRoleCards = {
       : { ...card, id, roleCard: true, roleCardSource: card.roleCardSource || 'predefined-edited', roleCardUpdatedAt: card.roleCardUpdatedAt || existing?.profile?.roleCardUpdatedAt || new Date().toISOString() };
     if (!profile.id) profile.id = id;
     if (profile.roleCard !== true) profile.roleCard = true;
+    this.hydrateSocialDrive(profile, options.store || null);
     if (preserveExportShape) return profile;
     if (window.GameModules.characterProfile?.hasRequiredInitialMetrics?.(existing?.profile?.initialMetrics)) profile.initialMetrics = existing.profile.initialMetrics;
     const existingLocation = String(existing?.profile?.currentLocation || '').trim();
@@ -376,7 +455,7 @@ window.GameModules.predefinedRoleCards = {
       || store?.characterSchedules?.[id]?.profileCurrentLocation
       || '',
     ).trim();
-    const profile = this.buildRoleCardProfile(card, existing, id, { preserveExportShape });
+    const profile = this.buildRoleCardProfile(card, existing, id, { preserveExportShape, store });
     if (!preserveExportShape && liveLocation && !String(profile.currentLocation || '').trim()) profile.currentLocation = liveLocation;
     if (!preserveExportShape) {
       this.refreshSocialFields(profile, store);
@@ -532,6 +611,7 @@ window.GameModules.predefinedRoleCardActions = {
       this.applySelectedPlayerRoleCard();
     }
     if (this.phoneSetupDone && this.roleCardSetup.usePredefinedPlayerCard) {
+      await window.GameModules.predefinedRoleCards.upgradeAllSavedSocialDriveProfiles(this);
       await this.repairSelectedPlayerRoleCardState();
     }
   },

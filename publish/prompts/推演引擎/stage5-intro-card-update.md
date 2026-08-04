@@ -30,7 +30,9 @@
 规则：
 - 只创建“待建介绍卡候选”里的条目；不要更新已有介绍卡。
 - 每张新卡必须沿用候选中给定的 `id`，禁止自造、替换或省略 ID。
-- 每张新卡必须尽量一次性补全：`id`、`name`、`worldTag`、`presenceKind`、`identity`、`persona`、`social`、`agenda`、`routine`、`memory`。
+- 每张新卡必须尽量一次性补全：`id`、`name`、`worldTag`、`presenceKind`、`identity`、`persona`、`social`、`agenda`、`ideas`、`routine`、`memory`。
+- `agenda` 只能是一条当前需要且必须完成的正式事务；没有依据时保守留空，不要把普通欲望写成事务。
+- `ideas` 必须恰好三条 `active` 的非必做想法/想要做的事情，依据人物性格、情绪、感觉、背景、时间、地点和正文生成，不是固定事件库。
 - 必须根据姓名、世界、地点、时间、正文、人物互动、Stage1 待建原因和当前上下文合理推演补全；不要编造与上下文矛盾的设定。
 - 若候选是一类人/团体原型，字段表示群体意识、典型行为和后续追踪价值，不要伪装成单个具体人。
 - group 卡的 `identity.role` 应写群体定位，例如 `在校学生群体`、`小区安保群体`、`夜班服务人员群体`；`persona.background` 写共同背景；`social` 写该类群体对玩家的典型关系、可达性和互动倾向；`memory.facts` 记录“本轮遇到/出现过这一类人”的稳定事实，而不是写成某个具体个人的私密记忆。
@@ -44,6 +46,8 @@
 - 只允许输出介绍卡字段更新 ops；不要创建新卡。
 - 根据正文和本轮完整上下文更新。介绍卡主要服务没有完整角色卡的人物/存在，因此不能依赖角色卡同步；AI 需要直接返回增量数值、覆盖字段或集合变更。
 - 已有完整角色卡的人物，不要在此独立推演介绍卡字段。
+- `agenda` 是单条正式事务，只有正文或既有资料明确证明发生变化时才更新；`ideas` 是三条可随情境调整的非必做个人意向。
+- `ideas` 少于三条时必须补足；使用 `field="ideas"`、`op="replace"` 和完整三条数组，数组条目包含 `id`、`title`、`detail`、`status`、`reason`。
 - 标量字段只允许 `set`；数值字段只允许 `delta`；集合字段只允许 `add/replace/delete`。
 - 没有可更新内容时返回：`{ "ops": [], "done": true }`。
 
@@ -79,7 +83,12 @@
       "identity": {},
       "persona": {},
       "social": {},
-      "agenda": {},
+       "agenda": {},
+       "ideas": [
+         { "id": "idea-1", "title": "", "detail": "", "status": "active", "reason": "" },
+         { "id": "idea-2", "title": "", "detail": "", "status": "active", "reason": "" },
+         { "id": "idea-3", "title": "", "detail": "", "status": "active", "reason": "" }
+       ],
       "routine": { "tags": [] },
       "memory": { "facts": [] }
     }

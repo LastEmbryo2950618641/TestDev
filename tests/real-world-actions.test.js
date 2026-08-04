@@ -78,7 +78,6 @@ function createRuntime(actions, calls) {
     realWorldLogMaxPage: () => 1,
     refreshRealWorldLogPage: () => {},
     scrollRealWorldLogBottom: () => {},
-    prepareEventsForRealWorldAction: () => calls.push(['prepare']),
     applyRealWorldResult: async (_id, result) => calls.push(['apply', result.narration]),
     recordPlayerRealWorldMemory: async () => calls.push(['memory']),
     save: async () => calls.push(['save']),
@@ -94,8 +93,8 @@ async function run() {
   await successRuntime.submitRealWorldAction({ text: '观察车站' });
   assert.strictEqual(successRuntime.realWorldBusy, false);
   assert.deepStrictEqual(
-    success.calls.filter((call) => ['append', 'prepare', 'generate', 'apply', 'archive', 'memory', 'save'].includes(call[0])).map((call) => call[0]),
-    ['prepare', 'generate', 'append', 'append', 'append', 'append', 'apply', 'archive', 'memory', 'save'],
+    success.calls.filter((call) => ['append', 'generate', 'apply', 'archive', 'memory', 'save'].includes(call[0])).map((call) => call[0]),
+    ['generate', 'append', 'append', 'append', 'append', 'apply', 'archive', 'memory', 'save'],
   );
   assert.strictEqual(success.persisted[0].text, '观察车站');
   assert.strictEqual(success.persisted[1].narration, '现实世界正在推演…');

@@ -3,7 +3,7 @@ window.GameModules.ui = window.GameModules.ui || {};
 window.GameModules.ui.event = window.GameModules.ui.event || {};
 
 window.GameModules.ui.event.viewHelpers = {
-  eventsByType(type = this.eventState?.tab || 'random') {
+  eventsByType(type = this.eventState?.tab || 'inference') {
     this.initEventSystem();
     const normalized = window.GameModules.eventSystem.normalizeType(type);
     return (this.eventState.events || [])
@@ -20,7 +20,7 @@ window.GameModules.ui.event.viewHelpers = {
   },
 
   currentEventList() {
-    return this.eventsByType(this.eventState?.tab || 'random');
+    return this.eventsByType(this.eventState?.tab || 'inference');
   },
 
   selectedEvent() {
@@ -42,11 +42,6 @@ window.GameModules.ui.event.viewHelpers = {
     return '未到时间';
   },
 
-  eventRandomProbability() {
-    this.initEventSystem();
-    return Math.max(0, Math.min(100, Math.round(Number(this.eventState.randomProbability ?? 10) || 0)));
-  },
-
   selectedEventDetailView() { return window.GameModules.ui.event.panelViewHelpers.selectedEventDetailView.call(this); },
 
   eventListView() { return window.GameModules.ui.event.panelViewHelpers.eventListView.call(this); },
@@ -59,11 +54,7 @@ window.GameModules.ui.event.viewHelpers = Object.assign(window.GameModules.ui.ev
 
   eventStatusFieldLabel() { return window.GameModules.ui.event.labelViewHelpers.eventStatusFieldLabel.call(this); },
 
-  eventTriggeredCountFieldLabel() { return window.GameModules.ui.event.labelViewHelpers.eventTriggeredCountFieldLabel.call(this); },
-
   eventHeaderDescription() { return window.GameModules.ui.event.labelViewHelpers.eventHeaderDescription.call(this); },
-
-  eventProbabilityFieldLabel() { return window.GameModules.ui.event.labelViewHelpers.eventProbabilityFieldLabel.call(this); },
 
   eventBackButtonText() { return window.GameModules.ui.event.labelViewHelpers.eventBackButtonText.call(this); },
 

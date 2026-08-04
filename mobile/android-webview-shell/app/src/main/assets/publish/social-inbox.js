@@ -328,30 +328,20 @@ window.GameModules.socialInbox = {
   },
 
   nextAgendaAfterOutreach(agenda = {}, item = {}, options = {}) {
-    const src = agenda && typeof agenda === 'object' ? agenda : {};
-    const urgency = Math.max(0, Math.min(1, Number(src.urgency ?? item.urgency) || 0));
-    const short = String(src.short || item.want || '').trim();
-    const keepNeedPlayer = !!options.keepNeedPlayer;
-    const needPlayerWhy = keepNeedPlayer
-      ? String(src.needPlayerWhy || item.needPlayerWhy || '').trim().slice(0, 120)
-      : '';
-    return window.GameModules.characterSocialDrive?.normalizeAgenda?.({
-      short: keepNeedPlayer
-        ? (short || '待与主角微信对接').slice(0, 160)
-        : (short ? `${short.replace(/（已主动联系）$/u, '')}（已主动联系）`.slice(0, 160) : '已主动联系主角'),
-      deadline: src.deadline || '',
-      needPlayer: keepNeedPlayer,
-      needPlayerWhy,
-      urgency: keepNeedPlayer ? Math.max(urgency, 0.35) : Math.min(urgency, 0.25),
-      cooldownUntil: '',
-    }) || {
-      short: short || (keepNeedPlayer ? '待与主角微信对接' : '已主动联系主角'),
-      deadline: '',
-      needPlayer: keepNeedPlayer,
-      needPlayerWhy,
-      urgency: keepNeedPlayer ? Math.max(urgency, 0.35) : Math.min(urgency, 0.25),
+    const next = window.GameModules.characterSocialDrive?.normalizeAgenda?.(agenda) || {
+      short: String(agenda?.short || '').trim(),
+      deadline: String(agenda?.deadline || '').trim(),
+      needPlayer: Boolean(agenda?.needPlayer),
+      needPlayerWhy: String(agenda?.needPlayerWhy || '').trim(),
+      urgency: Math.max(0, Math.min(1, Number(agenda?.urgency) || 0)),
       cooldownUntil: '',
     };
+    // 联络完成只结算“是否还需要主角介入”，不改写正式事务本身。
+    if (!options.keepNeedPlayer) {
+      next.needPlayer = false;
+      next.needPlayerWhy = '';
+    }
+    return next;
   },
 
   /**

@@ -147,6 +147,7 @@ window.GameModules.playerIdentityActions = {
         isPlayer: false,
       }) || p.socialDrive || {};
       const agenda = drive.agenda || {};
+      const ideas = Array.isArray(drive.ideas) ? drive.ideas : [];
       const reachText = Array.isArray(drive.reach) && drive.reach.length ? drive.reach.join('、') : '未记录';
       const channelLabel = { wechat: '微信', call: '电话', scene: '当面', none: '无' }[drive.lastContactChannel] || (drive.lastContactChannel || '无');
       fields.push(
@@ -161,6 +162,7 @@ window.GameModules.playerIdentityActions = {
         row('sd-urgency', '紧迫度', agenda.needPlayer || agenda.urgency ? String(agenda.urgency ?? 0) : '', '0-1；越高越优先入队。', { profileGroup: '社交驱动' }),
         row('sd-deadline', '事务期限', agenda.deadline, '议程截止日期。', { profileGroup: '社交驱动' }),
         row('sd-cooldown', '联络冷却至', agenda.cooldownUntil, '冷却结束前降低再次主动概率。', { profileGroup: '社交驱动' }),
+        row('sd-ideas', '想法/想做的事', ideas.map((idea, index) => `${index + 1}. ${idea.title || idea.detail || '未命名'}${idea.detail && idea.title ? `：${idea.detail}` : ''}`).join('\n'), '三条非必做的主动意向，由 Stage4-13 根据角色资料和上下文调整。', { profileGroup: '社交驱动' }),
       );
     }
     const propertyInfo = this.identityTargetState()?.properties?.realWorldProperties || p.properties?.realWorldProperties || null;

@@ -82,11 +82,72 @@ const replaced = news.applyOps(base, [{
   },
 }], { nowIso: '2026-07-27T02:00:00.000Z' });
 assert.strictEqual(replaced.applied.length, 1, 'valid replace should apply');
-assert.ok(!replaced.state.items.some((item) => item.id === 'news-a'), 'target should be replaced');
+assert.ok(replaced.state.items.some((item) => item.id === 'news-a'), 'channel still has empty capacity, so the target must not be replaced');
 const replacement = replaced.state.items.find((item) => item.title === '邻里仓折扣超市今晚在锦苑小区东门试营业');
 assert.ok(replacement, 'replacement item should exist');
 assert.notStrictEqual(replacement.id, 'news-a', 'replacement id should be system generated');
 assert.strictEqual(replacement.rank, 1, 'rank should be recalculated by system');
+assert.strictEqual(replaced.applied[0].placement, 'empty', 'a non-full channel should receive the news in an empty slot');
+
+const placeholderBase = news.normalizeState({
+  items: [news.normalizeNewsItem({
+    id: 'placeholder-local',
+    channelId: 'local-life',
+    title: '未知',
+    summary: '未知',
+    tags: ['未知'],
+    scope: 'local',
+    heat: 0,
+    placeholder: true,
+    source: 'placeholder',
+  }, { nowIso: '2026-07-27T00:00:00.000Z', requireContent: false })],
+});
+const filledPlaceholder = news.applyOps(placeholderBase, [{
+  op: 'replace',
+  targetId: 'not-used-by-runtime',
+  channelId: 'local-life',
+  item: {
+    title: '锦苑社区晚间便民巴士加开两班',
+    summary: '锦苑社区服务中心宣布自7月27日晚起加开两班社区便民巴士，方便居民在晚高峰后往返地铁站与小区，线路将根据客流动态调整。',
+    tags: ['社区巴士', '晚高峰'],
+    scope: 'community',
+    heat: 68,
+    rankReason: '直接覆盖小区晚间出行需求，时效性和居民关注度较高。',
+    taskPotential: 'soft',
+  },
+}], { nowIso: '2026-07-27T02:00:00.000Z' });
+assert.ok(!filledPlaceholder.state.items.some((item) => item.id === 'placeholder-local'), 'placeholder should be filled before any other slot');
+assert.strictEqual(filledPlaceholder.applied[0].placement, 'placeholder');
+
+const fullChannel = news.normalizeState({
+  items: Array.from({ length: news.MAX_ITEMS_PER_CHANNEL }, (_, index) => news.normalizeNewsItem({
+    id: `full-${index + 1}`,
+    channelId: 'local-life',
+    title: `本地旧闻 ${index + 1}`,
+    summary: `本地旧闻 ${index + 1} 的完整摘要，用于验证频道满额后的自动淘汰逻辑。`,
+    tags: ['本地旧闻'],
+    scope: 'local',
+    heat: index + 1,
+  }, { nowIso: '2026-07-27T00:00:00.000Z' })),
+});
+const fullReplacement = news.applyOps(fullChannel, [{
+  op: 'replace',
+  targetId: 'full-20',
+  channelId: 'local-life',
+  item: {
+    title: '锦苑小区周边道路夜间施工提醒',
+    summary: '锦苑小区周边道路将在7月27日晚间进行管线维护施工，施工期间部分车道临时收窄，物业提醒居民提前规划车辆出入路线。',
+    tags: ['道路施工', '出行提醒'],
+    scope: 'local',
+    heat: 75,
+    rankReason: '施工将直接影响居民晚间出行，具有明确时效和本地影响范围。',
+    taskPotential: 'soft',
+  },
+}], { nowIso: '2026-07-27T03:00:00.000Z' });
+assert.ok(!fullReplacement.state.items.some((item) => item.id === 'full-1'), 'a full channel must replace its lowest-heat item');
+assert.ok(fullReplacement.state.items.some((item) => item.id === 'full-20'), 'AI targetId must not override automatic lowest-heat replacement');
+assert.strictEqual(fullReplacement.applied[0].placement, 'lowest-heat');
+assert.strictEqual(fullReplacement.state.items.find((item) => item.title === '锦苑小区周边道路夜间施工提醒').rank, 1, 'replacement must be sorted by heat after insertion');
 
 const genericReplace = news.applyOps(base, [{
   op: 'replace',
@@ -151,6 +212,7 @@ const updatePrompt = fs.readFileSync(path.join(root, 'publish/prompts/推演引�
 assert.match(updatePrompt, /不能写“热门手游”“热门番剧”“招聘平台”“多家公司”“相关行业”“某平台”“某学校”/u, 'AI prompt should reject generic news wording');
 assert.doesNotMatch(updatePrompt, /如果上下文不足以生成具名事实新闻/u, 'AI prompt should not add extra no-replace policy');
 assert.doesNotMatch(updatePrompt, /createdAt/u, 'AI prompt should not mention system-generated runtime fields');
+assert.match(updatePrompt, /频道满额后才自动淘汰热度最低项/u, 'news slot selection must be owned by runtime code');
 assert.doesNotMatch(fs.readFileSync(path.join(root, 'publish/news-driver-system.js'), 'utf8'), /hasConcreteNewsFacts/u, 'runtime should not hard-code generic news rejection');
 
 const baseline = news.baselineItems({

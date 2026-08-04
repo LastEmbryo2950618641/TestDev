@@ -81,6 +81,50 @@ test('predefined role cards loadAll refreshes preview identity fields from curre
   assert.strictEqual(profile.memberships[0].title, '程序工程师');
 });
 
+test('predefined role cards hydrate missing social drive from known profile data without inventing an agenda', () => {
+  const cards = loadPredefinedRoleCards({
+    characterSocialDrive: {
+      normalizeForRoleCard(value) { return value; },
+    },
+  });
+  const profile = {
+    id: 'rel-ai-test',
+    name: '测试角色',
+    role: '高中学生',
+    relationships: '哥哥：刘悠；同学：小林',
+    preferences: '动画、音乐',
+  };
+  cards.hydrateSocialDrive(profile, { playerProfile: { name: '刘悠' } });
+  assert.strictEqual(profile.socialDrive.relationToPlayer, '哥哥');
+  assert.strictEqual(profile.socialDrive.familiarity, 70);
+  assert.strictEqual(JSON.stringify(profile.socialDrive.reach), JSON.stringify(['scene']));
+  assert.strictEqual(profile.socialDrive.agenda, undefined, 'hydration must not invent a formal agenda');
+  assert.strictEqual(profile.socialDrive.ideas.length, 3);
+});
+
+test('predefined role cards migrate only missing social-drive fields in saved states', async () => {
+  const saved = [];
+  const cards = loadPredefinedRoleCards({
+    predefinedRoleCardData: { demo: { id: 'rel-ai-test', name: '测试角色' } },
+    characterSocialDrive: {
+      normalizeForRoleCard(value) { return value; },
+    },
+    characterStateStore: {
+      save(state) { saved.push(state.id); return Promise.resolve(state); },
+    },
+  });
+  const state = {
+    id: 'rel-ai-test',
+    profile: { id: 'rel-ai-test', name: '测试角色', role: '学生', relationships: '姐姐：刘悠' },
+  };
+  const store = { playerProfile: { name: '刘悠' }, rpgStates: { 'rel-ai-test': state } };
+  const upgraded = await cards.upgradeAllSavedSocialDriveProfiles(store);
+  assert.strictEqual(upgraded, 1);
+  assert.deepStrictEqual(saved, ['rel-ai-test']);
+  assert.strictEqual(state.profile.socialDrive.relationToPlayer, '姐姐');
+  assert.strictEqual(state.profile.socialDrive.ideas.length, 3);
+});
+
 test('character profile part1 social backfill no longer trusts preset faction records as canonical truth', () => {
   const script = fs.readFileSync(path.join(__dirname, '..', 'publish', 'character-profile.js'), 'utf8');
   assert.ok(script.includes('this.factionRoles(out, base, store)'));

@@ -92,11 +92,9 @@ function registerGameStore() {
   };
   const defaultEventState = gm.eventSystem?.defaultState?.() || {
     open: false,
-    tab: 'random',
+    tab: 'inference',
     selectedId: '',
     message: '',
-    currentContext: null,
-    randomProbability: 10,
     events: [],
     draft: {},
   };
@@ -187,7 +185,6 @@ function registerGameStore() {
     wechatImageMentionSources() { return []; },
     wechatAlbumPromptList() { return []; },
     wechatAlbumPromptOptions() { return { identity: [], body: [] }; },
-    eventRandomProbability() { return Math.max(0, Math.min(100, Math.round(Number(this.eventState?.randomProbability ?? 10) || 0))); },
     drivePrimaryTabs() {
       return [
         { id: 'inbox', label: '日常队列', count: 0, showCount: true },
@@ -211,14 +208,17 @@ function registerGameStore() {
     inboxUrgencyDots() { return { filled: 0, total: 4, label: '无' }; },
     inboxRelativeTime() { return ''; },
     inboxBudgetTiersView() { return []; },
+    randomRoleCandidateProbability() { return 30; },
+    randomContextEventProbability() { return 20; },
     setDrivePrimaryTab() {},
     setInboxFilter() {},
     selectInboxItem() {},
     setInboxBudgetTier() {},
     resetInboxBudgetTiers() {},
+    setRandomRoleCandidateProbability() {},
+    setRandomContextEventProbability() {},
     eventTypeTabs() {
       return [
-        { type: 'random', label: '随机事件', count: 0 },
         { type: 'inference', label: '大地图事件', count: 0 },
         { type: 'periodic', label: '周期事件', count: 0 },
       ];
@@ -228,8 +228,7 @@ function registerGameStore() {
     eventName(event = {}) { return event.title || event.name || '未命名事件'; },
     eventMeta(event = {}) { return event.type || ''; },
     eventStatusLabel(event = {}) { return event.status || '未开始'; },
-    setEventTab(type = 'random') { this.eventState = { ...(this.eventState || {}), tab: type }; },
-    setEventRandomProbability(value = 10) { this.eventState = { ...(this.eventState || {}), randomProbability: Math.max(0, Math.min(100, Math.round(Number(value) || 0))) }; },
+    setEventTab(type = 'inference') { this.eventState = { ...(this.eventState || {}), tab: type }; },
     newsChannelTabs() { return [{ id: 'all', label: '全部', count: 0 }]; },
     newsFilterTabs() { return [{ id: 'all', label: '全部' }]; },
     currentNewsList() { return []; },

@@ -90,7 +90,6 @@ window.GameModules.realWorldActions = {
       this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, savedTotal);
       this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1;
       this.scrollRealWorldLogBottom?.();
-      this.prepareEventsForRealWorldAction?.(text, entry.id);
       const ai = window.GameModules.realWorldAi;
       const requestId = (Number(ai?.latestRequestId) || 0) + 1;
       result = await this.awaitRealWorldAiResult(ai.generate(this, '', text, entry.id), requestId);

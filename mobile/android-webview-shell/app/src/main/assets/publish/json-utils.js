@@ -246,6 +246,7 @@ window.GameModules.jsonUtils = {
 
   repairJson(json) {
     let out = this.repairMissingCommas(this.normalizeJsonSyntax(this.trimDanglingProperty(String(json || ''))))
+      .replace(/:\s*"\s*,\s*("[A-Za-z_$\u4e00-\u9fa5][\w\u4e00-\u9fa5-]*"\s*:)/g, ':"",$1')
       .replace(/([}\]"0-9]|true|false|null)\s*,\s*(")/g, '$1,$2')
       .replace(/([}\]])\s*，\s*([\[{])/g, '$1,$2')
       .replace(/([}\]])\s*，\s*(")/g, '$1,$2')

@@ -90,7 +90,6 @@ window.GameModules.realWorldActions = {
       this.realWorldLogTotal = Math.max(this.realWorldLogTotal || 0, savedTotal);
       this.realWorldLogPage = this.realWorldLogMaxPage?.() || this.realWorldLogPage || 1;
       this.scrollRealWorldLogBottom?.();
-      this.prepareEventsForRealWorldAction?.(text, entry.id);
       const ai = window.GameModules.realWorldAi;
       const requestId = (Number(ai?.latestRequestId) || 0) + 1;
       result = await this.awaitRealWorldAiResult(ai.generate(this, '', text, entry.id), requestId);
@@ -152,51 +151,8 @@ window.GameModules.realWorldActions = {
     this.scrollRealWorldLogBottom?.();
   },
 
-  async applyRealWorldResult(id, result) {
-    result = window.GameModules.updateRegistry?.migrateLegacyFactionUpdates?.(result) || result;
-    if (!result._genericUpdatesNormalized) {
-      result = {
-        ...result,
-        genericUpdates: window.GameModules.updateRegistry?.normalizeUpdates?.(result, this) || result.genericUpdates || [],
-        _genericUpdatesNormalized: true,
-      };
-    }
-    const legacyResult = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result, this) || result;
-    const state = this.playerIdentityState?.();
-    const settlement = [];
-    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, legacyResult));
-    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyLexicon(this, legacyResult.lexiconUpdates || []));
-    result.solidifyCards = await this.collectSolidifiableCharacters?.(result, 'real') || [];
-    await this.syncNarrationWearing?.(result);
-    result.solidifyOpen = false;
-    result.solidifySelectedKey = this.solidifyKey?.(result.solidifyCards[0]) || '';
-    result.itemActionResults = await this.applyRealWorldItemActions?.(legacyResult.itemActions || []) || [];
-    settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));
-    const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
-    result.elapsedSeconds = elapsedSeconds;
-    const allVitalUpdates = Array.isArray(legacyResult.vitalUpdates) ? legacyResult.vitalUpdates : [];
-    const playerTarget = state?.id || 'player-self';
-    result.vitalUpdates = window.GameModules.realWorldVitals.normalize(allVitalUpdates, elapsedSeconds, result.narration || '', playerTarget, true);
-    settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
-    await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
-    const vitalTargets = [...new Set(allVitalUpdates.map((item) => String(item?.target || item?.subject?.id || '').trim()).filter((target) => target && target !== playerTarget && target !== 'player-self'))];
-    for (const target of vitalTargets) {
-      const targetState = this.itemSkillState?.(target);
-      const targetUpdates = window.GameModules.realWorldVitals.normalize(allVitalUpdates, elapsedSeconds, result.narration || '', target, false);
-      if (!targetState || !targetUpdates.length) continue;
-      settlement.push(...this.realWorldVitalSettlement(targetState, targetUpdates));
-      await this.applyRealWorldVitalUpdates(targetState, targetUpdates);
-    }
-    settlement.push(...this.realWorldFactionSettlement(
-      window.GameModules.updateRegistry?.orgNamesFromGenericUpdates?.(result.genericUpdates, this)?.map((name) => ({ factionName: name, action: 'generic' })) || [],
-    ));
-    const orgTerritoryTypes = new Set(['territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status', 'faction-structure', 'faction-overview']);
-    const orgTerritoryUpdates = (result.genericUpdates || []).filter((item) => orgTerritoryTypes.has(item?.updateType));
+  async applyStage44SettlementRecords(result, legacyResult, settlement, id) {
     const legacyHandled = new Set(['vital', 'emotion', 'feeling', 'item', 'faction-structure', 'faction-overview', 'territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status']);
-    if (orgTerritoryUpdates.length) {
-      const orgLines = window.GameModules.app?.orgTerritory?.settlementActions?.applySettlementUpdates?.(this, orgTerritoryUpdates) || [];
-      orgLines.forEach((line) => { if (line) settlement.push(line); });
-    }
     const remainingGeneric = (result.genericUpdates || []).filter((item) => !legacyHandled.has(item?.updateType));
     await window.GameModules.updateRegistry?.applyGeneric?.(this, remainingGeneric);
     const settledEvents = this.addEventsFromSettlement?.(result.events || [], { logId: id }) || [];
@@ -204,8 +160,12 @@ window.GameModules.realWorldActions = {
     settlement.push(...(await window.GameModules.realWorldProfileStage5?.applyPatches?.(this, result.profilePatches || []) || []));
     const initApplied = await window.GameModules.initPromptRegistry?.apply?.(this, result.initUpdates || []) || [];
     if (initApplied.length) settlement.push(`初始化：已写入${initApplied.length}条初始化记录。`);
-    delete result.characterMetricUpdates;
-    result.characterCardChanges = settlement;
+    return { settledEvents, initApplied, legacyResult };
+  },
+
+  applyPostStageTimeAndNews(result, settlement, id) {
+    const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
+    result.elapsedSeconds = elapsedSeconds;
     const startedAt = this.phoneDate().toISOString();
     this.advancePhoneTime(elapsedSeconds);
     const newsTick = this.tickWorldNewsDriver?.(elapsedSeconds, { logId: id, startedAt, endedAt: this.phoneDate().toISOString() }) || null;
@@ -222,6 +182,12 @@ window.GameModules.realWorldActions = {
       const debtCount = propertySettlement.debts?.length || 0;
       settlement.push(`房产合同：已结算${settledCount}条，欠款/催债${debtCount}条。`);
     }
+    return { elapsedSeconds, startedAt, newsTick };
+  },
+
+  async applyPostStageCommunicationAndDrive(result, settlement, id, timing = {}) {
+    const elapsedSeconds = Number(timing.elapsedSeconds) || Number(result.elapsedSeconds) || 300;
+    const startedAt = timing.startedAt || this.phoneDate().toISOString();
     this.realWorldSettlementLogId = id || '';
     await this.applyWechatActions?.(result.wechatActions || []);
     const longingEvents = await this.settleRealWorldLongingMeters?.(elapsedSeconds, new Date(startedAt).getTime(), this.phoneDate().getTime()) || [];
@@ -237,6 +203,10 @@ window.GameModules.realWorldActions = {
     if (wechatDeliveries.length) settlement.push(`微信来信：已向${wechatDeliveries.length}位好友写入未读消息（Social Inbox）。`);
     if (promotedRequests.length) settlement.push(`微信申请：已新增${promotedRequests.length}条待处理好友申请（需玩家同意，未自动添加）。`);
     if (writebacks.length) settlement.push(`社交回写：已更新${writebacks.length}人议程/上次沟通/冷却。`);
+    return { longingEvents, socialInboxItems, inboxClear, promotedRequests, wechatDeliveries, writebacks };
+  },
+
+  async applyPostStageMapAndLocation(result, settlement, id, state) {
     this.refreshRealWorldMatterStatus?.();
     this.checkWorkReminder?.();
     window.GameModules.realWorldMap.update(this, result.locationName || this.realWorldLocationName, result);
@@ -281,7 +251,60 @@ window.GameModules.realWorldActions = {
     this.realWorldQuest = result.quest || this.realWorldQuest;
     this.realWorldStatus = result.status || this.realWorldStatus;
     this.realWorldChoices = result.choices || this.realWorldChoices;
-    const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: this.phoneDate().toISOString(), startedAt, elapsedSeconds };
+    return { fogResult };
+  },
+
+  async applyRealWorldResult(id, result) {
+    result = window.GameModules.updateRegistry?.migrateLegacyFactionUpdates?.(result) || result;
+    if (!result._genericUpdatesNormalized) {
+      result = {
+        ...result,
+        genericUpdates: window.GameModules.updateRegistry?.normalizeUpdates?.(result, this) || result.genericUpdates || [],
+        _genericUpdatesNormalized: true,
+      };
+    }
+    const legacyResult = window.GameModules.updateRegistry?.expandGenericForLegacy?.(result, this) || result;
+    const state = this.playerIdentityState?.();
+    const settlement = [];
+    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyMetrics(this, legacyResult));
+    settlement.push(...await window.GameModules.realWorldTargetUpdates.applyLexicon(this, legacyResult.lexiconUpdates || []));
+    result.solidifyCards = await this.collectSolidifiableCharacters?.(result, 'real') || [];
+    await this.syncNarrationWearing?.(result);
+    result.solidifyOpen = false;
+    result.solidifySelectedKey = this.solidifyKey?.(result.solidifyCards[0]) || '';
+    result.itemActionResults = await this.applyRealWorldItemActions?.(legacyResult.itemActions || []) || [];
+    settlement.push(...this.realWorldItemActionSettlement(result.itemActionResults));
+    const elapsedSeconds = window.GameModules.ai.clampElapsed?.(result.elapsedSeconds, 300) || 300;
+    result.elapsedSeconds = elapsedSeconds;
+    const allVitalUpdates = Array.isArray(legacyResult.vitalUpdates) ? legacyResult.vitalUpdates : [];
+    const playerTarget = state?.id || 'player-self';
+    result.vitalUpdates = window.GameModules.realWorldVitals.normalize(allVitalUpdates, elapsedSeconds, result.narration || '', playerTarget, true);
+    settlement.push(...this.realWorldVitalSettlement(state, result.vitalUpdates));
+    await this.applyRealWorldVitalUpdates(state, result.vitalUpdates);
+    const vitalTargets = [...new Set(allVitalUpdates.map((item) => String(item?.target || item?.subject?.id || '').trim()).filter((target) => target && target !== playerTarget && target !== 'player-self'))];
+    for (const target of vitalTargets) {
+      const targetState = this.itemSkillState?.(target);
+      const targetUpdates = window.GameModules.realWorldVitals.normalize(allVitalUpdates, elapsedSeconds, result.narration || '', target, false);
+      if (!targetState || !targetUpdates.length) continue;
+      settlement.push(...this.realWorldVitalSettlement(targetState, targetUpdates));
+      await this.applyRealWorldVitalUpdates(targetState, targetUpdates);
+    }
+    settlement.push(...this.realWorldFactionSettlement(
+      window.GameModules.updateRegistry?.orgNamesFromGenericUpdates?.(result.genericUpdates, this)?.map((name) => ({ factionName: name, action: 'generic' })) || [],
+    ));
+    const orgTerritoryTypes = new Set(['territory-control', 'org-structure-node', 'org-overview-panel', 'membership', 'org-status', 'faction-structure', 'faction-overview']);
+    const orgTerritoryUpdates = (result.genericUpdates || []).filter((item) => orgTerritoryTypes.has(item?.updateType));
+    if (orgTerritoryUpdates.length) {
+      const orgLines = window.GameModules.app?.orgTerritory?.settlementActions?.applySettlementUpdates?.(this, orgTerritoryUpdates) || [];
+      orgLines.forEach((line) => { if (line) settlement.push(line); });
+    }
+    await this.applyStage44SettlementRecords?.(result, legacyResult, settlement, id);
+    delete result.characterMetricUpdates;
+    result.characterCardChanges = settlement;
+    const timing = this.applyPostStageTimeAndNews?.(result, settlement, id) || {};
+    await this.applyPostStageCommunicationAndDrive?.(result, settlement, id, timing);
+    await this.applyPostStageMapAndLocation?.(result, settlement, id, state);
+    const time = { label: `${this.phoneDateText()} ${this.phoneTimeText()}`, iso: this.phoneDate().toISOString(), startedAt: timing.startedAt, elapsedSeconds: timing.elapsedSeconds };
     const { playerEntry, ...cleanResult } = result;
     const existingEntry = this.realWorldLog.find((entry) => entry.id === id) || {};
     const nextThinkingSections = Array.isArray(cleanResult.thinkingSections) && cleanResult.thinkingSections.length ? cleanResult.thinkingSections : (existingEntry.thinkingSections || []);

@@ -44,7 +44,7 @@ function test(name, fn) {
   tests.push({ name, fn });
 }
 
-test('random event with 100 probability is prepared for narration context', () => {
+test('event library removes legacy random entries instead of triggering them', () => {
   const context = createContext();
   loadScript(context, 'publish/event-system.js');
   loadScript(context, 'publish/event-actions.js');
@@ -52,10 +52,8 @@ test('random event with 100 probability is prepared for narration context', () =
   loadScript(context, 'publish/calendar-actions.js');
   const modules = context.window.GameModules;
   const store = createStore(modules);
-  assert.strictEqual(store.eventState.randomProbability, 10);
-  store.setEventRandomProbability(100);
-  assert.strictEqual(store.eventState.randomProbability, 100);
-  store.upsertEvent({
+  assert.strictEqual(modules.eventSystem.EVENT_TYPES.includes('random'), false);
+  const ignored = store.upsertEvent({
     type: 'random',
     title: '突发停电',
     startDate: '2026-07-10',
@@ -65,10 +63,9 @@ test('random event with 100 probability is prepared for narration context', () =
     people: ['刘思琪'],
     tags: ['突发'],
   }, { save: false });
-  const triggered = store.prepareEventsForRealWorldAction('和刘思琪去中央公园散步', 'log-1');
-  assert.strictEqual(triggered.length, 1);
-  assert.match(store.eventStage1PromptContext('散步'), /突发停电/);
-  assert.match(store.eventNarrationPromptContext('散步'), /随机事件/);
+  assert.strictEqual(ignored, null);
+  assert.strictEqual(store.eventState.events.length, 0);
+  assert.doesNotMatch(store.eventNarrationPromptContext('散步'), /随机事件|突发停电/);
 });
 
 test('settlement json extracts event entries into final update payload', () => {

@@ -289,7 +289,7 @@ test('colocated generated stage prompts register into promptTemplates inline reg
 
 test('Stage 1 query planning template uses slim routing variables', () => {
   const body = fs.readFileSync(path.join(root, 'publish/prompts/推演引擎/stage1-guided-query.md'), 'utf8');
-  ['{{本次行动}}', '{{路由上下文}}', '{{已加载资料摘要}}', '{{可请求资料目录}}', '{{当前步骤输出要求}}', '{{随机场外角色候选}}'].forEach((token) => {
+  ['{{本次行动}}', '{{路由上下文}}', '{{已加载资料摘要}}', '{{可请求资料目录}}', '{{当前步骤输出要求}}', '{{随机场外候选}}'].forEach((token) => {
     assert.ok(body.includes(token), `${token} missing`);
   });
   ['{{基础上下文}}', '{{动态Skills}}', '{{动态载入资料}}'].forEach((token) => {
@@ -304,7 +304,7 @@ test('Stage 1 query planning template prevents schedule and random candidates fr
     'publish/inference-prompts-runtime.js',
   ];
   const rules = [
-    '随机场外角色候选不等于禁止出场',
+    '随机场外候选不等于禁止出场',
     '不强制出场不等于禁止出场',
     '同地点/同住/相邻候选不得仅因未强制出场而写入禁止出场',
     '玩家行动明确目标不得写入禁止出场',
@@ -457,7 +457,7 @@ test('Stage 1 prompt requires JSON guided query planning', async () => {
   loadCore(context);
   const loop = context.window.GameModules.realWorldAgentLoop;
   context.window.GameModules.promptTemplates.render = async (id, vars) => (id === 'inference-stage1-guided-query'
-    ? `只输出一个紧凑 JSON 对象\n字段契约："plan"、"status"、"participants"、"materialRequests"\nstatus 只能是：资料已足够 / 继续请求资料\nmaterialRequests 每项包含 type/action/params\n目录项：type=角色查询；action=搜索角色卡；params顺序=name\n随机场外角色候选：${vars.随机场外角色候选}`
+    ? `只输出一个紧凑 JSON 对象\n字段契约："plan"、"status"、"participants"、"materialRequests"\nstatus 只能是：资料已足够 / 继续请求资料\nmaterialRequests 每项包含 type/action/params\n目录项：type=角色查询；action=搜索角色卡；params顺序=name\n随机场外候选：${vars.随机场外候选}`
     : JSON.stringify(vars));
   const config = loop.realConfig();
   config.ctx = {
@@ -476,7 +476,7 @@ test('Stage 1 prompt requires JSON guided query planning', async () => {
   assert.ok(prompt.includes('"participants"'));
   assert.ok(prompt.includes('materialRequests 每项包含 type/action/params'));
   assert.ok(prompt.includes('type=角色查询；action=搜索角色卡'));
-  assert.ok(prompt.includes('随机场外角色候选'));
+  assert.ok(prompt.includes('随机场外候选'));
   assert.ok(prompt.includes('王主管'));
   assert.ok(!prompt.includes('只输出中文 K:V'));
 });
@@ -2386,7 +2386,7 @@ test('real context builds Top3 participant profile requests and excludes forbidd
   assert.strictEqual(JSON.stringify(requests.map((item) => item.params.name)), JSON.stringify(['刘思琪', '刘思怡', '路人甲']));
 });
 
-test('real randomActiveEventCandidates excludes forced priority drama and forbidden names', () => {
+test('real randomActiveEventCandidates independently rolls role and scene-event probabilities', () => {
   const context = createContext();
   loadCore(context);
   const ctx = context.window.GameModules.realWorldAgentContext;
@@ -2396,16 +2396,35 @@ test('real randomActiveEventCandidates excludes forced priority drama and forbid
     b: { id: 'b', profile: { name: '刘思怡' } },
     c: { id: 'c', profile: { name: '王主管' } },
     d: { id: 'd', profile: { name: '路人甲' } },
+    e: { id: 'e', profile: { name: '陈默' } },
   };
 
-  const random = ctx.randomActiveEventCandidates(store, '观察门口', {
+  const excluded = ctx.randomActiveEventCandidates(store, '观察门口', {
     forcedParticipants: [{ name: '刘思琪' }],
     priorityCandidates: [{ name: '刘思怡' }],
     dramaCandidates: [{ name: '王主管' }],
     forbiddenParticipants: [{ name: '路人甲' }],
+    roleCandidateProbability: 100,
+    contextEventProbability: 0,
+    rng: () => 0.5,
   });
 
-  assert.strictEqual(JSON.stringify(random.map((item) => item.name)), JSON.stringify([]));
+  assert.strictEqual(JSON.stringify(excluded.map((item) => item.name)), JSON.stringify(['陈默']));
+  assert.ok(store.realWorldActiveEventCooldowns.e >= 3);
+  const repeated = ctx.randomActiveEventCandidates(store, '观察门口', {
+    forcedParticipants: [{ name: '刘思琪' }],
+    priorityCandidates: [{ name: '刘思怡' }],
+    dramaCandidates: [{ name: '王主管' }],
+    forbiddenParticipants: [{ name: '路人甲' }],
+    roleCandidateProbability: 100,
+    contextEventProbability: 0,
+    rng: () => 0.5,
+  });
+  assert.strictEqual(repeated.length, 0);
+  const none = ctx.randomActiveEventCandidates(store, '观察门口', { roleCandidateProbability: 0, contextEventProbability: 0, rng: () => 0.49 });
+  assert.strictEqual(none.length, 0);
+  const sceneEvent = ctx.randomActiveEventCandidates(store, '观察门口', { roleCandidateProbability: 0, contextEventProbability: 100, rng: () => 0.5 });
+  assert.strictEqual(JSON.stringify(sceneEvent), JSON.stringify([{ id: 'context-random-event', name: '场景临时扰动', kind: 'context-event' }]));
 });
 
 test('auto-loaded character cards carry structured participants for Stage 3', async () => {

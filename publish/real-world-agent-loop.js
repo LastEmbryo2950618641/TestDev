@@ -341,7 +341,7 @@ window.GameModules.realWorldAgentLoop = {
 
   normalizeReasoningPhase(phase = '') {
     const text = String(phase || '').trim();
-    const stage4Pass = text.match(/^stage\s*4\s*[-–—]\s*(1[0-2]|[1-9])$/iu);
+    const stage4Pass = text.match(/^stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])$/iu);
     if (stage4Pass) return `stage4-${stage4Pass[1]}`;
     const match = text.match(/^stage\s*(1[0-3]|[1-9])$/iu);
     if (match) return `stage${Number(match[1])}`;
@@ -368,6 +368,7 @@ window.GameModules.realWorldAgentLoop = {
       'inference-stage4-system-events': 'stage4-10',
       'inference-stage4-control-experience': 'stage4-11',
       'inference-stage4-role-card-review': 'stage4-12',
+      'inference-stage4-social-drive': 'stage4-13',
       'inference-stage5-intro-card-update': 'stage5',
       'inference-stage5-profile-gate': 'stage6',
       'inference-stage5-body-profile-patch': 'stage7',
@@ -391,7 +392,7 @@ window.GameModules.realWorldAgentLoop = {
     if (/Stage\s*6|外观判定/iu.test(sourceTitle)) return 'stage6';
     if (/Stage\s*5|介绍卡/iu.test(sourceTitle)) return 'stage5';
     if (sourceTitle.includes('场景锚定') || /Stage\s*2/iu.test(sourceTitle)) return 'stage2';
-    const stage4Sub = sourceTitle.match(/Stage\s*4\s*[-–—]\s*(1[0-2]|[1-9])/iu);
+    const stage4Sub = sourceTitle.match(/Stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])/iu);
     if (stage4Sub) return `stage4-${stage4Sub[1]}`;
     if (/Stage\s*4|滑动结算|状态结算/iu.test(sourceTitle)) return 'stage4';
     if (config.streamToUi) return 'stage3';
@@ -416,6 +417,8 @@ window.GameModules.realWorldAgentLoop = {
       'stage4-10': 'Stage4-10 系统记录与事件',
       'stage4-11': 'Stage4-11 操控体验',
       'stage4-12': 'Stage4-12 角色卡补充更新',
+      'stage4-13': 'Stage4-13 社交驱动',
+      'stage4-14': 'Stage4-14 角色想法补足',
       stage5: 'Stage5 介绍卡更新',
       stage6: 'Stage6 外观判定',
       stage7: 'Stage7 自然外观补丁',
@@ -445,7 +448,7 @@ window.GameModules.realWorldAgentLoop = {
         id: attempt > 0 ? `stage4-${attempt}` : 'stage4',
       };
     }
-    if (/^stage4-(?:[1-9]|1[0-2])$/u.test(phase)) return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
+    if (/^stage4-(?:[1-9]|1[0-4])$/u.test(phase)) return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     if (/^stage(?:[2-9]|1[0-3])$/u.test(phase)) {
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     }
@@ -461,7 +464,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseReasoningLabel(label = '') {
-    const stage4Pass = String(label || '').trim().match(/^Stage\s*4\s*[-–—]\s*(1[0-2]|[1-9])/iu);
+    const stage4Pass = String(label || '').trim().match(/^Stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])/iu);
     if (stage4Pass) {
       const phase = `stage4-${stage4Pass[1]}`;
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
@@ -498,7 +501,7 @@ window.GameModules.realWorldAgentLoop = {
       if (storedPhase === 'stage4') {
         return { phase: storedPhase, step, label: String(section?.label || (step > 0 ? `Stage4 状态结算 - ${step + 1}` : 'Stage4 状态结算')), id: id || (step > 0 ? `stage4-${step}` : 'stage4') };
       }
-      if (/^stage4-(?:[1-9]|1[0-2])$/u.test(storedPhase)) {
+      if (/^stage4-(?:[1-9]|1[0-4])$/u.test(storedPhase)) {
         return { phase: storedPhase, step: 0, label: String(section?.label || this.stagePhaseLabel(storedPhase)), id: id || storedPhase };
       }
       const fallbackLabels = {
@@ -526,7 +529,7 @@ window.GameModules.realWorldAgentLoop = {
       const step = Number(stage1Match[1]) || 1;
       return { phase: 'stage1', step, label: this.stagePhaseLabel('stage1', step), id: `stage1-${step}` };
     }
-    if (/^stage4-(?:[1-9]|1[0-2])$/u.test(id)) return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
+    if (/^stage4-(?:[1-9]|1[0-4])$/u.test(id)) return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     if (/^stage(?:[2-9]|10)$/u.test(id)) {
       return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     }
@@ -618,7 +621,7 @@ window.GameModules.realWorldAgentLoop = {
   isSettlementReasoning(config = {}) {
     if (config.settlementThinking) return true;
     const phase = this.inferReasoningPhase(config);
-    return /^(stage(?:[4-9]|1[0-3]))$/u.test(phase);
+    return /^stage4(?:-(?:[1-9]|1[0-4]))?$|^stage(?:[5-9]|1[0-3])$/u.test(phase);
   },
 
   settlementReasoningLabel(meta = {}, config = {}) {
@@ -852,7 +855,7 @@ window.GameModules.realWorldAgentLoop = {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
       const stage4Passes = this.stage4SettlementPasses(config, store);
       const stage4PassFlow = stage4Passes.filter((pass) => (pass.types || []).length).map((pass) => pass.label).join(' → ');
-      this.patchConfiguredSettlementThinking(store, logId, `正文已完成，正在串行结算（${stage4PassFlow} → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, `正文已完成，正在串行结算（${stage4PassFlow} → Stage4-13 社交驱动 → Stage4-14 角色想法补足 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
         const stage4Results = [];
@@ -905,6 +908,16 @@ window.GameModules.realWorldAgentLoop = {
         ...config,
         kvCacheSession: this.forkKvCacheSession(config.kvCacheSession, postStage4Checkpoint),
       };
+      const socialDriveStage = window.GameModules.inferenceIntroCardStageUpdate;
+      const socialDriveResult = socialDriveStage?.runRoleDriveAfterStage4
+        ? await socialDriveStage.runRoleDriveAfterStage4({ store, action, narration, participants, logId, config: postBodyKvConfig, loop: this, updates: stage4Updates })
+        : { lines: [], skipped: true };
+      if (socialDriveResult?.lines?.length) {
+        stage4Updates = {
+          ...stage4Updates,
+          characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...socialDriveResult.lines],
+        };
+      }
       const introStage5 = window.GameModules.inferenceIntroCardStageUpdate;
       const introStage5Result = introStage5?.runAfterSettlement
         ? await introStage5.runAfterSettlement({ store, action, narration, participants, logId, config: postBodyKvConfig, loop: this, updates: stage4Updates, materialSession })
@@ -1234,9 +1247,8 @@ window.GameModules.realWorldAgentLoop = {
     });
     const randomActiveCandidates = !forceFinal ? (config.ctx.randomActiveEventCandidates?.(store, action, randomOptions) || []) : [];
     const randomActiveCandidateText = randomActiveCandidates.length
-      ? randomActiveCandidates.map((item, index) => `${index + 1}. ${item.name || item.id}`).join('；')
+      ? randomActiveCandidates.map((item, index) => `${index + 1}. ${item.name || item.id}${item.kind === 'context-event' ? '（由当前上下文生成具体事件）' : ''}`).join('；')
       : '无';
-    const eventStage1Context = store.eventStage1PromptContext?.(actionText) || '';
     const configuredControlPerspectiveRule = this.configuredControlPerspectiveRule(store, config);
     const commonVars = {
       本次行动: actionText,
@@ -1244,7 +1256,7 @@ window.GameModules.realWorldAgentLoop = {
       最大步骤: this.guidedMaxStepText(store, config),
       推演自由度规则: [config.mode === 'story' ? this.storyFreedomRule(store) : (store.realWorldFreedomRule?.() || '推演自由度：行动范围内。只推演玩家本次输入行动自然抵达的直接结果。'), configuredControlPerspectiveRule].filter(Boolean).join('\n'),
       当前步骤输出要求: this.stepOutputRule(step, forceFinal),
-      随机场外角色候选: randomActiveCandidateText,
+      随机场外候选: randomActiveCandidateText,
     };
     if (!forceFinal) {
       const stage1RoutingContext = config.ctx.buildStage1RoutingContext?.({ store, action: actionText, loaded, materialSession, config }) || [
@@ -1262,7 +1274,6 @@ window.GameModules.realWorldAgentLoop = {
         上一轮查询规划摘要: previousGuidance,
         已加载资料摘要: loadedRoutingSummary,
         可请求资料目录: materialCatalog,
-        日常驱动与事件Stage1要点: eventStage1Context,
       });
       return [{ role: 'user', content: prompt }];
     }
@@ -2011,11 +2022,9 @@ window.GameModules.realWorldAgentLoop = {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
     const text = (value) => String(value ?? '').trim();
     const rawType = text(entry.type ?? entry.eventType ?? entry['事件类型'] ?? entry.category ?? '');
-    const type = /random|随机/u.test(rawType)
-      ? 'random'
-      : (/periodic|cycle|周期/u.test(rawType)
-        ? 'periodic'
-        : (/inference|推演|大地图|地图事件|活动事件|map|world/u.test(rawType) ? 'inference' : ''));
+    const type = /periodic|cycle|周期/u.test(rawType)
+      ? 'periodic'
+      : (/inference|推演|大地图|地图事件|活动事件|map|world/u.test(rawType) ? 'inference' : '');
     // 未知类型不默认写库，避免把人员约定误落成事件
     if (!type) return null;
     const title = text(entry.title ?? entry.name ?? entry.eventName ?? entry['事件名'] ?? '');
@@ -2032,7 +2041,6 @@ window.GameModules.realWorldAgentLoop = {
       people: entry.people ?? entry.relatedPeople ?? entry.participants ?? entry['事件相关人']
         ?? ((type === 'periodic' || type === 'inference') ? ['所有人'] : []),
       tags: entry.tags ?? entry.eventTags ?? entry['事件标签'] ?? [],
-      probability: entry.probability ?? entry.chance ?? entry['发生概率'],
       source: entry.source || 'stage4',
       status: entry.status || 'active',
     }, store) || null;
@@ -2077,7 +2085,7 @@ window.GameModules.realWorldAgentLoop = {
 
   settlementTypeContracts() {
     return {
-      [this.eventSettlementType()]: { title: '事件结算', format: '数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["所有人或受众标签"],"tags":["标签"],"probability":25,"status":"active"}；inference=大地图/活动；无事件 []' },
+      [this.eventSettlementType()]: { title: '事件结算', format: '数组；每项 {"type":"inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["所有人或受众标签"],"tags":["标签"],"status":"active"}；inference=大地图/活动；无事件 []' },
       '基础结算': { title: '基础结算', format: '经过时间：秒数\n当前状态：状态文本\n当前目标：目标文本\n场景标题：标题\n地点名称：地点全称\n备选行动1：行动文本\n备选行动2：行动文本\n备选行动3：行动文本\n备选行动4：行动文本' },
       '情绪': { title: '情绪结算', format: '更新N：结算主体，情绪名，+/-数值，变化原因' },
       '感觉': { title: '感觉结算', format: '更新N：结算主体，感觉名，+/-数值，变化原因' },
@@ -3664,7 +3672,7 @@ window.GameModules.realWorldAgentLoop = {
       if (type === '长期目标') return '长期目标：数组；每项 {"subject":"姓名","short|medium|long":{"content":"目标","deadline":"YYYY-MM-DD","progress":0-100,"detail":"进度描述"},"achievement":"阶段成果","reason":"证据"}；完成某档必须换同档新 content 并重置较低 progress；玩家明确改目标且旧档未完成须融合改写；可只写变化字段；无变化 []。';
       if (type === '操控体验') return '操控体验：数组；每项先输出 needUpdate 与 updateFields。needUpdate=false 时可不填字段值；needUpdate=true 时必须含 subject、updateFields、reason，以及 updateFields 对应值。adaptation 只写 +N/-N 增量；feeling/summary/controllerAwarenessLevel/controllerAwareness 基于基线生成完整新文本直接覆盖；禁止输出 onlineCount。无变化 [{"subject":"被控角色名","needUpdate":false}] 或 []。';
       if (type === '人事归属') return '人事归属：数组；每项 {"subject":"姓名","orgName":"组织名","title":"职位","department":"部门或空","departmentFog":true/false,"state":"fog|sketch|established","reason":"证据"}；可带 orgId；无变化 []。';
-      if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"random|inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["所有人或受众标签"],"tags":["标签"],"probability":25,"status":"active"}；inference 仅大地图/活动，禁止私人约定；无事件 []。';
+      if (type === this.eventSettlementType()) return '事件：数组；每项 {"type":"inference|periodic","title":"事件名","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","location":"地点","content":"内容","people":["所有人或受众标签"],"tags":["标签"],"status":"active"}；inference 仅大地图/活动，禁止私人约定；无事件 []。';
       return `${type}：数组；每项 {"subject":"结算主体","field":"字段","value":"变化或新值","reason":"证据"}；无变化 []。原合约：${c?.format || '更新N：结算主体，字段，变化，原因'}`;
     }).join('\n');
     const globalShortReason = String(partialByType.__shortOutputReason || '').trim();

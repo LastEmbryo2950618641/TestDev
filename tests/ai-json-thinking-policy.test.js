@@ -112,6 +112,40 @@ async function testReasoningAndJsonStreamUseSeparateSections() {
   assert.strictEqual(entry.thinkingSections[1].text, '正在接收 JSON：\n{}');
 }
 
+async function testStage4JsonStreamUsesPersistentSettlementSections() {
+  const { context, loop } = createLoopContext();
+  const entries = [
+    { id: 'stage4-1-log', settlementThinkingSections: [] },
+    { id: 'stage4-2-log', settlementThinkingSections: [] },
+  ];
+  context.window.GameModules.aiRequest.complete = async (options) => {
+    await options.onChunk?.('{}', true, { buffer: '{}', doneSeen: true });
+    return '{}';
+  };
+  const store = {
+    modelId: 'deepseek-v4-flash',
+    realWorldLog: entries,
+    patchRealWorldLogEntry(id, patch) {
+      const entry = entries.find((item) => item.id === id);
+      if (entry) Object.assign(entry, patch);
+    },
+  };
+  await loop.completeConfiguredStep(store, 'stage4-1 prompt', entries[0].id, false, {
+    ...loop.realConfig(),
+    promptId: 'inference-stage4-basic',
+    reasoningPhase: 'stage4-1',
+  });
+  await loop.completeConfiguredStep(store, 'stage4-2 prompt', entries[1].id, false, {
+    ...loop.realConfig(),
+    promptId: 'inference-stage4-emotion-feeling',
+    reasoningPhase: 'stage4-2',
+  });
+  assert.deepStrictEqual(entries[0].settlementThinkingSections.map((section) => section.id), ['settlement-stage4-1-json']);
+  assert.deepStrictEqual(entries[1].settlementThinkingSections.map((section) => section.id), ['settlement-stage4-2-json']);
+  assert.strictEqual(entries[0].thinkingSections, undefined);
+  assert.strictEqual(entries[1].thinkingSections, undefined);
+}
+
 function testPromptSkillsDefaultPolicy() {
   const context = vm.createContext({
     window: {
@@ -151,6 +185,7 @@ async function run() {
   await testJsonStagesDisableThinkingButKeepJsonMode();
   await testStage3StillDoesNotUseJsonMode();
   await testReasoningAndJsonStreamUseSeparateSections();
+  await testStage4JsonStreamUsesPersistentSettlementSections();
   testPromptSkillsDefaultPolicy();
   console.log('PASS real-world AI request json/deep-thinking policy');
 }
