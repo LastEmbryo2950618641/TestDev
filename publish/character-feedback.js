@@ -26,6 +26,20 @@ window.GameModules.characterFeedback = {
     let doneSeen = false;
     try {
       const prompt = await this.prompt(store);
+      if (window.GameModules.realWorldAgentLoop?.completeCachedJsonPrompt) {
+        const raw = await window.GameModules.realWorldAgentLoop.completeCachedJsonPrompt(store, {
+          prompt,
+          promptId: 'character-feedback',
+          source: 'character-feedback',
+          sourceTitle: '控制上线｜角色反馈',
+          logId: null,
+          jsonMode: true,
+          responseFormat: { type: 'json_object' },
+          outputLimitKind: 'other',
+          timeoutMs: 60000,
+        });
+        return this.parse(raw, fallback, store);
+      }
       let resolveDone;
       const donePromise = new Promise((resolve) => { resolveDone = resolve; });
       const request = window.GameModules.aiRequest.complete({

@@ -8,6 +8,7 @@ window.GameModules.rag = {
 
   async load() {
     if (window.GameModules.cache.enabled('files') && this.sources) return this.sources;
+    await window.GameModules.workMetadata?.load?.();
     const sources = window.GameData?.loreSources || [];
     if (window.GameModules.cache.enabled('files')) this.sources = sources;
     if (!sources.length) throw new Error('资料入口未配置');

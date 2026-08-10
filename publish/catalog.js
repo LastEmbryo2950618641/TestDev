@@ -8,6 +8,7 @@ window.GameModules.catalog = {
 
   async load() {
     if (window.GameModules.cache.enabled('catalog') && this.data) return this.data;
+    await window.GameModules.workMetadata?.load?.();
     const data = window.GameData?.characterCatalog;
     if (data) {
       if (window.GameModules.cache.enabled('catalog')) this.data = data;

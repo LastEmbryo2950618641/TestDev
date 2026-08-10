@@ -111,6 +111,20 @@ window.GameModules.entryActions = {
     console.log('[进入行动] 请求开始:', reason, this.entryTimeLabel(), this.character.name, this.character.work, 'storyContextLength=', storyContext.length);
     let buffer = '';
     const prompt = await this.entryPrompt(reason, storyContext);
+    if (window.GameModules.realWorldAgentLoop?.completeCachedJsonPrompt) {
+      buffer = await window.GameModules.realWorldAgentLoop.completeCachedJsonPrompt(this, {
+        prompt,
+        promptId: 'entry-action',
+        source: 'entry-action',
+        sourceTitle: '控制上线｜进入行动',
+        jsonMode: false,
+        outputLimitKind: 'other',
+        timeoutMs: 60000,
+      });
+      const latest = this.cleanEntryAction(buffer);
+      if (latest) this.entryCurrentAction = latest;
+      return latest || `${this.character.name}正在观察周围变化。`;
+    }
     await window.GameModules.aiRequest.complete({
       source: 'entry-action', model: this.modelId, prompt, timeoutMs: 60000,
       ...(window.GameModules.promptSkills?.completionOptions?.('entry-action') || { jsonMode: false, outputLimitKind: 'other' }),

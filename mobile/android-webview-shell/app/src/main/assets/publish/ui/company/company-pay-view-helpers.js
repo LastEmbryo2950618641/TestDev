@@ -27,12 +27,15 @@ window.GameModules.ui.company.payViewHelpers = {
     const performanceMonths = Number(s.performanceMonths ?? s.commissionMonths) || 0;
     const workDays = this.currentMonthWorkDays();
     const daily = workDays ? Math.round(base / workDays) : 0;
+    const absentCount = Math.max(0, Number(stats.absentCount) || 0);
+    const payableWorkDays = Math.max(0, workDays - absentCount);
+    const payableTotal = payableWorkDays * daily;
     const performance = Math.max(0, Math.min(100, Number(stats.performance ?? 100)));
     const rate = performance / 100;
     const annualPackage = Number(s.annualPackage ?? s.annualTotalPackage ?? s.totalAnnualPackage ?? s.yearlyPackage ?? 0)
       || Math.round(base * (12 + performanceMonths));
     const annualPerformance = Math.round(annualPackage * rate);
-    return { base, rate, performanceMonths, workDays, daily, annualPackage, annualPerformance, total: base, performance };
+    return { base, rate, performanceMonths, workDays, daily, absentCount, payableWorkDays, payableTotal, annualPackage, annualPerformance, total: payableTotal, performance };
   },
 
   workStatusText() {

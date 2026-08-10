@@ -484,13 +484,13 @@ test('character schedule location update binds known current node id', () => {
 
 
 
-test('real world result application invokes property contract settlement hook', () => {
+test('real world result application does not invoke removed property contract settlement hook', () => {
   const source = read('publish/real-world-actions.js');
-  assert.ok(source.includes('realWorldLocationGraph?.settleUsageContracts?.'), 'real-world result apply should settle rents and debts after phone time advances');
-  assert.ok(source.includes('房产合同'), 'settlement summary should mention property contracts when changes occur');
+  assert.ok(!source.includes('realWorldLocationGraph?.settleUsageContracts?.'), 'real-world result apply should not settle property contracts');
+  assert.ok(!source.includes('房产合同'), 'settlement summary should not mention removed property contracts');
 });
 
-test('identity fields include owned and used real-world properties', () => {
+test('identity fields do not expose removed real-world property contracts', () => {
   const context = makeContext();
   loadScript(context, 'publish/player-identity-actions.js');
   const store = {
@@ -513,12 +513,8 @@ test('identity fields include owned and used real-world properties', () => {
   const fields = store.identityTargetFields();
   const owned = fields.find((field) => field.label === '所有房产');
   const using = fields.find((field) => field.label === '使用房产');
-  assert.ok(owned.value.includes('Building 1'));
-  assert.ok(owned.value.includes('标识:loc_1'));
-  assert.ok(owned.value.includes('+2000租金'));
-  assert.ok(using.value.includes('Room 201'));
-  assert.ok(using.value.includes('标识:loc_2'));
-  assert.ok(using.value.includes('-1000租金'));
+  assert.ok(!owned);
+  assert.ok(!using);
 });
 
 test('stage1 JSON parser rejects skill-method material request objects', () => {

@@ -1073,6 +1073,7 @@ function registerGameStore() {
       this.log = Array.isArray(this.log) ? this.log : [];
       this.realWorldLog = Array.isArray(this.realWorldLog) ? this.realWorldLog : [];
       this.phoneDesktopBooting = false;
+      await this.loadCatalog?.();
       if (this.refreshSaveMetas) await this.refreshSaveMetas();
       if (this.refreshPhoneClockLabels) this.refreshPhoneClockLabels();
       this.loading = false;

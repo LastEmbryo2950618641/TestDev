@@ -37,6 +37,8 @@ window.GameModules.companySystem = {
       month,
       lateCount: 0,
       absentCount: 0,
+      lastSalarySettledMonth: '',
+      salarySettlements: [],
       performance: 100,
       commissionRate: 0,
       lastDecisionAt: '',

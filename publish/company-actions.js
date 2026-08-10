@@ -678,11 +678,14 @@ window.GameModules.companyActions = {
     stats.employeeReview = { ...base.employeeReview, ...(stats.employeeReview || {}) };
     stats.contributionItems = Array.isArray(stats.contributionItems) ? stats.contributionItems : [];
     stats.performanceHistory = Array.isArray(stats.performanceHistory) ? stats.performanceHistory : [];
+    stats.lastSalarySettledMonth = String(stats.lastSalarySettledMonth || '').trim();
+    stats.salarySettlements = Array.isArray(stats.salarySettlements) ? stats.salarySettlements : [];
     stats.lateCount = Number(stats.lateCount || 0);
     stats.absentCount = Number(stats.absentCount || 0);
     stats.performance = Number(stats.performance ?? 100);
     stats.commissionRate = Number(stats.commissionRate || 0);
     this.companyState.workStats = stats;
+    this.settleCompanyMonthIfNeeded?.();
     return stats;
   },
 
@@ -802,10 +805,11 @@ window.GameModules.companyActions = {
     return this.currentCompany();
   },
 
-  currentMonthWorkDays() {
-    const date = this.phoneDate?.() || new Date();
-    const year = date.getFullYear();
-    const month = date.getMonth();
+  companyMonthKey(date = this.phoneDate?.() || new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  },
+
+  workDaysForMonth(year, month) {
     const days = new Date(year, month + 1, 0).getDate();
     let restDays = 0;
     for (let day = 1; day <= days; day += 1) {
@@ -813,6 +817,84 @@ window.GameModules.companyActions = {
       if (week === 0 || week === 6) restDays += 1;
     }
     return days - restDays;
+  },
+
+  workDaysForMonthKey(monthKey = '') {
+    const match = /^(\d{4})-(\d{1,2})$/.exec(String(monthKey || '').trim());
+    if (!match) return 0;
+    return this.workDaysForMonth(Number(match[1]), Number(match[2]) - 1);
+  },
+
+  currentMonthWorkDays(date = this.phoneDate?.() || new Date()) {
+    return this.workDaysForMonth(date.getFullYear(), date.getMonth());
+  },
+
+  settleCompanyMonthIfNeeded(date = this.phoneDate?.() || new Date()) {
+    if (!this.companyState?.workStats || this._companySalarySettling) return null;
+    const stats = this.companyState.workStats;
+    const currentMonth = this.companyMonthKey(date);
+    const recordedMonth = String(stats.month || '').trim();
+    if (!/^\d{4}-\d{1,2}$/.test(recordedMonth)) {
+      stats.month = currentMonth;
+      return null;
+    }
+    const normalizedRecordedMonth = recordedMonth.replace(/^(\d{4})-(\d{1,2})$/, (_, year, month) => `${year}-${String(month).padStart(2, '0')}`);
+    if (normalizedRecordedMonth === currentMonth) {
+      if (stats.month !== currentMonth) stats.month = currentMonth;
+      return null;
+    }
+    if (normalizedRecordedMonth > currentMonth) {
+      stats.month = currentMonth;
+      return null;
+    }
+
+    this._companySalarySettling = true;
+    try {
+      const settledMonth = normalizedRecordedMonth;
+      const workDays = this.workDaysForMonthKey(settledMonth);
+      const absentCount = Math.max(0, Number(stats.absentCount) || 0);
+      const career = this.companyState.workUnitProfile || this.companyState.careerProfile || null;
+      const activeWorkCareer = career?.organizationName && career.active !== false && !this.isFreelanceProfile(career);
+      const monthlyBase = activeWorkCareer ? Number(career.salary?.monthlyBase ?? career.salary?.base ?? 0) : 0;
+      const dailySalary = workDays ? Math.round(monthlyBase / workDays) : 0;
+      const payableWorkDays = Math.max(0, workDays - absentCount);
+      const amount = payableWorkDays * dailySalary;
+      const alreadySettled = stats.lastSalarySettledMonth === settledMonth;
+      const settlement = {
+        month: settledMonth,
+        workDays,
+        absentCount,
+        payableWorkDays,
+        dailySalary,
+        amount,
+        settledAt: date.toISOString(),
+      };
+
+      if (!alreadySettled) {
+        stats.salarySettlements.push(settlement);
+        stats.lastSalarySettledMonth = settledMonth;
+        if (amount > 0 && this.playerProfile && typeof this.playerProfile === 'object') {
+          const currentAmount = Number(this.playerProfile.wealthAmount);
+          const nextAmount = (Number.isFinite(currentAmount) ? currentAmount : 0) + amount;
+          if (typeof this.normalizePlayerWealth === 'function') {
+            Object.assign(this.playerProfile, this.normalizePlayerWealth({ ...this.playerProfile, wealthAmount: nextAmount }));
+          } else {
+            this.playerProfile.wealthAmount = nextAmount;
+          }
+        }
+      }
+
+      stats.month = currentMonth;
+      stats.lateCount = 0;
+      stats.absentCount = 0;
+      stats.lastDecisionAt = '';
+      stats.attendanceStatus = { dateKey: '', status: '', detail: '', source: 'system', updatedAt: '' };
+      const saveResult = this.save?.();
+      if (saveResult?.catch) saveResult.catch((err) => console.warn('[职业薪资] 月末结算保存失败:', err?.message || err));
+      return { ...settlement, skipped: alreadySettled };
+    } finally {
+      this._companySalarySettling = false;
+    }
   },
 
   decideWorkAttendance(choice) {

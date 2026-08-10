@@ -176,12 +176,6 @@ window.GameModules.realWorldActions = {
       if (newsTick.promoted) parts.push(`升格${newsTick.promoted}条事件`);
       settlement.push(`新闻热榜：${parts.join('，')}。`);
     }
-    const propertySettlement = window.GameModules.realWorldLocationGraph?.settleUsageContracts?.(this, this.phoneDate?.() || new Date()) || null;
-    if (propertySettlement?.settled?.length || propertySettlement?.debts?.length) {
-      const settledCount = propertySettlement.settled?.length || 0;
-      const debtCount = propertySettlement.debts?.length || 0;
-      settlement.push(`房产合同：已结算${settledCount}条，欠款/催债${debtCount}条。`);
-    }
     return { elapsedSeconds, startedAt, newsTick };
   },
 
@@ -299,6 +293,7 @@ window.GameModules.realWorldActions = {
       orgLines.forEach((line) => { if (line) settlement.push(line); });
     }
     await this.applyStage44SettlementRecords?.(result, legacyResult, settlement, id);
+    if (Array.isArray(result.moneySettlement?.lines)) settlement.push(...result.moneySettlement.lines);
     delete result.characterMetricUpdates;
     result.characterCardChanges = settlement;
     const timing = this.applyPostStageTimeAndNews?.(result, settlement, id) || {};

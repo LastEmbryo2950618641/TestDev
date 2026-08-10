@@ -341,7 +341,7 @@ window.GameModules.realWorldAgentLoop = {
 
   normalizeReasoningPhase(phase = '') {
     const text = String(phase || '').trim();
-    const stage4Pass = text.match(/^stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])$/iu);
+    const stage4Pass = text.match(/^stage\s*4\s*[-–—]\s*(1[0-5]|[1-9])$/iu);
     if (stage4Pass) return `stage4-${stage4Pass[1]}`;
     const match = text.match(/^stage\s*(1[0-3]|[1-9])$/iu);
     if (match) return `stage${Number(match[1])}`;
@@ -392,7 +392,7 @@ window.GameModules.realWorldAgentLoop = {
     if (/Stage\s*6|外观判定/iu.test(sourceTitle)) return 'stage6';
     if (/Stage\s*5|介绍卡/iu.test(sourceTitle)) return 'stage5';
     if (sourceTitle.includes('场景锚定') || /Stage\s*2/iu.test(sourceTitle)) return 'stage2';
-    const stage4Sub = sourceTitle.match(/Stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])/iu);
+    const stage4Sub = sourceTitle.match(/Stage\s*4\s*[-–—]\s*(1[0-5]|[1-9])/iu);
     if (stage4Sub) return `stage4-${stage4Sub[1]}`;
     if (/Stage\s*4|滑动结算|状态结算/iu.test(sourceTitle)) return 'stage4';
     if (config.streamToUi) return 'stage3';
@@ -419,6 +419,7 @@ window.GameModules.realWorldAgentLoop = {
       'stage4-12': 'Stage4-12 角色卡补充更新',
       'stage4-13': 'Stage4-13 社交驱动',
       'stage4-14': 'Stage4-14 角色想法补足',
+      'stage4-15': 'Stage4-15 金钱结算',
       stage5: 'Stage5 介绍卡更新',
       stage6: 'Stage6 外观判定',
       stage7: 'Stage7 自然外观补丁',
@@ -448,7 +449,7 @@ window.GameModules.realWorldAgentLoop = {
         id: attempt > 0 ? `stage4-${attempt}` : 'stage4',
       };
     }
-    if (/^stage4-(?:[1-9]|1[0-4])$/u.test(phase)) return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
+    if (/^stage4-(?:[1-9]|1[0-5])$/u.test(phase)) return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     if (/^stage(?:[2-9]|1[0-3])$/u.test(phase)) {
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     }
@@ -464,7 +465,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseReasoningLabel(label = '') {
-    const stage4Pass = String(label || '').trim().match(/^Stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])/iu);
+    const stage4Pass = String(label || '').trim().match(/^Stage\s*4\s*[-–—]\s*(1[0-5]|[1-9])/iu);
     if (stage4Pass) {
       const phase = `stage4-${stage4Pass[1]}`;
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
@@ -501,7 +502,7 @@ window.GameModules.realWorldAgentLoop = {
       if (storedPhase === 'stage4') {
         return { phase: storedPhase, step, label: String(section?.label || (step > 0 ? `Stage4 状态结算 - ${step + 1}` : 'Stage4 状态结算')), id: id || (step > 0 ? `stage4-${step}` : 'stage4') };
       }
-      if (/^stage4-(?:[1-9]|1[0-4])$/u.test(storedPhase)) {
+      if (/^stage4-(?:[1-9]|1[0-5])$/u.test(storedPhase)) {
         return { phase: storedPhase, step: 0, label: String(section?.label || this.stagePhaseLabel(storedPhase)), id: id || storedPhase };
       }
       const fallbackLabels = {
@@ -529,7 +530,7 @@ window.GameModules.realWorldAgentLoop = {
       const step = Number(stage1Match[1]) || 1;
       return { phase: 'stage1', step, label: this.stagePhaseLabel('stage1', step), id: `stage1-${step}` };
     }
-    if (/^stage4-(?:[1-9]|1[0-4])$/u.test(id)) return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
+    if (/^stage4-(?:[1-9]|1[0-5])$/u.test(id)) return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     if (/^stage(?:[2-9]|10)$/u.test(id)) {
       return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     }
@@ -621,7 +622,7 @@ window.GameModules.realWorldAgentLoop = {
   isSettlementReasoning(config = {}) {
     if (config.settlementThinking) return true;
     const phase = this.inferReasoningPhase(config);
-    return /^stage4(?:-(?:[1-9]|1[0-4]))?$|^stage(?:[5-9]|1[0-3])$/u.test(phase);
+    return /^stage4(?:-(?:[1-9]|1[0-5]))?$|^stage(?:[5-9]|1[0-3])$/u.test(phase);
   },
 
   settlementReasoningLabel(meta = {}, config = {}) {
@@ -849,13 +850,13 @@ window.GameModules.realWorldAgentLoop = {
     this.showConfiguredNarration(store, logId, narration, config);
     this.patchConfiguredSettlementThinking(store, logId, '正文已完成，准备进入结算。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
 
-    let settlementPrompt = 'Stage4 状态结算', settlementRaw = '', updates = {}, profilePatches = [];
+    let settlementPrompt = 'Stage4 状态结算', settlementRaw = '', updates = {}, profilePatches = [], moneySettlement = null;
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
       const stage4Passes = this.stage4SettlementPasses(config, store);
       const stage4PassFlow = stage4Passes.filter((pass) => (pass.types || []).length).map((pass) => pass.label).join(' → ');
-      this.patchConfiguredSettlementThinking(store, logId, `正文已完成，正在串行结算（${stage4PassFlow} → Stage4-13 社交驱动 → Stage4-14 角色想法补足 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, `正文已完成，正在串行结算（${stage4PassFlow} → Stage4-13 社交驱动 → Stage4-14 角色想法补足 → Stage4-15 金钱结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
         const stage4Results = [];
@@ -917,6 +918,27 @@ window.GameModules.realWorldAgentLoop = {
           ...stage4Updates,
           characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...socialDriveResult.lines],
         };
+      }
+      const moneyStage = window.GameModules.inferenceMoneyStageUpdate;
+      if (moneyStage?.runAfterStage4) {
+        moneySettlement = await moneyStage.runAfterStage4({
+          store,
+          action,
+          narration,
+          updates: stage4Updates,
+          participants,
+          logId,
+          config: postBodyKvConfig,
+          loop: this,
+          priorStageSummary: { stage4Updates },
+        });
+        if (moneySettlement?.lines?.length) {
+          stage4Updates = {
+            ...stage4Updates,
+            moneySettlement,
+            characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...moneySettlement.lines],
+          };
+        }
       }
       const introStage5 = window.GameModules.inferenceIntroCardStageUpdate;
       const introStage5Result = introStage5?.runAfterSettlement
@@ -1036,7 +1058,7 @@ window.GameModules.realWorldAgentLoop = {
         }
       }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = `${stage4PassFlow} → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯（Stage10 地图周围解锁在落库后）`;
+      settlementPrompt = `${stage4PassFlow} → Stage4-13 社交驱动 → Stage4-14 角色想法补足 → Stage4-15 金钱结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯（Stage10 地图周围解锁在落库后）`;
       settlementRaw = JSON.stringify({
         settlement: updates,
         introStage5: { cards: introStage5Result.cards?.map((card) => ({ id: card.id, name: card.name, displayType: card.displayType })) || [] },
@@ -1047,6 +1069,7 @@ window.GameModules.realWorldAgentLoop = {
         learnedGains,
         newsOps,
         careerUpdate,
+        moneySettlement,
       });
     } catch (err) {
       console.warn(`${config.label}串行结算失败，保留已生成正文并使用最小结算:`, err.message);
@@ -1054,7 +1077,7 @@ window.GameModules.realWorldAgentLoop = {
       updates = this.fallbackUpdateJson(store, action, config);
       settlementRaw = JSON.stringify(updates);
     }
-    const resultPayload = { ...updates, profilePatches };
+    const resultPayload = { ...updates, profilePatches, moneySettlement };
     const result = config.mode === 'story' ? this.mergeStoryNarrationAndUpdates(store, narration, resultPayload, config) : this.mergeNarrationAndUpdates(store, narration, resultPayload, config);
     const anchoredTrace = trace.map((item, index) => index === trace.length - 1 ? { ...item, anchorReport: sceneAnchor.data } : item);
     return { result, prompt: `---SCENE_ANCHOR---\n${sceneAnchorPrompt}\n\n---NARRATION---\n${narrationPrompt}\n\n---SETTLEMENT_JSON---\n${settlementPrompt}`, loaded, raw: `${sceneAnchor.raw}\n\n${narrationRaw}\n\n${settlementRaw}`, trace: anchoredTrace, deepseekCache: this.deepSeekKvCacheSummary(config.kvCacheSession) };
@@ -4106,6 +4129,7 @@ window.GameModules.realWorldAgentLoop = {
       genericUpdates: Array.isArray(updates.genericUpdates) ? updates.genericUpdates : [],
       events: Array.isArray(updates.events) ? updates.events : [],
       profilePatches: Array.isArray(updates.profilePatches) ? updates.profilePatches : [],
+      moneySettlement: updates.moneySettlement || null,
     };
     return window.GameModules.updateRegistry?.finalizeGenericUpdates?.({
       ...payload,

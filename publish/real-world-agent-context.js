@@ -42,6 +42,7 @@ window.GameModules.realWorldAgentContext = {
       `组织热点（Org Hot）：\n${window.GameModules.orgTerritory?.orgHotText?.(store, action, 1200) || '暂无已接触组织细节。'}`,
       `控势摘要（Territory Hot）：\n${window.GameModules.orgTerritory?.territoryHotText?.(store, 600) || '暂无已揭示地点控势。'}`,
       `势力资料库：\n${window.GameModules.factionArchive?.contextFor?.(store, action, 1600) || '暂无势力资料库记录。'}`,
+      `实体状态库：\n${window.GameModules.entityStateStore?.contextText?.(store, action, 1600) || '暂无实体状态记录。'}`,
       ...(longing ? [`角色思念上下文：\n${longing}`] : []),
       ...(window.GameModules.socialEventBoundary?.divisionBlock?.()
         ? [window.GameModules.socialEventBoundary.divisionBlock()]
@@ -90,8 +91,9 @@ window.GameModules.realWorldAgentContext = {
     const playerState = store?.playerIdentityState?.() || store?.rpgStates?.['player-self'] || null;
     const player = store?.playerName || store?.playerProfile?.name || playerState?.profile?.name || playerState?.name || '玩家';
     const playerLocation = playerState?.profile?.currentLocation || playerState?.values?.current_location?.name || '';
-    const priorCount = store?.realWorldAgentKvByMode?.[config?.mode || 'real']?.messages?.length || 0;
-    const wechatInContext = window.GameModules.realWorldAgentLoop?.summarizeWechatInAgentContext?.(store, config?.mode || 'real');
+    const kvMode = window.GameModules.realWorldAgentLoop?.kvMode?.(config) || config?.mode || 'real';
+    const priorCount = store?.realWorldAgentKvByMode?.[kvMode]?.messages?.length || 0;
+    const wechatInContext = window.GameModules.realWorldAgentLoop?.summarizeWechatInAgentContext?.(store, kvMode);
     const actionText = String(action || '');
     const orgTerritoryHint = /夺控|法域|归属|控势|起义|独立|领土|管辖|组织|势力|公司|社区|政府/u.test(actionText)
       ? `组织/控势线索：base 已含 Org Index 与 Territory Hot（仅已揭示）。优先资料请求：控势查询，控势摘要，${location}；或势力查询，势力档案，关键词。brief 不足且 step≥3 才请求势力详情/地点控势详情。禁止 Stage1 写入势力或改控势。`
@@ -107,8 +109,9 @@ window.GameModules.realWorldAgentContext = {
       playerLocation ? `玩家角色卡当前位置：${playerLocation}` : '',
       orgTerritoryHint,
       this.scheduleCandidateHintText(store, action, location),
+      `实体状态提示：若行动涉及具体物品、容器、设备、团体、线索或“某物在哪里/属于谁/过去如何变化”，优先请求 entity.query 读取当前实体与历史锚点；不要把实体状态误当专用术语。`,
       priorCount
-        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息，持久化不压缩）。前轮资料、微信对话追加与之后的结算/正文变更都可综合使用；请对照当前桌面时间与本轮行动，判断现有上下文是否已能支撑正文。仅当缺失、冲突或无法可靠还原时才重新请求。`
+        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息）。持久链会按当前模型输入窗口在超过 97% 时直接抽取旧消息，优先移除旧阶段提示词/返回与记录，保留旧正文；最新一轮完整保留。前轮资料、微信对话追加与之后的结算/正文变更都可综合使用；请对照当前桌面时间与本轮行动，判断现有上下文是否已能支撑正文。仅当缺失、冲突或无法可靠还原时才重新请求。`
         : '',
       ...(wechatInContext?.hint ? [wechatInContext.hint] : []),
     ].filter(Boolean).join('\n');

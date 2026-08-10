@@ -39,7 +39,7 @@ window.GameModules.ui.company.summaryViewHelpers = {
     return {
       title: '薪酬绩效预览',
       summaryLine: `底薪：${pay.base}元｜本月完整上班天数：${pay.workDays}天｜日薪：${pay.daily}元`,
-      performanceLine: `每月收入：${pay.total}元｜年收入总包：${pay.annualPackage}元｜当前绩效：${pay.performance}/100｜年底绩效：${pay.annualPerformance}元｜绩效提成：${Math.round(pay.rate * 100)}%`,
+      performanceLine: `本月应发：${pay.total}元（旷班${pay.absentCount}次）｜年收入总包：${pay.annualPackage}元｜当前绩效：${pay.performance}/100｜年底绩效：${pay.annualPerformance}元｜绩效提成：${Math.round(pay.rate * 100)}%`,
     };
   },
 };

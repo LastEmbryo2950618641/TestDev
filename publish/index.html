@@ -1112,75 +1112,6 @@
               </div>
             </div>
           </button>
-          <section class="profile-card dev-section" :data-section-title="$store.game.realWorldProfileOpen ? '现实身份区' : '现实身份已收起'" x-show="$store.game.realWorldProfileOpen">
-            <div class="profile-details">
-              <b x-text="`现实身份 / 记忆系统｜${$store.game.realWorldDisplayCharacter().name}`"></b>
-              <label class="mini-label">查看内容</label>
-              <div class="custom-select" @click.outside="$store.game.realWorldProfileMenuOpen = false">
-                <button class="custom-select-btn" @click="$store.game.realWorldProfileMenuOpen = !$store.game.realWorldProfileMenuOpen" type="button">
-                  <span x-text="({ profile: '现实身份 / 固化属性', addMemory: '新增记忆', shortTerm: '查看短期记忆', longTerm: '查看长期记忆', archive: '搜索记忆归档' })[$store.game.realWorldProfileViewMode]"></span>
-                  <i></i>
-                </button>
-                <div class="custom-select-menu" x-show="$store.game.realWorldProfileMenuOpen">
-                  <button type="button" @click="$store.game.realWorldProfileViewMode = 'profile'; $store.game.realWorldProfileMenuOpen = false">现实身份 / 固化属性</button>
-                  <button type="button" @click="$store.game.realWorldProfileViewMode = 'addMemory'; $store.game.realWorldProfileMenuOpen = false">新增记忆</button>
-                  <button type="button" @click="$store.game.realWorldProfileViewMode = 'shortTerm'; $store.game.realWorldProfileMenuOpen = false">查看短期记忆</button>
-                  <button type="button" @click="$store.game.realWorldProfileViewMode = 'longTerm'; $store.game.realWorldProfileMenuOpen = false">查看长期记忆</button>
-                  <button type="button" @click="$store.game.realWorldProfileViewMode = 'archive'; $store.game.realWorldProfileMenuOpen = false">搜索记忆归档</button>
-                </div>
-              </div>
-              <div class="profile-content-fixed">
-                <div class="dynamic-rpg identity-rpg" x-show="$store.game.realWorldProfileViewMode === 'profile'" x-data="{ activeRealWorldProfileTab: '' }">
-                  <nav class="identity-rpg-tabs" aria-label="现实身份与固化属性分页">
-                    <template x-for="section in $store.game.profileSections($store.game.realWorldDisplayState(), $store.game.sharedControlState() ? [] : $store.game.playerProfileLexiconFields())" :key="`player-tab-${section.title}`">
-                      <button type="button" :class="{ active: (activeRealWorldProfileTab || $store.game.profileSections($store.game.realWorldDisplayState(), $store.game.sharedControlState() ? [] : $store.game.playerProfileLexiconFields())[0]?.title) === section.title }" @click="activeRealWorldProfileTab = section.title"><span class="bookmark-symbol" x-text="section.title.slice(0, 1)"></span><span class="bookmark-title" x-text="section.title"></span></button>
-                    </template>
-                  </nav>
-                  <template x-for="section in $store.game.profileSections($store.game.realWorldDisplayState(), $store.game.sharedControlState() ? [] : $store.game.playerProfileLexiconFields())" :key="`player-${section.title}`">
-                    <section class="identity-rpg-section" x-show="(activeRealWorldProfileTab || $store.game.profileSections($store.game.realWorldDisplayState(), $store.game.sharedControlState() ? [] : $store.game.playerProfileLexiconFields())[0]?.title) === section.title">
-                      <template x-for="field in section.fields" :key="`player-${section.title}:${field.key}`">
-                        <div class="dynamic-row" role="button" tabindex="0" :class="{ clickable: $store.game.canExpandRpgField(field) }" @click="$store.game.toggleRpgField(field)" @keydown.enter.prevent="$store.game.toggleRpgField(field)" @keydown.space.prevent="$store.game.toggleRpgField(field)">
-                          <button class="rpg-item-card lexicon-tag" :class="{ open: $store.game.isRpgFieldOpen(field) }" type="button" @click.stop="$store.game.toggleRpgField(field)"><strong x-text="$store.game.rpgFieldSummary(field)"></strong><p class="rpg-field-detail" x-show="$store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p></button>
-                          <div class="rpg-item-list" x-show="$store.game.isRpgListField(field)" @click.stop>
-                            <template x-for="(item, index) in $store.game.rpgListItems(field)" :key="`player-${field.key}:${item.name || item}:${index}`">
-                              <button class="rpg-item-card" :class="{ open: $store.game.isRpgItemOpen(field, index), 'body-part-card': $store.game.isBodyProfileField(field) }" type="button" @click="$store.game.toggleRpgItem(field, index)"><strong x-text="$store.game.rpgItemSummary(item, field)"></strong><p class="body-part-description" x-show="$store.game.isBodyProfileField(field)" x-text="$store.game.rpgBodyPartDescription(item)"></p><p class="rpg-field-detail" x-show="$store.game.isRpgItemOpen(field, index)" x-text="$store.game.rpgItemDetail(field, item)"></p></button>
-                            </template>
-                          </div>
-                          <p class="rpg-field-detail" x-show="!$store.game.isRpgListField(field) && !$store.game.isLexiconField(field) && $store.game.isRpgFieldOpen(field)" x-text="$store.game.rpgFieldDetail(field)"></p>
-                        </div>
-                      </template>
-                    </section>
-                  </template>
-                </div>
-                <div class="memory-editor" x-show="$store.game.realWorldProfileViewMode === 'addMemory'">
-                  <textarea x-model="$store.game.realWorldMemoryInput" :placeholder="`输入要写入${$store.game.realWorldDisplayCharacter().name || '当前目标'}的现实记忆...`"></textarea>
-                  <button @click="$store.game.addPlayerManualMemory()" :disabled="!$store.game.realWorldMemoryInput.trim()">写入记忆</button>
-                </div>
-                <div class="memory-list" x-show="$store.game.realWorldProfileViewMode === 'shortTerm'">
-                  <nav class="memory-sub-tabs"><button type="button" :class="{ active: $store.game.realWorldMemoryShortTab === 'recent' }" @click="$store.game.realWorldMemoryShortTab = 'recent'">刚发生记忆</button><button type="button" :class="{ active: $store.game.realWorldMemoryShortTab === 'summarized' }" @click="$store.game.realWorldMemoryShortTab = 'summarized'">近发生记忆</button><button type="button" :class="{ active: $store.game.realWorldMemoryShortTab === 'forgotten' }" @click="$store.game.realWorldMemoryShortTab = 'forgotten'">遗忘区</button></nav>
-                  <small x-text="$store.game.realWorldMemoryStatus('shortTerm')"></small>
-                  <template x-for="item in $store.game.realWorldMemoryItems('shortTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
-                  <small x-show="!$store.game.realWorldMemoryItems('shortTerm').length" x-text="`暂无${$store.game.realWorldMemoryShortLabel()}`"></small>
-                </div>
-                <div class="memory-list" x-show="$store.game.realWorldProfileViewMode === 'longTerm'">
-                  <nav class="memory-sub-tabs"><button type="button" :class="{ active: $store.game.realWorldMemoryLongTab === 'vivid' }" @click="$store.game.realWorldMemoryLongTab = 'vivid'">难以忘记</button><button type="button" :class="{ active: $store.game.realWorldMemoryLongTab === 'permanent' }" @click="$store.game.realWorldMemoryLongTab = 'permanent'">不可忘记</button></nav>
-                  <small x-text="$store.game.realWorldMemoryStatus('longTerm')"></small>
-                  <template x-for="item in $store.game.realWorldMemoryItems('longTerm')" :key="item.id"><p><b x-text="`${item.time?.label || '时间未知'}｜印象${item.impression}`"></b><span x-text="item.summary || item.text"></span></p></template>
-                  <small x-show="!$store.game.realWorldMemoryItems('longTerm').length" x-text="`暂无${$store.game.realWorldMemoryLongLabel()}`"></small>
-                </div>
-                <div class="memory-editor" x-show="$store.game.realWorldProfileViewMode === 'archive'">
-                  <div class="memory-search-row">
-                    <input x-model="$store.game.realWorldMemoryArchiveQuery" placeholder="输入意图，搜索当前现实目标记忆归档..." @keydown.enter="$store.game.searchPlayerMemoryArchive()">
-                    <button @click="$store.game.searchPlayerMemoryArchive()" :disabled="!$store.game.realWorldMemoryArchiveQuery.trim()">搜索</button>
-                  </div>
-                  <div class="memory-list">
-                    <template x-for="item in $store.game.realWorldMemoryArchiveResults" :key="item.id"><p><b x-text="`${item.meta?.time || '时间未知'}｜${item.meta?.place || '地点未知'}`"></b><span x-text="item.meta?.summary || item.text"></span></p></template>
-                    <small x-show="!$store.game.realWorldMemoryArchiveResults.length">暂无搜索结果</small>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
         </aside>
 
         <section class="panel story-panel dev-section" data-section-title="现实推演日志区">
@@ -3422,15 +3353,9 @@
       <h1>我狠狠操控</h1>
       <p class="intro">选择一个动漫角色作为被操控者。上线时，你接管身体，角色只能在心里想；下线时，控制权回到角色，她会按性格、属性和情绪自主行动。</p>
 
-      <div class="start-field dev-section" data-section-title="存档选择区">
-        <label class="field-label">当前存档</label>
-        <button class="ghost-wide" @click="$store.game.savePanelOpen = true" x-text="`打开存档设置｜${$store.game.selectedSlot}`"></button>
-      </div>
-
       <div class="start-field dev-section" data-section-title="操控者输入区">
         <label class="field-label">操控者代号</label>
         <input class="text-input" x-model="$store.game.playerName" placeholder="输入你的名字或代号">
-        <button class="small-btn" type="button" @click="$store.game.reopenPlayerSetup()">编辑新手机主人设定</button>
       </div>
 
       <div class="start-field dev-section" data-section-title="作品选择区">

@@ -30,6 +30,22 @@ const alwaysSyncFiles = [
   'ui-theme-overrides.css',
 ];
 
+function collectDirectoryFiles(dir, prefix = '') {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const relative = path.posix.join(prefix, entry.name);
+    const absolute = path.join(dir, entry.name);
+    return entry.isDirectory() ? collectDirectoryFiles(absolute, relative) : [relative];
+  });
+}
+
+const legacyAggregateFiles = [
+  'character-catalog.json',
+  'character-catalog-data.js',
+  'lore-sources.js',
+  'story-start-data.js',
+];
+
 function sha1(filePath) {
   return crypto.createHash('sha1').update(fs.readFileSync(filePath)).digest('hex');
 }
@@ -42,11 +58,13 @@ const manifest = readScriptManifest(sourceManifestPath);
 const files = [...new Set([
   ...collectManifestFiles(manifest).map((row) => row.file),
   ...alwaysSyncFiles,
+  ...collectDirectoryFiles(path.join(webBaseDir, 'work-metadata'), 'work-metadata'),
 ])];
 const missingSource = [];
 const missingTarget = [];
 const outdated = [];
 const copied = [];
+const removed = [];
 
 for (const file of files) {
   const src = path.join(webBaseDir, file);
@@ -67,6 +85,17 @@ for (const file of files) {
   }
 }
 
+const expectedMetadata = new Set(collectDirectoryFiles(path.join(webBaseDir, 'work-metadata')));
+const mobileMetadataDir = path.join(mobileBaseDir, 'work-metadata');
+const obsoleteMetadata = collectDirectoryFiles(mobileMetadataDir)
+  .filter((file) => !expectedMetadata.has(file));
+for (const file of [...legacyAggregateFiles, ...obsoleteMetadata.map((file) => path.posix.join('work-metadata', file))]) {
+  const target = path.join(mobileBaseDir, file);
+  if (!fs.existsSync(target)) continue;
+  if (!checkOnly) fs.rmSync(target, { force: true });
+  removed.push(file);
+}
+
 const summary = {
   mode: checkOnly ? 'check' : 'sync',
   manifest: path.normalize(sourceManifestPath),
@@ -75,6 +104,7 @@ const summary = {
   missingTarget: missingTarget.length,
   outdated: outdated.length,
   copied: copied.length,
+  removed: removed.length,
 };
 
 console.log(JSON.stringify(summary, null, 2));

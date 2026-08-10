@@ -19,7 +19,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   storyConfig() {
-    return { mode: 'story', label: '操控剧情', ctx: window.GameModules.storyAgentContext, materials: window.GameModules.workLoreMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
+    return { mode: 'story', kvMode: 'real', label: '操控剧情', ctx: window.GameModules.storyAgentContext, materials: window.GameModules.workLoreMaterials, templateId: 'inference-stage3-narration', firstTemplateId: 'inference-stage1-guided-query' };
   },
 
   renderPrompt(id, vars) {
@@ -29,13 +29,102 @@ window.GameModules.realWorldAgentLoop = {
 
   snapshotKvMessages(session) {
     if (!session?.messages?.length) return [];
-    return session.messages.map((item) => ({ role: String(item.role || 'user'), content: String(item.content || '') }));
+    return session.messages.map((item) => this.normalizeAgentMessage(item)).filter(Boolean);
+  },
+
+  estimateContextTokens(text = '') {
+    return window.GameModules.characterMemory?.estimateTokens?.(String(text || '')) || Math.ceil(String(text || '').length / 2);
+  },
+
+  agentMessagesTokenCount(messages = []) {
+    return (Array.isArray(messages) ? messages : []).reduce((sum, item) => sum + this.estimateContextTokens(item?.content || ''), 0);
+  },
+
+  modelInputWindowTokens(model = '') {
+    const id = String(model || window.GameModules.aiProvider?.selectedTextModel?.() || window.GameModules.config?.defaultModelId || '').toLowerCase();
+    const windows = window.GameModules.config?.modelInputWindows || {};
+    const direct = Number(windows[id]);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const matched = Object.entries(windows).find(([key]) => key && id.includes(String(key).toLowerCase()));
+    if (matched && Number(matched[1]) > 0) return Number(matched[1]);
+    if (/deepseek/u.test(id)) return 1000000;
+    if (/nalang|dzmm|turbo/u.test(id)) return 32000;
+    return 32000;
+  },
+
+  contextCompactionLimits(store = null, model = '') {
+    const inputWindow = this.modelInputWindowTokens(model || store?.modelId || store?.settingsState?.textModelId);
+    return { inputWindow, triggerTokens: Math.floor(inputWindow * 0.97), targetTokens: Math.floor(inputWindow * 0.5) };
+  },
+
+  normalizeAgentMessage(item = {}, defaults = {}) {
+    if (!item) return null;
+    const role = String(item.role || defaults.role || 'user');
+    if (!['user', 'assistant', 'system'].includes(role)) return null;
+    const content = String(item.content || '');
+    if (!content.trim()) return null;
+    const meta = item.meta && typeof item.meta === 'object' ? item.meta : {};
+    return { role, content, meta: { ...meta, ...(defaults.meta || {}) } };
+  },
+
+  contextKindForMessage(role = 'user', content = '', meta = {}) {
+    const phase = this.normalizeReasoningPhase(meta.phase || '');
+    if (phase === 'stage3') return role === 'assistant' ? 'body' : 'stage_prompt';
+    if (/本轮正文：|最近已发生正文|^<正文尾部>/u.test(String(content || ''))) return 'body';
+    if (/^【(?:微信对话|人物行为)·已写入持久推演上下文】/u.test(String(content || ''))) return 'external';
+    if (role === 'assistant') return 'stage_output';
+    if (/stage|资料查询|场景锚定|状态结算|JSON|结算|推演|正文生成/iu.test(`${phase}\n${content}`)) return 'stage_prompt';
+    return 'meta';
+  },
+
+  messagePriorityForCompaction(message = {}, latestRoundId = '') {
+    const meta = message.meta || {};
+    if (latestRoundId && String(meta.roundId || '') === String(latestRoundId)) return 999;
+    const kind = String(meta.kind || this.contextKindForMessage(message.role, message.content, meta));
+    const priorities = { stage_prompt: 10, stage_output: 20, trace: 30, meta: 40, external: 50, body: 100 };
+    return priorities[kind] || 40;
+  },
+
+  compactAgentMessages(messages = [], { store = null, mode = 'real', model = '', latestRoundId = '' } = {}) {
+    const list = (Array.isArray(messages) ? messages : []).map((item) => this.normalizeAgentMessage(item)).filter(Boolean);
+    const limits = this.contextCompactionLimits(store, model);
+    let total = this.agentMessagesTokenCount(list);
+    const beforeTokens = total;
+    if (total <= limits.triggerTokens) return { messages: list, changed: false, beforeTokens, afterTokens: total, removed: 0, limits };
+    const kept = list.map((item, index) => ({ item, index, tokens: this.estimateContextTokens(item.content), removed: false }));
+    const removeByPriority = (maxPriority) => {
+      const candidates = kept
+        .filter((row) => !row.removed && this.messagePriorityForCompaction(row.item, latestRoundId) <= maxPriority)
+        .sort((a, b) => a.index - b.index);
+      for (const row of candidates) {
+        if (total <= limits.targetTokens) break;
+        row.removed = true;
+        total -= row.tokens;
+      }
+    };
+    removeByPriority(50);
+    removeByPriority(100);
+    const compacted = kept.filter((row) => !row.removed).map((row) => row.item);
+    const removed = kept.length - compacted.length;
+    if (removed > 0) console.info('[持久上下文] 已抽取压缩:', { mode, model: model || store?.modelId || '', beforeTokens, afterTokens: total, targetTokens: limits.targetTokens, triggerTokens: limits.triggerTokens, removed, latestRoundId });
+    return { messages: compacted, changed: removed > 0, beforeTokens, afterTokens: total, removed, limits };
+  },
+
+  latestRoundIdFromMessages(messages = []) {
+    const list = Array.isArray(messages) ? messages : [];
+    for (let index = list.length - 1; index >= 0; index -= 1) {
+      const roundId = String(list[index]?.meta?.roundId || '').trim();
+      if (roundId) return roundId;
+    }
+    return '';
   },
 
   forkKvCacheSession(parentSession, messagesSnapshot = null) {
     if (!parentSession) return null;
     return {
       id: `${parentSession.id}-fork-${Date.now()}`,
+      store: parentSession.store || null,
+      mode: parentSession.mode || 'real',
       providerId: parentSession.providerId,
       enabled: true,
       trackCache: parentSession.trackCache,
@@ -52,19 +141,38 @@ window.GameModules.realWorldAgentLoop = {
     const bucket = store?.realWorldAgentKvByMode?.[mode];
     const messages = Array.isArray(bucket?.messages) ? bucket.messages : [];
     return messages
-      .filter((item) => item && ['user', 'assistant', 'system'].includes(String(item.role || '')))
-      .map((item) => ({ role: String(item.role || 'user'), content: String(item.content || '') }))
-      .filter((item) => item.content.trim());
+      .map((item) => this.normalizeAgentMessage(item))
+      .filter(Boolean);
+  },
+
+  kvMode(config = this.realConfig()) {
+    return String(config?.kvMode || config?.mode || 'real');
   },
 
   persistAgentConversation(store, session, mode = 'real') {
     if (session?.persist === false || session?.fork) return;
     if (!session?.messages?.length) return;
     store.realWorldAgentKvByMode = store.realWorldAgentKvByMode || {};
+    const compacted = this.compactAgentMessages(session.messages, {
+      store,
+      mode,
+      model: session.model || store?.modelId || store?.settingsState?.textModelId,
+      latestRoundId: session.currentRoundId || session.latestRoundId || this.latestRoundIdFromMessages(session.messages),
+    });
+    session.messages = compacted.messages;
     store.realWorldAgentKvByMode[mode] = {
-      messages: session.messages.map((item) => ({ role: String(item.role || 'user'), content: String(item.content || '') })),
+      messages: session.messages.map((item) => this.normalizeAgentMessage(item)).filter(Boolean),
       updatedAt: Date.now(),
       requestCount: Math.max(0, Math.round(Number(session.requestCount) || 0)),
+      compaction: compacted.changed ? {
+        updatedAt: Date.now(),
+        beforeTokens: compacted.beforeTokens,
+        afterTokens: compacted.afterTokens,
+        removed: compacted.removed,
+        triggerTokens: compacted.limits.triggerTokens,
+        targetTokens: compacted.limits.targetTokens,
+        inputWindow: compacted.limits.inputWindow,
+      } : store.realWorldAgentKvByMode[mode]?.compaction || null,
     };
   },
 
@@ -75,10 +183,15 @@ window.GameModules.realWorldAgentLoop = {
   appendExternalContextMessage(store, content = '', mode = 'real', role = 'user') {
     const text = String(content || '').trim();
     if (!store || !text) return null;
-    const message = { role: role === 'assistant' ? 'assistant' : 'user', content: text };
+    const message = this.normalizeAgentMessage({
+      role: role === 'assistant' ? 'assistant' : 'user',
+      content: text,
+      meta: { kind: 'external', phase: 'external', roundId: `external-${Date.now()}` },
+    });
     const live = this.activeKvCacheSession(store, mode) || this.pendingKvCacheSession(store, mode);
     if (live && Array.isArray(live.messages)) {
       live.messages = [...live.messages, message];
+      live.currentRoundId = message?.meta?.roundId || live.currentRoundId || '';
       this.persistAgentConversation(store, live, mode);
       return message;
     }
@@ -86,10 +199,25 @@ window.GameModules.realWorldAgentLoop = {
     prior.push(message);
     store.realWorldAgentKvByMode = store.realWorldAgentKvByMode || {};
     const prev = store.realWorldAgentKvByMode[mode] || {};
+    const compacted = this.compactAgentMessages(prior, {
+      store,
+      mode,
+      model: store?.modelId || store?.settingsState?.textModelId,
+      latestRoundId: message?.meta?.roundId || '',
+    });
     store.realWorldAgentKvByMode[mode] = {
-      messages: prior,
+      messages: compacted.messages,
       updatedAt: Date.now(),
       requestCount: Math.max(0, Math.round(Number(prev.requestCount) || 0)),
+      compaction: compacted.changed ? {
+        updatedAt: Date.now(),
+        beforeTokens: compacted.beforeTokens,
+        afterTokens: compacted.afterTokens,
+        removed: compacted.removed,
+        triggerTokens: compacted.limits.triggerTokens,
+        targetTokens: compacted.limits.targetTokens,
+        inputWindow: compacted.limits.inputWindow,
+      } : prev.compaction || null,
     };
     return message;
   },
@@ -272,12 +400,39 @@ window.GameModules.realWorldAgentLoop = {
 
   createDeepSeekKvCacheSession(store, config = this.realConfig()) {
     const providerId = window.GameModules.aiProvider?.currentProviderId?.();
-    const mode = config.mode || 'real';
-    const priorMessages = this.loadPersistedAgentMessages(store, mode);
+    const mode = this.kvMode(config);
+    const loadedMessages = this.loadPersistedAgentMessages(store, mode);
+    const compacted = this.compactAgentMessages(loadedMessages, {
+      store,
+      mode,
+      model: config.model || store?.modelId || store?.settingsState?.textModelId,
+      latestRoundId: this.latestRoundIdFromMessages(loadedMessages),
+    });
+    const priorMessages = compacted.messages;
+    if (compacted.changed) {
+      const previous = store.realWorldAgentKvByMode?.[mode] || {};
+      store.realWorldAgentKvByMode = store.realWorldAgentKvByMode || {};
+      store.realWorldAgentKvByMode[mode] = {
+        ...previous,
+        messages: priorMessages,
+        updatedAt: Date.now(),
+        compaction: {
+          updatedAt: Date.now(),
+          beforeTokens: compacted.beforeTokens,
+          afterTokens: compacted.afterTokens,
+          removed: compacted.removed,
+          triggerTokens: compacted.limits.triggerTokens,
+          targetTokens: compacted.limits.targetTokens,
+          inputWindow: compacted.limits.inputWindow,
+        },
+      };
+    }
     const deepseek = providerId === 'deepseek';
     if (!deepseek && !priorMessages.length) return null;
     return {
       id: `${mode}-kv-${Date.now()}-${++this.kvCacheSeq}`,
+      store,
+      mode,
       providerId,
       enabled: true,
       trackCache: deepseek,
@@ -312,15 +467,37 @@ window.GameModules.realWorldAgentLoop = {
     return explicit || this.activeKvCacheSession(store, mode) || this.pendingKvCacheSession(store, mode) || null;
   },
 
-  promptToMessages(prompt) {
-    return Array.isArray(prompt)
-      ? prompt.map((msg) => ({ role: msg?.role || 'user', content: String(msg?.content || '') }))
-      : [{ role: 'user', content: String(prompt || '') }];
+  requestContextMeta(config = this.realConfig(), streamToUi = false) {
+    const phase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : this.inferReasoningPhase(config) || 'unknown'));
+    return {
+      roundId: String(config.contextRoundId || ''),
+      phase,
+      promptId: String(config.promptId || config.firstTemplateId || ''),
+      sourceTitle: String(config.sourceTitle || ''),
+      kind: 'stage_prompt',
+    };
   },
 
-  messagesForDeepSeekKvCache(session, prompt) {
+  promptToMessages(prompt, defaults = {}) {
+    return Array.isArray(prompt)
+      ? prompt.map((msg) => {
+        const base = this.normalizeAgentMessage(msg, { meta: defaults });
+        if (!base) return null;
+        const phase = base.meta.phase || defaults.phase || '';
+        const roleKind = base.role === 'assistant' && phase === 'stage3' ? 'body'
+          : (base.role === 'assistant' ? 'stage_output' : (base.meta.kind || defaults.kind || 'stage_prompt'));
+        return this.normalizeAgentMessage(base, { meta: { ...defaults, kind: roleKind } });
+      }).filter(Boolean)
+      : [this.normalizeAgentMessage({ role: 'user', content: String(prompt || ''), meta: defaults })].filter(Boolean);
+  },
+
+  messagesForDeepSeekKvCache(session, prompt, defaults = {}) {
     if (!session) return null;
-    const current = this.promptToMessages(prompt);
+    const current = this.promptToMessages(prompt, {
+      ...defaults,
+      roundId: defaults.roundId || session.currentRoundId || '',
+      kind: defaults.kind || 'stage_prompt',
+    });
     if (!session.messages?.length) return current;
     return [...session.messages, ...current];
   },
@@ -332,16 +509,32 @@ window.GameModules.realWorldAgentLoop = {
       session.promptCacheHitTokens += Number(cache.promptCacheHitTokens) || 0;
       session.promptCacheMissTokens += Number(cache.promptCacheMissTokens) || 0;
     }
+    const meta = info?.contextMeta && typeof info.contextMeta === 'object' ? info.contextMeta : {};
+    const phase = this.normalizeReasoningPhase(meta.phase || '');
+    const assistantMeta = {
+      ...meta,
+      roundId: meta.roundId || session.currentRoundId || '',
+      kind: phase === 'stage3' ? 'body' : 'stage_output',
+    };
     session.messages = [
-      ...(Array.isArray(messages) ? messages : this.promptToMessages(messages)),
-      { role: 'assistant', content: String(assistantText || '') },
+      ...(Array.isArray(messages) ? messages.map((item) => this.normalizeAgentMessage(item)).filter(Boolean) : this.promptToMessages(messages)),
+      this.normalizeAgentMessage({ role: 'assistant', content: String(assistantText || ''), meta: assistantMeta }),
     ];
     session.requestCount += 1;
+    if (assistantMeta.roundId) session.latestRoundId = assistantMeta.roundId;
+    const compacted = this.compactAgentMessages(session.messages, {
+      store: session.store,
+      mode: session.mode || 'real',
+      model: session.model || session.store?.modelId || session.store?.settingsState?.textModelId,
+      latestRoundId: session.currentRoundId || session.latestRoundId || this.latestRoundIdFromMessages(session.messages),
+    });
+    session.messages = compacted.messages;
+    if (compacted.changed && session.store) this.persistAgentConversation(session.store, session, session.mode || 'real');
   },
 
   normalizeReasoningPhase(phase = '') {
     const text = String(phase || '').trim();
-    const stage4Pass = text.match(/^stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])$/iu);
+    const stage4Pass = text.match(/^stage\s*4\s*[-–—]\s*(1[0-7]|[1-9])$/iu);
     if (stage4Pass) return `stage4-${stage4Pass[1]}`;
     const match = text.match(/^stage\s*(1[0-3]|[1-9])$/iu);
     if (match) return `stage${Number(match[1])}`;
@@ -369,6 +562,7 @@ window.GameModules.realWorldAgentLoop = {
       'inference-stage4-control-experience': 'stage4-11',
       'inference-stage4-role-card-review': 'stage4-12',
       'inference-stage4-social-drive': 'stage4-13',
+      'inference-stage4-entity-state': 'stage4-17',
       'inference-stage5-intro-card-update': 'stage5',
       'inference-stage5-profile-gate': 'stage6',
       'inference-stage5-body-profile-patch': 'stage7',
@@ -392,7 +586,7 @@ window.GameModules.realWorldAgentLoop = {
     if (/Stage\s*6|外观判定/iu.test(sourceTitle)) return 'stage6';
     if (/Stage\s*5|介绍卡/iu.test(sourceTitle)) return 'stage5';
     if (sourceTitle.includes('场景锚定') || /Stage\s*2/iu.test(sourceTitle)) return 'stage2';
-    const stage4Sub = sourceTitle.match(/Stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])/iu);
+    const stage4Sub = sourceTitle.match(/Stage\s*4\s*[-–—]\s*(1[0-7]|[1-9])/iu);
     if (stage4Sub) return `stage4-${stage4Sub[1]}`;
     if (/Stage\s*4|滑动结算|状态结算/iu.test(sourceTitle)) return 'stage4';
     if (config.streamToUi) return 'stage3';
@@ -419,6 +613,9 @@ window.GameModules.realWorldAgentLoop = {
       'stage4-12': 'Stage4-12 角色卡补充更新',
       'stage4-13': 'Stage4-13 社交驱动',
       'stage4-14': 'Stage4-14 角色想法补足',
+      'stage4-15': 'Stage4-15 金钱结算',
+      'stage4-16': 'Stage4-16 专用术语结算',
+      'stage4-17': 'Stage4-17 实体状态结算',
       stage5: 'Stage5 介绍卡更新',
       stage6: 'Stage6 外观判定',
       stage7: 'Stage7 自然外观补丁',
@@ -448,7 +645,7 @@ window.GameModules.realWorldAgentLoop = {
         id: attempt > 0 ? `stage4-${attempt}` : 'stage4',
       };
     }
-    if (/^stage4-(?:[1-9]|1[0-4])$/u.test(phase)) return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
+    if (/^stage4-(?:[1-9]|1[0-7])$/u.test(phase)) return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     if (/^stage(?:[2-9]|1[0-3])$/u.test(phase)) {
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
     }
@@ -464,7 +661,7 @@ window.GameModules.realWorldAgentLoop = {
   },
 
   parseReasoningLabel(label = '') {
-    const stage4Pass = String(label || '').trim().match(/^Stage\s*4\s*[-–—]\s*(1[0-4]|[1-9])/iu);
+    const stage4Pass = String(label || '').trim().match(/^Stage\s*4\s*[-–—]\s*(1[0-7]|[1-9])/iu);
     if (stage4Pass) {
       const phase = `stage4-${stage4Pass[1]}`;
       return { phase, step: 0, label: this.stagePhaseLabel(phase), id: phase };
@@ -501,7 +698,7 @@ window.GameModules.realWorldAgentLoop = {
       if (storedPhase === 'stage4') {
         return { phase: storedPhase, step, label: String(section?.label || (step > 0 ? `Stage4 状态结算 - ${step + 1}` : 'Stage4 状态结算')), id: id || (step > 0 ? `stage4-${step}` : 'stage4') };
       }
-      if (/^stage4-(?:[1-9]|1[0-4])$/u.test(storedPhase)) {
+      if (/^stage4-(?:[1-9]|1[0-7])$/u.test(storedPhase)) {
         return { phase: storedPhase, step: 0, label: String(section?.label || this.stagePhaseLabel(storedPhase)), id: id || storedPhase };
       }
       const fallbackLabels = {
@@ -529,7 +726,7 @@ window.GameModules.realWorldAgentLoop = {
       const step = Number(stage1Match[1]) || 1;
       return { phase: 'stage1', step, label: this.stagePhaseLabel('stage1', step), id: `stage1-${step}` };
     }
-    if (/^stage4-(?:[1-9]|1[0-4])$/u.test(id)) return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
+    if (/^stage4-(?:[1-9]|1[0-7])$/u.test(id)) return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     if (/^stage(?:[2-9]|10)$/u.test(id)) {
       return { phase: id, step: 0, label: this.stagePhaseLabel(id), id };
     }
@@ -621,7 +818,7 @@ window.GameModules.realWorldAgentLoop = {
   isSettlementReasoning(config = {}) {
     if (config.settlementThinking) return true;
     const phase = this.inferReasoningPhase(config);
-    return /^stage4(?:-(?:[1-9]|1[0-4]))?$|^stage(?:[5-9]|1[0-3])$/u.test(phase);
+    return /^stage4(?:-(?:[1-9]|1[0-7]))?$|^stage(?:[5-9]|1[0-3])$/u.test(phase);
   },
 
   settlementReasoningLabel(meta = {}, config = {}) {
@@ -742,7 +939,14 @@ window.GameModules.realWorldAgentLoop = {
   async runConfigured(store, action, logId = null, config = this.realConfig()) {
     config = this.withDeepSeekKvCacheSession(store, config);
     store.realWorldAgentActiveKvByMode = store.realWorldAgentActiveKvByMode || {};
-    store.realWorldAgentActiveKvByMode[config.mode] = config.kvCacheSession || null;
+    const kvMode = this.kvMode(config);
+    const contextRoundId = String(config.contextRoundId || `${kvMode}-round-${Date.now()}-${++this.kvCacheSeq}`);
+    config = { ...config, contextRoundId };
+    if (config.kvCacheSession) {
+      config.kvCacheSession.currentRoundId = contextRoundId;
+      config.kvCacheSession.model = config.model || store?.modelId || store?.settingsState?.textModelId || '';
+    }
+    store.realWorldAgentActiveKvByMode[kvMode] = config.kvCacheSession || null;
     const ctx = config.ctx;
     if (!ctx) throw new Error(`${config.label || 'Loop'}上下文未加载`);
     try {
@@ -790,14 +994,14 @@ window.GameModules.realWorldAgentLoop = {
         break;
       }
       const final = await this.generateConfiguredFinal({ store, action, base, loaded, skills, trace, materialSession, logId, prompt: lastPrompt, raw: lastRaw, config });
-      this.persistAgentConversation(store, config.kvCacheSession, config.mode);
+      this.persistAgentConversation(store, config.kvCacheSession, kvMode);
       return final;
     } finally {
       // 主循环结束后把本轮 KV 暂存为 pending，供 Stage9 地图周围解锁继续追加命中前缀缓存。
-      if (store.realWorldAgentActiveKvByMode?.[config.mode] === (config.kvCacheSession || null)) {
+      if (store.realWorldAgentActiveKvByMode?.[kvMode] === (config.kvCacheSession || null)) {
         store.realWorldAgentPendingKvByMode = store.realWorldAgentPendingKvByMode || {};
-        if (config.kvCacheSession) store.realWorldAgentPendingKvByMode[config.mode] = config.kvCacheSession;
-        delete store.realWorldAgentActiveKvByMode[config.mode];
+        if (config.kvCacheSession) store.realWorldAgentPendingKvByMode[kvMode] = config.kvCacheSession;
+        delete store.realWorldAgentActiveKvByMode[kvMode];
       }
     }
   },
@@ -849,13 +1053,13 @@ window.GameModules.realWorldAgentLoop = {
     this.showConfiguredNarration(store, logId, narration, config);
     this.patchConfiguredSettlementThinking(store, logId, '正文已完成，准备进入结算。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
 
-    let settlementPrompt = 'Stage4 状态结算', settlementRaw = '', updates = {}, profilePatches = [];
+    let settlementPrompt = 'Stage4 状态结算', settlementRaw = '', updates = {}, profilePatches = [], moneySettlement = null, entitySettlement = null;
     const participants = this.mergeNarrationParticipants(this.stageParticipants(effectiveSceneLayers, loaded, store), narration, store, sceneAnchor.data);
     try {
       this.markConfiguredStep(store, logId, `${config.label}正文已完成，正在串行结算…`, config, { keepNarration: true });
       const stage4Passes = this.stage4SettlementPasses(config, store);
       const stage4PassFlow = stage4Passes.filter((pass) => (pass.types || []).length).map((pass) => pass.label).join(' → ');
-      this.patchConfiguredSettlementThinking(store, logId, `正文已完成，正在串行结算（${stage4PassFlow} → Stage4-13 社交驱动 → Stage4-14 角色想法补足 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
+      this.patchConfiguredSettlementThinking(store, logId, `正文已完成，正在串行结算（${stage4PassFlow} → Stage4-13 社交驱动 → Stage4-14 角色想法补足 → Stage4-15 金钱结算 → Stage4-16 专用术语结算 → Stage4-17 实体状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯；地图周围解锁为 Stage10）。`, { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
       let stage4Updates;
       try {
         const stage4Results = [];
@@ -917,6 +1121,67 @@ window.GameModules.realWorldAgentLoop = {
           ...stage4Updates,
           characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...socialDriveResult.lines],
         };
+      }
+      const moneyStage = window.GameModules.inferenceMoneyStageUpdate;
+      if (moneyStage?.runAfterStage4) {
+        moneySettlement = await moneyStage.runAfterStage4({
+          store,
+          action,
+          narration,
+          updates: stage4Updates,
+          participants,
+          logId,
+          config: postBodyKvConfig,
+          loop: this,
+          priorStageSummary: { stage4Updates },
+        });
+        if (moneySettlement?.lines?.length) {
+          stage4Updates = {
+            ...stage4Updates,
+            moneySettlement,
+            characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...moneySettlement.lines],
+          };
+        }
+      }
+      const lexiconStage = window.GameModules.inferenceLexiconStageUpdate;
+      if (lexiconStage?.runAfterStage4) {
+        const lexiconSettlement = await lexiconStage.runAfterStage4({
+          store,
+          action,
+          narration,
+          updates: stage4Updates,
+          participants,
+          logId,
+          config: postBodyKvConfig,
+          loop: this,
+        });
+        if (lexiconSettlement?.lines?.length) {
+          stage4Updates = {
+            ...stage4Updates,
+            lexiconSettlement,
+            characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...lexiconSettlement.lines],
+          };
+        }
+      }
+      const entityStage = window.GameModules.inferenceEntityStageUpdate;
+      if (entityStage?.runAfterStage4) {
+        entitySettlement = await entityStage.runAfterStage4({
+          store,
+          action,
+          narration,
+          updates: stage4Updates,
+          participants,
+          logId,
+          config: postBodyKvConfig,
+          loop: this,
+        });
+        if (entitySettlement?.lines?.length) {
+          stage4Updates = {
+            ...stage4Updates,
+            entitySettlement,
+            characterCardChanges: [...(stage4Updates.characterCardChanges || []), ...entitySettlement.lines],
+          };
+        }
       }
       const introStage5 = window.GameModules.inferenceIntroCardStageUpdate;
       const introStage5Result = introStage5?.runAfterSettlement
@@ -1036,7 +1301,7 @@ window.GameModules.realWorldAgentLoop = {
         }
       }
       this.patchConfiguredSettlementThinking(store, logId, '结算完成，正在写入本回合状态与日志。', { ...config, settlementThinking: true, settlementThinkingKey: 'settlement-status', settlementThinkingLabel: '结算状态', livePatch: true });
-      settlementPrompt = `${stage4PassFlow} → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯（Stage10 地图周围解锁在落库后）`;
+      settlementPrompt = `${stage4PassFlow} → Stage4-13 社交驱动 → Stage4-14 角色想法补足 → Stage4-15 金钱结算 → Stage4-16 专用术语结算 → Stage4-17 实体状态结算 → Stage5 介绍卡 → Stage6–8 外观 → Stage9 势力更新 → Stage11 经验结算 → Stage12 新闻热榜 → Stage13 职业生涯（Stage10 地图周围解锁在落库后）`;
       settlementRaw = JSON.stringify({
         settlement: updates,
         introStage5: { cards: introStage5Result.cards?.map((card) => ({ id: card.id, name: card.name, displayType: card.displayType })) || [] },
@@ -1047,6 +1312,8 @@ window.GameModules.realWorldAgentLoop = {
         learnedGains,
         newsOps,
         careerUpdate,
+        moneySettlement,
+        entitySettlement,
       });
     } catch (err) {
       console.warn(`${config.label}串行结算失败，保留已生成正文并使用最小结算:`, err.message);
@@ -1054,7 +1321,7 @@ window.GameModules.realWorldAgentLoop = {
       updates = this.fallbackUpdateJson(store, action, config);
       settlementRaw = JSON.stringify(updates);
     }
-    const resultPayload = { ...updates, profilePatches };
+    const resultPayload = { ...updates, profilePatches, moneySettlement, entitySettlement };
     const result = config.mode === 'story' ? this.mergeStoryNarrationAndUpdates(store, narration, resultPayload, config) : this.mergeNarrationAndUpdates(store, narration, resultPayload, config);
     const anchoredTrace = trace.map((item, index) => index === trace.length - 1 ? { ...item, anchorReport: sceneAnchor.data } : item);
     return { result, prompt: `---SCENE_ANCHOR---\n${sceneAnchorPrompt}\n\n---NARRATION---\n${narrationPrompt}\n\n---SETTLEMENT_JSON---\n${settlementPrompt}`, loaded, raw: `${sceneAnchor.raw}\n\n${narrationRaw}\n\n${settlementRaw}`, trace: anchoredTrace, deepseekCache: this.deepSeekKvCacheSummary(config.kvCacheSession) };
@@ -4106,6 +4373,8 @@ window.GameModules.realWorldAgentLoop = {
       genericUpdates: Array.isArray(updates.genericUpdates) ? updates.genericUpdates : [],
       events: Array.isArray(updates.events) ? updates.events : [],
       profilePatches: Array.isArray(updates.profilePatches) ? updates.profilePatches : [],
+      moneySettlement: updates.moneySettlement || null,
+      entitySettlement: updates.entitySettlement || null,
     };
     return window.GameModules.updateRegistry?.finalizeGenericUpdates?.({
       ...payload,
@@ -4272,7 +4541,7 @@ window.GameModules.realWorldAgentLoop = {
     };
     const session = this.resolveKvCacheSession(store, 'real', options.kvCacheSession || null);
     let config = session ? { ...baseConfig, kvCacheSession: session } : this.withDeepSeekKvCacheSession(store, baseConfig);
-    const shouldPersist = !session && config.kvCacheSession && config.kvCacheSession.persist !== false && !config.kvCacheSession.fork;
+    const shouldPersist = config.kvCacheSession && config.kvCacheSession.persist !== false && !config.kvCacheSession.fork;
     const logId = options.logId || null;
     const output = await this.completeConfiguredStep(store, options.prompt || '', logId, false, config);
     if (shouldPersist) this.persistAgentConversation(store, config.kvCacheSession, 'real');
@@ -4301,8 +4570,15 @@ window.GameModules.realWorldAgentLoop = {
   async completeConfiguredStep(store, prompt, logId, streamToUi = false, config = this.realConfig()) {
     const requestId = config.mode === 'story' ? window.GameModules.ai.latestRequestId : window.GameModules.realWorldAi.latestRequestId;
     const kvCacheSession = config.kvCacheSession || null;
-    const currentMessages = Array.isArray(prompt) ? prompt : null;
-    const kvMessages = kvCacheSession ? this.messagesForDeepSeekKvCache(kvCacheSession, prompt) : null;
+    if (!config.contextRoundId) {
+      const kvMode = this.kvMode(config);
+      const contextRoundId = kvCacheSession?.currentRoundId || `${kvMode}-round-${Date.now()}-${++this.kvCacheSeq}`;
+      config = { ...config, contextRoundId };
+    }
+    if (kvCacheSession) {
+      kvCacheSession.currentRoundId = config.contextRoundId;
+      kvCacheSession.model = config.model || store?.modelId || store?.settingsState?.textModelId || '';
+    }
     let buffer = '';
     let doneSeen = false;
     let doneInfo = {};
@@ -4310,11 +4586,14 @@ window.GameModules.realWorldAgentLoop = {
     let lastReasoningPaint = 0;
     const reasoningMeta = this.reasoningSectionMeta(config);
     const reasoningKey = String(config.reasoningKey || reasoningMeta.id);
+    const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
+    const contextMeta = this.requestContextMeta({ ...config, reasoningPhase: normalizedPhase }, streamToUi);
+    const currentMessages = this.promptToMessages(prompt, contextMeta);
+    const kvMessages = kvCacheSession ? this.messagesForDeepSeekKvCache(kvCacheSession, prompt, contextMeta) : null;
     try {
       const completionOptions = this.configuredCompletionOptions(config, streamToUi);
       const expectsJson = Boolean(completionOptions.jsonMode);
       // 仅 Stage3 正文启用思考模式；其余阶段无论是否 JSON 都明确关闭。
-      const normalizedPhase = this.normalizeReasoningPhase(config.reasoningPhase || (streamToUi ? 'stage3' : 'unknown'));
       const requestJsonMode = expectsJson;
       const wantsDeepThinking = normalizedPhase === 'stage3'
         && !requestJsonMode
@@ -4418,7 +4697,7 @@ window.GameModules.realWorldAgentLoop = {
         if (config.mode === 'story') store.updateStoryAgentStream?.(logId, buffer);
         else store.updateRealWorldStream?.(logId, buffer, { live: true });
       }
-      if (kvMessages) this.rememberDeepSeekKvCache(kvCacheSession, kvMessages, output, doneInfo);
+      if (kvMessages) this.rememberDeepSeekKvCache(kvCacheSession, kvMessages, output, { ...doneInfo, contextMeta });
       return output;
     } catch (err) {
       console.warn(`${config.label} Loop Agent 请求未完成，拒绝使用未完成内容:`, { code: err.code, message: err.message, doneSeen, length: buffer.length, stack: err.stack });

@@ -90,8 +90,9 @@ window.GameModules.realWorldAgentContext = {
     const playerState = store?.playerIdentityState?.() || store?.rpgStates?.['player-self'] || null;
     const player = store?.playerName || store?.playerProfile?.name || playerState?.profile?.name || playerState?.name || '玩家';
     const playerLocation = playerState?.profile?.currentLocation || playerState?.values?.current_location?.name || '';
-    const priorCount = store?.realWorldAgentKvByMode?.[config?.mode || 'real']?.messages?.length || 0;
-    const wechatInContext = window.GameModules.realWorldAgentLoop?.summarizeWechatInAgentContext?.(store, config?.mode || 'real');
+    const kvMode = window.GameModules.realWorldAgentLoop?.kvMode?.(config) || config?.mode || 'real';
+    const priorCount = store?.realWorldAgentKvByMode?.[kvMode]?.messages?.length || 0;
+    const wechatInContext = window.GameModules.realWorldAgentLoop?.summarizeWechatInAgentContext?.(store, kvMode);
     const actionText = String(action || '');
     const orgTerritoryHint = /夺控|法域|归属|控势|起义|独立|领土|管辖|组织|势力|公司|社区|政府/u.test(actionText)
       ? `组织/控势线索：base 已含 Org Index 与 Territory Hot（仅已揭示）。优先资料请求：控势查询，控势摘要，${location}；或势力查询，势力档案，关键词。brief 不足且 step≥3 才请求势力详情/地点控势详情。禁止 Stage1 写入势力或改控势。`
@@ -108,7 +109,7 @@ window.GameModules.realWorldAgentContext = {
       orgTerritoryHint,
       this.scheduleCandidateHintText(store, action, location),
       priorCount
-        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息，持久化不压缩）。前轮资料、微信对话追加与之后的结算/正文变更都可综合使用；请对照当前桌面时间与本轮行动，判断现有上下文是否已能支撑正文。仅当缺失、冲突或无法可靠还原时才重新请求。`
+        ? `前轮完整推演上下文：已通过对话链继承（${priorCount} 条消息）。持久链会按当前模型输入窗口在超过 97% 时直接抽取旧消息，优先移除旧阶段提示词/返回与记录，保留旧正文；最新一轮完整保留。前轮资料、微信对话追加与之后的结算/正文变更都可综合使用；请对照当前桌面时间与本轮行动，判断现有上下文是否已能支撑正文。仅当缺失、冲突或无法可靠还原时才重新请求。`
         : '',
       ...(wechatInContext?.hint ? [wechatInContext.hint] : []),
     ].filter(Boolean).join('\n');

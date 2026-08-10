@@ -238,6 +238,26 @@ window.GameModules = window.GameModules || {};
       return `已新增专用术语：${name}\n摘要：${summary}\n定义：${description}`;
     },
 
+    entity(store, method, params = {}) {
+      const keyword = String(params.keyword || params.name || params.entityName || '').trim();
+      const includeHistory = method === 'searchEntityHistory' || method === 'getEntityDetail';
+      if (method === 'listEntities') return window.GameModules.entityStateStore?.searchText?.(store, params, { includeHistory: false, limit: Number(params.limit) || 12 }) || '实体状态系统不可用。';
+      if (method === 'searchEntityOne') {
+        const hit = window.GameModules.entityStateStore?.search?.(store, params)?.[0];
+        return hit ? window.GameModules.entityStateStore.entityDetail(hit, { includeHistory: false }) : '未命中实体状态。';
+      }
+      if (method === 'searchEntityHistory' || method === 'getEntityDetail') {
+        const hit = window.GameModules.entityStateStore?.search?.(store, params)?.[0];
+        return hit ? window.GameModules.entityStateStore.entityDetail(hit, { includeHistory: true, maxHistory: Number(params.historyLimit) || 8 }) : '未命中实体历史。';
+      }
+      if (method === 'searchEntityWindow') {
+        const hit = window.GameModules.entityStateStore?.search?.(store, params)?.[0];
+        const raw = hit ? window.GameModules.entityStateStore.entityRawText(hit) : '';
+        return hit ? (this.sliceAround(raw, keyword, params.beforeChars, params.afterChars) || window.GameModules.entityStateStore.entityDetail(hit, { includeHistory })) : '未命中实体状态。';
+      }
+      return window.GameModules.entityStateStore?.searchText?.(store, params, { includeHistory, limit: Number(params.limit) || 8 }) || '实体状态系统不可用。';
+    },
+
     memoryRawText(characterId = 'player-self') {
       const memory = window.GameModules.characterMemory?.ensure?.(characterId);
       return JSON.stringify(memory || {}, null, 2);

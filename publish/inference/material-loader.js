@@ -54,7 +54,7 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
 
 
   async skillText() {
-    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'character.query', 'past.event.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'item.query', 'wechat.query', 'wechat.message.incoming', 'realworld.vitals.adjust'];
+    const ids = ['emotion.feeling.wearing.assess', 'memory.query', 'character.query', 'past.event.query', 'company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'lexicon.query', 'entity.query', 'item.query', 'wechat.query', 'wechat.message.incoming', 'realworld.vitals.adjust'];
     const texts = await Promise.all(ids.map((id) => window.GameModules.skillLoader?.instruction?.(id) || ''));
     const crossWorld = ['# 跨世界资料查询', '每个 request.params 可写 world/worldTag 指定资料所属世界；默认现实世界。需要作品/异世界资料时写作品名，并用 worklore.query 查询。', window.GameModules.workLoreMaterials?.skillText?.() || ''].filter(Boolean).join('\n');
     return [crossWorld, ...texts.filter(Boolean)].join('\n\n');
@@ -144,12 +144,13 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (skill === 'faction.query') return 1600;
     if (skill === 'worklore.query') return 1800;
     if (skill === 'lexicon.query') return 1200;
+    if (skill === 'entity.query') return 1600;
     return 1000;
   },
 
 
   unsupportedMaterialText(skill = '', method = '') {
-    const allowed = ['company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'news.query', 'memory.query', 'character.query', 'past.event.query', 'lexicon.query', 'item.query', 'wechat.query', 'worklore.query'];
+    const allowed = ['company.query', 'faction.query', 'realworld.location.query', 'realworld.history.query', 'news.query', 'memory.query', 'character.query', 'past.event.query', 'lexicon.query', 'entity.query', 'item.query', 'wechat.query', 'worklore.query'];
     return [
       `资料请求未执行：${skill || '未知 skill'}.${method || '未知 method'} 不是当前资料阶段可用 skill。`,
       `可用 skill：${allowed.join('、')}。`,
@@ -185,6 +186,10 @@ window.GameModules.realWorldAgentContextParts.materialLoader = {
     if (skill === 'lexicon.query') {
       if (typeof realContext?.lexicon === 'function') return await realContext.lexicon(store, method, params);
       return '词条查询模块未加载。';
+    }
+    if (skill === 'entity.query') {
+      if (typeof realContext?.entity === 'function') return await realContext.entity(store, method, params);
+      return '实体状态查询模块未加载。';
     }
     if (skill === 'item.query') {
       if (typeof realContext?.itemQuery === 'function') return await realContext.itemQuery(store, method, params);

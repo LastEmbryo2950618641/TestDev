@@ -50,6 +50,13 @@ window.GameModules.aiRequest = {
     return (messages || []).map((msg) => String(msg?.content || '').length);
   },
 
+  providerMessages(messages = []) {
+    return (Array.isArray(messages) ? messages : []).map((msg) => ({
+      role: String(msg?.role || 'user'),
+      content: String(msg?.content || ''),
+    }));
+  },
+
   outputLengthThreshold(options = {}) {
     return Number(options.outputLengthThreshold || 2400);
   },
@@ -312,7 +319,8 @@ window.GameModules.aiRequest = {
     const startAt = Date.now();
     this.actualCount += 1;
     this.log('开始', { id: options.id, source: options.source, actualNo: this.actualCount, attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt, model: options.model, maxTokens: options.maxTokens || 'sdk-default', messageLengths: this.lengths(options.messages) });
-    const payload = { model: options.model, messages: options.messages };
+    const providerMessages = this.providerMessages(options.messages);
+    const payload = { model: options.model, messages: providerMessages };
     if (options.maxTokens !== undefined && options.maxTokens !== null) payload.maxTokens = options.maxTokens;
     this.logRawRequest(options, payload, { attempt: attempt + 1, queueWaitMs: startAt - options.enqueueAt });
     const progressRecord = (status = 'running') => {
@@ -332,6 +340,7 @@ window.GameModules.aiRequest = {
     const request = provider.complete({
       ...options,
       suppressTokenStats: true,
+      messages: providerMessages,
       payload,
       onChunk: async (chunk, done, providerInfo = {}) => {
         mergeResponseMeta(providerInfo);

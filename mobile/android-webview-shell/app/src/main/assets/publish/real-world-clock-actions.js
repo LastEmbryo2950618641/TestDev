@@ -27,6 +27,7 @@ window.GameModules.realWorldClockActions = {
     const delta = Math.max(0, Math.min(2592000, Math.round(Number(seconds) || 0))) * 1000;
     this.phoneFixedTime += delta;
     this.refreshPhoneClockLabels?.();
+    this.settleCompanyMonthIfNeeded?.(new Date(this.phoneFixedTime));
   },
 
   phoneDate() { this.ensurePhoneFixedTime(); return new Date(this.phoneFixedTime); },

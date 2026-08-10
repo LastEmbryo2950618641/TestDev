@@ -16,6 +16,12 @@ window.GameModules.config = {
     prod: { cacheRoots: ['./', ''], sourceRoots: ['assets'] },
   },
   rag: { maxIndexFiles: 3, maxCandidateFiles: 8, defaultResultLimit: 3, logFiles: true },
+  modelInputWindows: {
+    'deepseek-v4-flash': 1000000,
+    'deepseek-v4-pro': 1000000,
+    'nalang-turbo-0101': 32000,
+    'nalang-turbo-0826': 32000,
+  },
   defaultModelId: 'deepseek-v4-flash',
   preferredTextModelIds: ['deepseek-v4-flash', 'deepseek-v4-pro'],
   textProviders: {

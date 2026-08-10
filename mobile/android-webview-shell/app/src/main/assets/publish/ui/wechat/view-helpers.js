@@ -166,11 +166,12 @@ window.GameModules.wechatViewHelpers = Object.assign(window.GameModules.wechatVi
 
 window.GameModules.wechatViewHelpers = Object.assign(window.GameModules.wechatViewHelpers || {}, {
   wechatMeEntryRows() {
+    const balance = Number(this.playerProfile?.wealthAmount || 0);
     return [
       {
         key: 'wallet',
         label: '钱包',
-        value: '￥ 0.00',
+        value: `￥ ${balance.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       },
     ];
   },

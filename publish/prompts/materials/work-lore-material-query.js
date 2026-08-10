@@ -44,7 +44,7 @@ window.GameModules.workLoreQuery = {
 
   async defaultLoad(source) {
     const readme = await window.GameModules.rag.fetchText(`${source.base}/README.md`);
-    const paths = window.GameModules.rag.extractPaths(readme).filter((path) => path.startsWith('00_常驻加载/')).slice(0, 6);
+    const paths = window.GameModules.rag.extractPaths(readme).filter((path) => path.startsWith('00_常驻加载/'));
     const rows = [];
     for (const path of paths) rows.push(await this.file(source, path, 420));
     return rows.filter(Boolean).join('\n\n') || this.slice(readme, 2200);
@@ -63,6 +63,7 @@ window.GameModules.workLoreQuery = {
     const indexes = this.indexPaths[method] || [];
     const terms = window.GameModules.rag.expandTerms(keyword);
     const files = ['README.md'];
+    const indexSet = new Set(indexes);
     for (const indexPath of indexes) {
       const indexText = await window.GameModules.rag.fetchText(`${source.base}/${indexPath}`);
       files.push(indexPath, ...this.pickPaths(indexText, indexPath, terms, params.limit || 5));
@@ -75,10 +76,17 @@ window.GameModules.workLoreQuery = {
     for (const path of window.GameModules.rag.unique(files).slice(0, 10)) {
       const text = await window.GameModules.rag.fetchText(`${source.base}/${path}`);
       const score = window.GameModules.rag.score(`${path}\n${text}`, terms) + (path.endsWith('索引.md') ? 4 : 0);
-      if (score > 0 || path.endsWith('索引.md')) scored.push({ path, text, score });
+      const lookupOnly = indexSet.has(path) || /(?:剧情索引|时间线索引)\.md$/u.test(path);
+      if (score > 0 || path.endsWith('索引.md')) scored.push({ path, text, score, lookupOnly });
     }
     scored.sort((a, b) => b.score - a.score);
-    const picked = scored.slice(0, 4);
+    const picked = scored.filter((item) => !item.lookupOnly).slice(0, 4);
+    if (!picked.length) {
+      const indexHits = scored.filter((item) => item.lookupOnly).slice(0, 2);
+      if (indexHits.length) {
+        return indexHits.map((item, i) => `[作品索引命中${i + 1}｜${this.hitLevel(item.score)}命中] ${source.name}/${item.path}\n命中依据：${this.hitTerms(item.text, terms).join('、') || '索引/结构匹配'}\n${this.indexExcerpt(item.text, keyword, item.path, Number(params.maxChars) || 1200)}`).join('\n\n');
+      }
+    }
     const perItemMax = Math.max(360, Math.floor((Number(params.maxChars) || 1800) / Math.max(1, picked.length)));
     return picked.map((item, i) => `[作品资料${i + 1}｜${this.hitLevel(item.score)}命中] ${source.name}/${item.path}\n命中依据：${this.hitTerms(item.text, terms).join('、') || '索引/结构匹配'}\n${this.excerpt(item.text, keyword, item.path, perItemMax)}`).join('\n\n') || '未命中作品设定资料。';
   },
@@ -110,6 +118,15 @@ window.GameModules.workLoreQuery = {
     const head = lines.slice(0, 5);
     const hits = lines.filter((line) => terms.some((term) => line.includes(term))).slice(0, 10);
     return this.slice(window.GameModules.rag.unique([...head, ...hits]).join('\n'), max || 1800);
+  },
+
+  indexExcerpt(text = '', keyword = '', path = '', max = 1200) {
+    const terms = window.GameModules.rag.expandTerms(`${keyword} ${path}`);
+    const lines = String(text || '').replace(/\r/g, '').split('\n').map((line) => line.trim()).filter(Boolean);
+    const header = lines.filter((line) => /^#|^\|.*(?:编号|标题|时间|文件|人物|介绍)/u.test(line)).slice(0, 4);
+    const hits = lines.filter((line) => terms.some((term) => term && line.includes(term))).slice(0, 12);
+    const body = window.GameModules.rag.unique([...header, ...hits]).join('\n');
+    return this.slice(body || '索引仅用于本地检索，未返回全文。', max || 1200);
   },
 
   slice(text = '', max = 1600) { return String(text || '').trim().slice(0, max); },

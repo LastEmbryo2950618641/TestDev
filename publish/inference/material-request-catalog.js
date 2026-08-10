@@ -217,6 +217,12 @@ window.GameModules.realWorldAgentContextParts.materialRequestCatalog = {
       { mode: 'real', category: '控势查询', action: '地点控势详情', skill: 'faction.query', method: 'getTerritoryControl', requiredParams: ['locationName'], buildParams: (p) => ({ locationName: p[0] || '', world: p[1] || world() }) },
       { mode: 'both', category: '物品查询', action: '角色物品', skill: 'item.query', method: 'listCharacterItems', requiredParams: ['target'], buildParams: (p) => ({ target: p[0] || '' }) },
       { mode: 'both', category: '物品查询', action: '搜索已知物品', skill: 'item.query', method: 'searchKnownItem', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '' }) },
+      { mode: 'both', category: '术语查询', action: '术语列表', skill: 'lexicon.query', method: 'listTerms', requiredParams: [], buildParams: (p) => ({ world: p[0] || world() }) },
+      { mode: 'both', category: '术语查询', action: '搜索术语', skill: 'lexicon.query', method: 'searchTermOne', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
+      { mode: 'both', category: '术语查询', action: '术语窗口', skill: 'lexicon.query', method: 'searchTermWindow', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
+      { mode: 'real', category: '实体查询', action: '实体列表', skill: 'entity.query', method: 'listEntities', requiredParams: [], buildParams: (p) => ({ keyword: p[0] || '', world: p[1] || world() }) },
+      { mode: 'real', category: '实体查询', action: '实体当前态', skill: 'entity.query', method: 'searchEntityOne', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', owner: p[1] || '', location: p[2] || '', container: p[3] || '', world: p[4] || world() }) },
+      { mode: 'real', category: '实体查询', action: '实体历史链', skill: 'entity.query', method: 'searchEntityHistory', requiredParams: ['keyword'], buildParams: (p) => ({ keyword: p[0] || '', owner: p[1] || '', location: p[2] || '', container: p[3] || '', world: p[4] || world() }) },
     ];
   },
 
